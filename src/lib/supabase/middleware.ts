@@ -33,7 +33,7 @@ export async function updateSession(request: NextRequest) {
   }
 
   if (user && path === '/login') {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/', request.url))
   }
 
   return supabaseResponse

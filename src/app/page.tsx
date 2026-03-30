@@ -7,13 +7,18 @@ export default async function Home() {
 
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
+  try {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single()
 
-  if (profile?.role === 'superadmin') redirect('/superadmin')
-  if (profile?.role === 'brand_admin') redirect('/admin')
-  redirect('/advisor')
+    if (profile?.role === 'superadmin') redirect('/superadmin')
+    if (profile?.role === 'brand_admin') redirect('/admin')
+    redirect('/advisor')
+  } catch {
+    // Si la tabla profiles no existe aún (schema no aplicado), mostrar pantalla de setup
+    redirect('/setup')
+  }
 }
