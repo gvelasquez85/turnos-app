@@ -1,0 +1,32 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { ReportsDashboard } from './ReportsDashboard'
+
+export default async function ReportsPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase.from('profiles').select('role, brand_id, establishment_id').eq('id', user.id).single()
+
+  // Load establishments the user can see
+  const estQuery = supabase.from('establishments').select('id, name').eq('active', true)
+  if (profile?.role === 'advisor' && profile.establishment_id) {
+    estQuery.eq('id', profile.establishment_id)
+  } else if (profile?.role === 'brand_admin' && profile.brand_id) {
+    estQuery.eq('brand_id', profile.brand_id)
+  }
+  const { data: establishments } = await estQuery
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="mb-6">
+          <h1 className="text-xl font-bold text-gray-900">Reportes</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Estadísticas de atención al cliente</p>
+        </div>
+        <ReportsDashboard establishments={establishments || []} />
+      </div>
+    </div>
+  )
+}
