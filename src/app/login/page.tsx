@@ -1,16 +1,27 @@
 'use client'
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (searchParams.get('error') === 'auth_callback_error') {
+      setError('El enlace expiró o es inválido. Solicita uno nuevo.')
+    }
+    if (searchParams.get('message') === 'password_updated') {
+      setInfo('Contraseña actualizada correctamente. Ya puedes ingresar.')
+    }
+  }, [searchParams])
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
@@ -19,7 +30,13 @@ export default function LoginPage() {
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
-      setError('Credenciales incorrectas')
+      if (error.message.includes('Email not confirmed')) {
+        setError('Debes confirmar tu correo antes de ingresar. Revisa tu bandeja de entrada.')
+      } else if (error.message.includes('Invalid login credentials')) {
+        setError('Correo o contraseña incorrectos.')
+      } else {
+        setError(error.message)
+      }
       setLoading(false)
     } else {
       router.push('/')
@@ -54,12 +71,29 @@ export default function LoginPage() {
             onChange={e => setPassword(e.target.value)}
             required
           />
-          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+          {error && (
+            <div className="text-sm text-red-600 text-center bg-red-50 rounded-lg px-3 py-2">
+              {error}
+            </div>
+          )}
+          {info && (
+            <div className="text-sm text-green-700 text-center bg-green-50 rounded-lg px-3 py-2">
+              {info}
+            </div>
+          )}
           <Button type="submit" loading={loading} size="lg" className="w-full mt-2">
             Ingresar
           </Button>
         </form>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   )
 }
