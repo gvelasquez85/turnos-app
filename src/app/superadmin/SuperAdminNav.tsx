@@ -3,11 +3,15 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { Building2, Users, BarChart2, LogOut } from 'lucide-react'
+import { Building2, Users, BarChart2, LogOut, Store, MessageSquare, FileText, Tag } from 'lucide-react'
 
 const links = [
   { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
   { href: '/superadmin/users', label: 'Usuarios', icon: Users },
+  { href: '/admin', label: 'Establecimientos', icon: Store, exact: true },
+  { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
+  { href: '/admin/advisor-fields', label: 'Campos', icon: FileText },
+  { href: '/admin/promotions', label: 'Promociones', icon: Tag },
   { href: '/reports', label: 'Reportes', icon: BarChart2 },
 ]
 

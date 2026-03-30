@@ -17,15 +17,21 @@ export function EstablishmentsManager({ establishments: initial, brands, default
   const [establishments, setEstablishments] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Establishment | null>(null)
-  const [form, setForm] = useState({ name: '', slug: '', address: '', brand_id: defaultBrandId || '' })
+  // Si hay una sola marca y no hay default, la preseleccionamos automáticamente
+  const autoBrandId = defaultBrandId || (brands.length === 1 ? brands[0].id : '')
+  const [form, setForm] = useState({ name: '', slug: '', address: '', brand_id: autoBrandId })
+  const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
   const [qrModal, setQrModal] = useState<{ slug: string; dataUrl: string } | null>(null)
 
-  function openNew() { setEditing(null); setForm({ name: '', slug: '', address: '', brand_id: defaultBrandId || '' }); setShowForm(true) }
+  function openNew() { setEditing(null); setFormError(''); setForm({ name: '', slug: '', address: '', brand_id: autoBrandId }); setShowForm(true) }
   function openEdit(e: Establishment) { setEditing(e); setForm({ name: e.name, slug: e.slug, address: e.address || '', brand_id: e.brand_id }); setShowForm(true) }
 
   async function handleSave() {
-    if (!form.name || !form.slug || !form.brand_id) return
+    setFormError('')
+    if (!form.name) { setFormError('El nombre es requerido'); return }
+    if (!form.slug) { setFormError('El slug es requerido'); return }
+    if (!form.brand_id) { setFormError('Debes seleccionar una marca'); return }
     setLoading(true)
     const supabase = createClient()
     if (editing) {
@@ -76,7 +82,8 @@ export function EstablishmentsManager({ establishments: initial, brands, default
             />
             <Input label="Slug (URL) *" value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value }))} />
             <Input label="Dirección" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className="md:col-span-2" />
-            {brands.length > 1 && (
+            {/* Mostrar selector siempre que el superadmin no tenga una marca asignada */}
+            {!defaultBrandId && (
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Marca *</label>
                 <select className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.brand_id} onChange={e => setForm(f => ({ ...f, brand_id: e.target.value }))}>
@@ -86,6 +93,9 @@ export function EstablishmentsManager({ establishments: initial, brands, default
               </div>
             )}
           </div>
+          {formError && (
+            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mt-3">{formError}</p>
+          )}
           <div className="flex gap-3 mt-4">
             <Button loading={loading} onClick={handleSave}>Guardar</Button>
             <Button variant="secondary" onClick={() => setShowForm(false)}>Cancelar</Button>
