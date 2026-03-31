@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Establishment, VisitReason, Promotion } from '@/types/database'
-import { ChevronRight, CheckCircle, Clock, Tag } from 'lucide-react'
+import { ChevronRight, CheckCircle, Clock, Tag, ChevronDown } from 'lucide-react'
+
+const CONSENT_TEXT = `Al proporcionar sus datos personales, usted autoriza el tratamiento de los mismos conforme a nuestra Política de Privacidad y Tratamiento de Datos Personales. Sus datos serán utilizados para: (1) gestionar su turno de atención, (2) brindarle el servicio solicitado, y (3) enviarle información comercial si usted así lo autoriza. Tiene derecho a conocer, actualizar, rectificar y suprimir sus datos. Puede ejercer estos derechos contactándonos. Esta autorización es válida indefinidamente hasta que usted solicite su revocación.`
 
 type Step = 'promo' | 'form' | 'reason' | 'confirm'
 
@@ -17,11 +19,12 @@ interface Props {
 export function CustomerFlow({ establishment, visitReasons, promotions }: Props) {
   const [step, setStep] = useState<Step>(promotions.length > 0 ? 'promo' : 'form')
   const [promoIndex, setPromoIndex] = useState(0)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', marketing_opt_in: false })
+  const [form, setForm] = useState({ name: '', phone: '', email: '', marketing_opt_in: false, data_consent: false })
   const [selectedReason, setSelectedReason] = useState<VisitReason | null>(null)
   const [ticket, setTicket] = useState<{ queue_number: string; id: string } | null>(null)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [showConsentText, setShowConsentText] = useState(false)
 
   const brand = establishment.brands
 
@@ -29,6 +32,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     const errs: Record<string, string> = {}
     if (!form.name.trim()) errs.name = 'El nombre es requerido'
     if (!form.phone.trim()) errs.phone = 'El teléfono es requerido'
+    if (!form.data_consent) errs.data_consent = 'Debes autorizar el tratamiento de datos para continuar'
     return errs
   }
 
@@ -59,6 +63,19 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
       .single()
 
     if (!error && data) {
+      // Insert data consent record
+      await supabase.from('data_consents').insert({
+        ticket_id: data.id,
+        establishment_id: establishment.id,
+        brand_id: establishment.brand_id,
+        customer_name: form.name.trim(),
+        customer_phone: form.phone.trim() || null,
+        customer_email: form.email.trim() || null,
+        marketing_opt_in: form.marketing_opt_in,
+        data_processing_consent: true,
+        consent_text: CONSENT_TEXT,
+      })
+
       setTicket(data)
       setStep('confirm')
     }
@@ -163,6 +180,41 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               </span>
             </label>
 
+            {/* Expandable consent section */}
+            <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowConsentText(v => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-700 font-medium bg-indigo-50 hover:bg-indigo-100 transition-colors"
+              >
+                <span>Ver política de tratamiento de datos</span>
+                <ChevronDown size={16} className={`transition-transform ${showConsentText ? 'rotate-180' : ''}`} />
+              </button>
+              {showConsentText && (
+                <div className="px-4 py-3 text-xs text-gray-600 leading-relaxed bg-white border-t border-gray-200">
+                  {CONSENT_TEXT}
+                </div>
+              )}
+            </div>
+
+            {/* Required data consent checkbox */}
+            <div>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.data_consent}
+                  onChange={e => setForm(f => ({ ...f, data_consent: e.target.checked }))}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
+                />
+                <span className="text-sm text-gray-700 font-medium">
+                  Autorizo el tratamiento de mis datos personales según la política de privacidad *
+                </span>
+              </label>
+              {errors.data_consent && (
+                <p className="text-xs text-red-600 mt-1 ml-7">{errors.data_consent}</p>
+              )}
+            </div>
+
             <Button
               size="lg"
               className="w-full mt-2"
@@ -244,6 +296,18 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             <p className="text-xs text-gray-500">Motivo: <span className="font-medium text-gray-700">{selectedReason?.name}</span></p>
             <p className="text-xs text-gray-500 mt-1">Nombre: <span className="font-medium text-gray-700">{form.name}</span></p>
           </div>
+          {ticket && (
+            <div className="mt-4 pt-4 border-t border-gray-100">
+              <a
+                href={`/api/consent/download?ticketId=${ticket.id}&name=${encodeURIComponent(form.name)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-indigo-600 hover:text-indigo-800 underline"
+              >
+                Descargar comprobante de autorización
+              </a>
+            </div>
+          )}
         </div>
 
         <p className="text-white/50 text-xs mt-6">{brand.name} · {establishment.name}</p>

@@ -1,10 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { CustomerFlow } from './CustomerFlow'
 
 export default async function TicketPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
-  const supabase = await createClient()
+  // Usar admin client para bypass RLS — página pública (sin sesión)
+  const supabase = await createAdminClient()
 
   // Buscar establecimiento por slug
   const { data: establishment } = await supabase

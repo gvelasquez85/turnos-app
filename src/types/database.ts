@@ -1,6 +1,6 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[]
 
-export type UserRole = 'superadmin' | 'brand_admin' | 'advisor'
+export type UserRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 'reporting'
 export type TicketStatus = 'waiting' | 'in_progress' | 'done' | 'cancelled'
 export type FieldType = 'text' | 'number' | 'select' | 'date' | 'textarea'
 

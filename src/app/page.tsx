@@ -23,5 +23,7 @@ export default async function Home() {
 
   if (profile.role === 'superadmin') redirect('/superadmin')
   if (profile.role === 'brand_admin') redirect('/admin')
+  if (profile.role === 'manager') redirect('/admin')
+  if (profile.role === 'reporting') redirect('/reports')
   redirect('/advisor')
 }

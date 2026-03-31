@@ -13,8 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TurnosApp",
+  title: "TurnApp",
   description: "Sistema de gestión de turnos",
+  icons: { icon: '/favicon.svg' },
 };
 
 export default function RootLayout({

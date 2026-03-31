@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { AdminNav } from './AdminNav'
+import { AppShell } from '@/components/layout/AppShell'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -9,18 +9,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, brands(name, slug)')
+    .select('*, brands(name), establishments(name)')
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['brand_admin', 'superadmin'].includes(profile.role)) redirect('/')
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role)) redirect('/')
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <AdminNav profile={profile as any} role={profile.role} />
-      <main className="flex-1 p-4 md:p-6 max-w-5xl mx-auto w-full">
-        {children}
-      </main>
-    </div>
+    <AppShell
+      role={profile.role as 'superadmin' | 'brand_admin' | 'manager'}
+      fullName={profile.full_name}
+      email={profile.email}
+      brandName={(profile.brands as any)?.name ?? null}
+      establishmentName={(profile.establishments as any)?.name ?? null}
+    >
+      {children}
+    </AppShell>
   )
 }

@@ -3,14 +3,17 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, User, Edit2 } from 'lucide-react'
+import { Select } from '@/components/ui/select'
+import { Plus, User, Edit2, KeyRound, MailCheck } from 'lucide-react'
 import type { Profile, UserRole } from '@/types/database'
 
 type ProfileWithRels = Profile & { brands: { name: string } | null; establishments: { name: string } | null }
 const roles: { value: UserRole; label: string }[] = [
   { value: 'superadmin', label: 'Super Admin' },
   { value: 'brand_admin', label: 'Admin de Marca' },
+  { value: 'manager', label: 'Manager' },
   { value: 'advisor', label: 'Asesor' },
+  { value: 'reporting', label: 'Reporting' },
 ]
 
 export function UsersManager({ users: initial, brands, establishments }: {
@@ -25,7 +28,44 @@ export function UsersManager({ users: initial, brands, establishments }: {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Modal de cambio de contraseña
+  const [pwModal, setPwModal] = useState<{ userId: string; email: string } | null>(null)
+  const [newPassword, setNewPassword] = useState('')
+  const [pwLoading, setPwLoading] = useState(false)
+  const [pwError, setPwError] = useState('')
+  const [pwSuccess, setPwSuccess] = useState(false)
+
+  // Estado de envío de verificación
+  const [verifyLoadingId, setVerifyLoadingId] = useState<string | null>(null)
+  const [verifySuccess, setVerifySuccess] = useState<string | null>(null)
+
   const filteredEsts = form.brand_id ? establishments.filter(e => e.brand_id === form.brand_id) : establishments
+
+  async function handleSetPassword() {
+    if (!pwModal) return
+    setPwError(''); setPwLoading(true); setPwSuccess(false)
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'set_password', userId: pwModal.userId, password: newPassword }),
+    })
+    const json = await res.json()
+    setPwLoading(false)
+    if (!res.ok) { setPwError(json.error); return }
+    setPwSuccess(true)
+    setTimeout(() => { setPwModal(null); setNewPassword(''); setPwSuccess(false) }, 1500)
+  }
+
+  async function handleResendVerification(userId: string, email: string) {
+    setVerifyLoadingId(userId); setVerifySuccess(null)
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'resend_verification', email }),
+    })
+    setVerifyLoadingId(null)
+    if (res.ok) { setVerifySuccess(userId); setTimeout(() => setVerifySuccess(null), 3000) }
+  }
 
   function openNew() { setEditing(null); setForm({ email: '', password: '', full_name: '', role: 'advisor', brand_id: '', establishment_id: '' }); setError(''); setShowForm(true) }
   function openEdit(u: ProfileWithRels) { setEditing(u); setForm({ email: u.email, password: '', full_name: u.full_name || '', role: u.role, brand_id: u.brand_id || '', establishment_id: u.establishment_id || '' }); setError(''); setShowForm(true) }
@@ -33,9 +73,10 @@ export function UsersManager({ users: initial, brands, establishments }: {
   async function handleSave() {
     setError('')
     setLoading(true)
-    const supabase = createClient()
 
     if (editing) {
+      // Editar perfil existente vía cliente (no cambia sesión)
+      const supabase = createClient()
       const { error: err } = await supabase.from('profiles').update({
         full_name: form.full_name,
         role: form.role,
@@ -47,31 +88,35 @@ export function UsersManager({ users: initial, brands, establishments }: {
         ...u, full_name: form.full_name, role: form.role,
         brand_id: form.brand_id || null, establishment_id: form.establishment_id || null,
       } : u))
+      setShowForm(false); setLoading(false)
     } else {
-      // Create user via Supabase Auth (admin API not available from client, use signup)
-      const { data, error: signupErr } = await supabase.auth.signUp({
-        email: form.email,
-        password: form.password,
-        options: { data: { full_name: form.full_name, role: form.role } }
+      // Crear usuario vía API (admin.createUser no toca la sesión activa)
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'create_user',
+          email: form.email,
+          password: form.password,
+          full_name: form.full_name,
+          role: form.role,
+          brand_id: form.brand_id || null,
+          establishment_id: form.establishment_id || null,
+        }),
       })
-      if (signupErr || !data.user) { setError(signupErr?.message || 'Error al crear usuario'); setLoading(false); return }
-      // Update profile with brand/establishment
-      await supabase.from('profiles').update({
-        role: form.role,
-        brand_id: form.brand_id || null,
-        establishment_id: form.establishment_id || null,
-      }).eq('id', data.user.id)
-      // Reload page to show new user
+      const json = await res.json()
+      if (!res.ok) { setError(json.error); setLoading(false); return }
+      // Recargar lista sin perder sesión
       window.location.reload()
-      return
     }
-    setShowForm(false); setLoading(false)
   }
 
   const roleColors: Record<UserRole, string> = {
     superadmin: 'bg-purple-100 text-purple-700',
     brand_admin: 'bg-blue-100 text-blue-700',
-    advisor: 'bg-gray-100 text-gray-700',
+    manager: 'bg-sky-100 text-sky-700',
+    advisor: 'bg-green-100 text-green-700',
+    reporting: 'bg-amber-100 text-amber-700',
   }
 
   return (
@@ -91,29 +136,20 @@ export function UsersManager({ users: initial, brands, establishments }: {
             {!editing && <Input label="Email *" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />}
             {!editing && <Input label="Contraseña *" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} />}
             <Input label="Nombre completo" value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Rol</label>
-              <select className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as UserRole, brand_id: '', establishment_id: '' }))}>
-                {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-              </select>
-            </div>
+            <Select label="Rol" value={form.role} onChange={e => setForm(f => ({ ...f, role: e.target.value as UserRole, brand_id: '', establishment_id: '' }))}>
+              {roles.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+            </Select>
             {form.role !== 'superadmin' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Marca</label>
-                <select className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.brand_id} onChange={e => setForm(f => ({ ...f, brand_id: e.target.value, establishment_id: '' }))}>
-                  <option value="">Sin marca</option>
-                  {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                </select>
-              </div>
+              <Select label="Marca" value={form.brand_id} onChange={e => setForm(f => ({ ...f, brand_id: e.target.value, establishment_id: '' }))}>
+                <option value="">Sin marca</option>
+                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              </Select>
             )}
             {form.role === 'advisor' && (
-              <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-gray-700">Establecimiento</label>
-                <select className="rounded-lg border border-gray-300 px-3 py-2 text-sm" value={form.establishment_id} onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}>
-                  <option value="">Sin establecimiento</option>
-                  {filteredEsts.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-                </select>
-              </div>
+              <Select label="Establecimiento" value={form.establishment_id} onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}>
+                <option value="">Sin establecimiento</option>
+                {filteredEsts.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+              </Select>
             )}
           </div>
           {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
@@ -134,13 +170,57 @@ export function UsersManager({ users: initial, brands, establishments }: {
               <p className="text-xs text-gray-500">{u.email}</p>
               <p className="text-xs text-gray-400 mt-0.5">{u.brands?.name}{u.establishments?.name && ` · ${u.establishments.name}`}</p>
             </div>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${roleColors[u.role]}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${roleColors[u.role]}`}>
               {roles.find(r => r.value === u.role)?.label}
             </span>
-            <Button size="sm" variant="ghost" onClick={() => openEdit(u)}><Edit2 size={14} /></Button>
+            <div className="flex items-center gap-1 shrink-0">
+              <Button
+                size="sm" variant="ghost"
+                title="Cambiar contraseña"
+                onClick={() => { setPwModal({ userId: u.id, email: u.email }); setNewPassword(''); setPwError(''); setPwSuccess(false) }}
+              >
+                <KeyRound size={14} />
+              </Button>
+              <Button
+                size="sm" variant="ghost"
+                title={verifySuccess === u.id ? '¡Enviado!' : 'Reenviar correo de verificación'}
+                onClick={() => handleResendVerification(u.id, u.email)}
+              >
+                {verifySuccess === u.id
+                  ? <MailCheck size={14} className="text-green-600" />
+                  : verifyLoadingId === u.id
+                    ? <span className="text-xs text-gray-400">...</span>
+                    : <MailCheck size={14} />
+                }
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => openEdit(u)}><Edit2 size={14} /></Button>
+            </div>
           </div>
         ))}
       </div>
+
+      {/* Modal cambio de contraseña */}
+      {pwModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="font-bold text-gray-900 mb-1">Cambiar contraseña</h3>
+            <p className="text-sm text-gray-500 mb-4">{pwModal.email}</p>
+            <Input
+              label="Nueva contraseña *"
+              type="password"
+              value={newPassword}
+              onChange={e => setNewPassword(e.target.value)}
+              placeholder="Mínimo 6 caracteres"
+            />
+            {pwError && <p className="text-sm text-red-600 mt-2">{pwError}</p>}
+            {pwSuccess && <p className="text-sm text-green-600 mt-2">✓ Contraseña actualizada</p>}
+            <div className="flex gap-3 mt-4">
+              <Button loading={pwLoading} onClick={handleSetPassword}>Guardar</Button>
+              <Button variant="secondary" onClick={() => setPwModal(null)}>Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

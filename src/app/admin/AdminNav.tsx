@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { Store, MessageSquare, FileText, Tag, BarChart2, LogOut, Building2, Users } from 'lucide-react'
+import { Store, MessageSquare, FileText, Tag, BarChart2, LogOut, Building2, Users, UserCheck } from 'lucide-react'
 
 const adminLinks = [
   { href: '/admin', label: 'Establecimientos', icon: Store, exact: true },
@@ -11,6 +11,7 @@ const adminLinks = [
   { href: '/admin/advisor-fields', label: 'Campos', icon: FileText },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },
   { href: '/reports', label: 'Reportes', icon: BarChart2 },
+  { href: '/advisor', label: 'Cola', icon: UserCheck },
 ]
 
 const superadminLinks = [

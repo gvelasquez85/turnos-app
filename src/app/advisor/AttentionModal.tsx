@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Select } from '@/components/ui/select'
 import type { Ticket, AdvisorField } from '@/types/database'
 import { X, User, Phone, Mail, CheckCircle } from 'lucide-react'
 
@@ -51,21 +52,17 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
 
     if (field.field_type === 'select' && field.options) {
       return (
-        <div key={field.id} className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700">
-            {field.label}{field.required && ' *'}
-          </label>
-          <select
-            value={value}
-            onChange={e => onChange(e.target.value)}
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          >
-            <option value="">Seleccionar...</option>
-            {(field.options as string[]).map(opt => (
-              <option key={opt} value={opt}>{opt}</option>
-            ))}
-          </select>
-        </div>
+        <Select
+          key={field.id}
+          label={`${field.label}${field.required ? ' *' : ''}`}
+          value={value}
+          onChange={e => onChange(e.target.value)}
+        >
+          <option value="">Seleccionar...</option>
+          {(field.options as string[]).map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </Select>
       )
     }
 
@@ -79,7 +76,7 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
             value={value}
             onChange={e => onChange(e.target.value)}
             rows={3}
-            className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           />
         </div>
       )
@@ -157,7 +154,7 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
               onChange={e => setNotes(e.target.value)}
               rows={2}
               placeholder="Observaciones..."
-              className="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             />
           </div>
 
