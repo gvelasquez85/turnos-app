@@ -16,11 +16,11 @@ export default async function TicketPage({ params }: { params: Promise<{ slug: s
 
   if (!establishment) notFound()
 
-  // Cargar motivos de visita activos
+  // Cargar motivos de visita activos (por marca)
   const { data: visitReasons } = await supabase
     .from('visit_reasons')
     .select('*')
-    .eq('establishment_id', establishment.id)
+    .eq('brand_id', (establishment as any).brand_id)
     .eq('active', true)
     .order('sort_order')
 

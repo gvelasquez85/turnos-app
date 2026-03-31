@@ -59,7 +59,7 @@ alter table public.profiles
 -- ============================================================
 create table public.visit_reasons (
   id uuid default gen_random_uuid() primary key,
-  establishment_id uuid not null references public.establishments(id) on delete cascade,
+  brand_id uuid not null references public.brands(id) on delete cascade,
   name text not null,
   description text,
   sort_order int default 0 not null,
@@ -224,6 +224,9 @@ create policy "brands: brand_admin read own" on public.brands
   );
 
 -- ---- establishments ----
+create policy "establishments: public read active" on public.establishments
+  for select using (active = true);
+
 create policy "establishments: superadmin all" on public.establishments
   for all using (get_my_role() = 'superadmin');
 

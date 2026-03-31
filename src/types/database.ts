@@ -48,7 +48,7 @@ export interface Database {
       visit_reasons: {
         Row: {
           id: string
-          establishment_id: string
+          brand_id: string
           name: string
           description: string | null
           sort_order: number

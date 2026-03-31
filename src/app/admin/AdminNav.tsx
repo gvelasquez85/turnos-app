@@ -3,9 +3,9 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { cn } from '@/lib/utils'
-import { Store, MessageSquare, FileText, Tag, BarChart2, LogOut, Settings } from 'lucide-react'
+import { Store, MessageSquare, FileText, Tag, BarChart2, LogOut, Building2, Users } from 'lucide-react'
 
-const links = [
+const adminLinks = [
   { href: '/admin', label: 'Establecimientos', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/advisor-fields', label: 'Campos', icon: FileText },
@@ -13,9 +13,17 @@ const links = [
   { href: '/reports', label: 'Reportes', icon: BarChart2 },
 ]
 
-export function AdminNav({ profile }: { profile: { full_name: string | null; brands: { name: string } | null } }) {
+const superadminLinks = [
+  { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
+  { href: '/superadmin/users', label: 'Usuarios', icon: Users },
+  ...adminLinks,
+]
+
+export function AdminNav({ profile, role }: { profile: { full_name: string | null; brands: { name: string } | null }; role?: string }) {
   const pathname = usePathname()
   const router = useRouter()
+  const isSuperAdmin = role === 'superadmin'
+  const links = isSuperAdmin ? superadminLinks : adminLinks
   async function signOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -27,9 +35,15 @@ export function AdminNav({ profile }: { profile: { full_name: string | null; bra
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
             <div>
-              <span className="font-bold text-indigo-600 text-sm">Admin</span>
-              <span className="text-gray-400 text-sm mx-1">·</span>
-              <span className="text-gray-700 text-sm">{profile.brands?.name}</span>
+              {isSuperAdmin ? (
+                <span className="font-bold text-indigo-600 text-sm">SuperAdmin</span>
+              ) : (
+                <>
+                  <span className="font-bold text-indigo-600 text-sm">Admin</span>
+                  <span className="text-gray-400 text-sm mx-1">·</span>
+                  <span className="text-gray-700 text-sm">{profile.brands?.name}</span>
+                </>
+              )}
             </div>
             <nav className="hidden md:flex items-center gap-1">
               {links.map(({ href, label, icon: Icon, exact }) => (

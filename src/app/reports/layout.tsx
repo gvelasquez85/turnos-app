@@ -1,8 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { AdminNav } from './AdminNav'
+import { AdminNav } from '../admin/AdminNav'
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function ReportsLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -13,7 +13,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['brand_admin', 'superadmin'].includes(profile.role)) redirect('/')
+  if (!profile) redirect('/login')
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">

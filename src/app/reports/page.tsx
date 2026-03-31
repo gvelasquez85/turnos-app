@@ -19,14 +19,12 @@ export default async function ReportsPage() {
   const { data: establishments } = await estQuery
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
-      <div className="max-w-5xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-xl font-bold text-gray-900">Reportes</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Estadísticas de atención al cliente</p>
-        </div>
-        <ReportsDashboard establishments={establishments || []} />
+    <div>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-gray-900">Reportes</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Estadísticas de atención al cliente</p>
       </div>
+      <ReportsDashboard establishments={establishments || []} />
     </div>
   )
 }
