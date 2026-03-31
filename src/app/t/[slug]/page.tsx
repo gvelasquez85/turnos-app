@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
-import { CustomerFlow } from './CustomerFlow'
+import { EstablishmentLanding } from './EstablishmentLanding'
 
 export default async function TicketPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
@@ -36,7 +36,7 @@ export default async function TicketPage({ params }: { params: Promise<{ slug: s
     .or(`ends_at.is.null,ends_at.gte.${now}`)
 
   return (
-    <CustomerFlow
+    <EstablishmentLanding
       establishment={establishment as any}
       visitReasons={visitReasons || []}
       promotions={promotions || []}

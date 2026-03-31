@@ -532,15 +532,21 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
     let cesSum = 0, cesCount = 0
 
     filtered.forEach(r => {
-      const answers = r.answers as Record<string, any> | null
+      const answers = r.responses as Record<string, any> | null
       if (!answers) return
-      Object.entries(answers).forEach(([, val]: [string, any]) => {
-        if (val?.type === 'nps' && val.score != null) {
-          npsDist[val.score] = (npsDist[val.score] || 0) + 1
-          npsSum += val.score; npsCount++
+      // responses is a flat map: { questionId: value } where value can be number or string
+      // Try to detect NPS (1-10), CSAT/CES (1-5) by range
+      Object.values(answers).forEach((val: any) => {
+        if (typeof val === 'number') {
+          if (val >= 1 && val <= 10) { npsDist[val] = (npsDist[val] || 0) + 1; npsSum += val; npsCount++ }
+          if (val >= 1 && val <= 5) { csatSum += val; csatCount++ }
         }
-        if (val?.type === 'csat' && val.score != null) { csatSum += val.score; csatCount++ }
-        if (val?.type === 'ces' && val.score != null) { cesSum += val.score; cesCount++ }
+        // Also support object format { type, score }
+        if (val && typeof val === 'object') {
+          if (val.type === 'nps' && val.score != null) { npsDist[val.score] = (npsDist[val.score] || 0) + 1; npsSum += val.score; npsCount++ }
+          if (val.type === 'csat' && val.score != null) { csatSum += val.score; csatCount++ }
+          if (val.type === 'ces' && val.score != null) { cesSum += val.score; cesCount++ }
+        }
       })
     })
 
@@ -628,12 +634,17 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
         ) : (
           <div className="divide-y divide-gray-100 max-h-96 overflow-y-auto">
             {responses.map(r => {
-              const answers = r.answers as Record<string, any> | null
+              const answers = r.responses as Record<string, any> | null
               const scores: string[] = []
               if (answers) {
                 Object.entries(answers).forEach(([, val]: [string, any]) => {
-                  if (val?.type && val.score != null) scores.push(`${val.type.toUpperCase()}: ${val.score}`)
-                  if (val?.type === 'open' && val.text) scores.push(`"${val.text.slice(0, 60)}${val.text.length > 60 ? '…' : ''}"`)
+                  if (typeof val === 'number') scores.push(String(val))
+                  else if (val && typeof val === 'object') {
+                    if (val.type && val.score != null) scores.push(`${val.type.toUpperCase()}: ${val.score}`)
+                    if (val.type === 'open' && val.text) scores.push(`"${val.text.slice(0, 60)}${val.text.length > 60 ? '…' : ''}"`)
+                  } else if (typeof val === 'string' && val.length > 0) {
+                    scores.push(`"${val.slice(0, 60)}${val.length > 60 ? '…' : ''}"`)
+                  }
                 })
               }
               return (

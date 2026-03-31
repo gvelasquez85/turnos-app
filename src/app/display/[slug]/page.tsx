@@ -6,27 +6,26 @@ export default async function DisplayPage({ params }: { params: Promise<{ slug: 
   const { slug } = await params
   const supabase = await createClient()
 
+  // Query establishment separately from display_configs to avoid 404 if table doesn't exist yet
   const { data: est } = await supabase
     .from('establishments')
-    .select('*, brands(name, logo_url), display_configs(*)')
+    .select('id, name, slug, brands(name, logo_url)')
     .eq('slug', slug)
     .single()
 
   if (!est) notFound()
 
-  // Get active promotions
-  const { data: promos } = await supabase
-    .from('promotions')
+  // Fetch config separately — graceful if table missing or no row
+  const { data: configRow } = await supabase
+    .from('display_configs')
     .select('*')
     .eq('establishment_id', est.id)
-    .eq('active', true)
-    .order('created_at')
+    .maybeSingle()
 
   return (
     <DisplayScreen
       establishment={est as any}
-      config={(est as any).display_configs?.[0] ?? null}
-      promotions={promos || []}
+      config={configRow ?? null}
     />
   )
 }

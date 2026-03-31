@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Establishment, Brand } from '@/types/database'
-import { Plus, Store, Edit2, ToggleLeft, ToggleRight, QrCode, Building2, ChevronDown, Clock, CheckCircle } from 'lucide-react'
+import { Plus, Store, Edit2, ToggleLeft, ToggleRight, QrCode, Building2, ChevronDown, Clock, CheckCircle, Settings2 } from 'lucide-react'
 import QRCode from 'qrcode'
 
 interface EstStat { waiting: number; today: number }
@@ -14,6 +14,55 @@ interface Props {
   brands: Pick<Brand, 'id' | 'name' | 'slug'>[]
   defaultBrandId: string | null
   ticketStats?: Record<string, EstStat>
+}
+
+function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading }: {
+  est: Establishment
+  featureList: { key: string; label: string; desc: string }[]
+  getFeatures: (e: Establishment) => Record<string, boolean>
+  onSave: (e: Establishment, f: Record<string, boolean>) => Promise<void>
+  onClose: () => void
+  loading: boolean
+}) {
+  const [features, setFeatures] = useState<Record<string, boolean>>(getFeatures(est))
+
+  function toggle(key: string) {
+    if (key === 'queue') return // always on
+    setFeatures(f => ({ ...f, [key]: !f[key] }))
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full">
+        <h3 className="font-bold text-gray-900 mb-1">Módulos activos</h3>
+        <p className="text-sm text-gray-500 mb-5">{est.name}</p>
+        <div className="flex flex-col gap-4">
+          {featureList.map(({ key, label, desc }) => {
+            const enabled = features[key] ?? (key === 'queue')
+            return (
+              <div key={key} className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
+                </div>
+                <button
+                  onClick={() => toggle(key)}
+                  disabled={loading || key === 'queue'}
+                  className={`shrink-0 w-11 h-6 rounded-full transition-colors flex items-center ${enabled ? 'bg-indigo-600' : 'bg-gray-300'} ${key === 'queue' ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+                >
+                  <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-1 ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            )
+          })}
+        </div>
+        <div className="flex gap-3 mt-6">
+          <Button loading={loading} onClick={() => onSave(est, features)} className="flex-1">Guardar</Button>
+          <Button variant="secondary" onClick={onClose} className="flex-1">Cancelar</Button>
+        </div>
+      </div>
+    </div>
+  )
 }
 
 export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {} }: Props) {
@@ -30,6 +79,33 @@ export function EstablishmentsManager({ establishments: initial, brands, default
   const [formError, setFormError] = useState('')
   const [loading, setLoading] = useState(false)
   const [qrModal, setQrModal] = useState<{ slug: string; dataUrl: string } | null>(null)
+  const [featuresModal, setFeaturesModal] = useState<Establishment | null>(null)
+  const [featuresLoading, setFeaturesLoading] = useState(false)
+
+  const FEATURE_LIST = [
+    { key: 'queue',        label: 'Cola de turnos',          desc: 'Página /t/[slug] para tomar turnos' },
+    { key: 'appointments', label: 'Citas programadas',        desc: 'Reserva de citas en /book/[slug]' },
+    { key: 'surveys',      label: 'Encuestas de satisfacción',desc: 'NPS / CSAT / CES post-atención' },
+    { key: 'menu',         label: 'Menú / Preorden',          desc: 'Pedidos anticipados en /order/[slug]' },
+  ]
+
+  function getFeatures(est: Establishment): Record<string, boolean> {
+    return (est as any).features ?? { queue: true, appointments: false, surveys: false, menu: false }
+  }
+
+  async function saveFeatures(est: Establishment, features: Record<string, boolean>) {
+    setFeaturesLoading(true)
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('establishments')
+      .update({ features })
+      .eq('id', est.id)
+      .select()
+      .single()
+    if (data) setEstablishments(es => es.map(e => e.id === est.id ? data : e))
+    setFeaturesLoading(false)
+    setFeaturesModal(null)
+  }
 
   // Solo mostrar selector de marca si hay más de una
   const showBrandSelector = brands.length > 1
@@ -255,6 +331,9 @@ export function EstablishmentsManager({ establishments: initial, brands, default
                 <span className={`text-xs px-2 py-0.5 rounded-full ${est.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                   {est.active ? 'Activo' : 'Inactivo'}
                 </span>
+                <Button size="sm" variant="ghost" title="Módulos" onClick={() => setFeaturesModal(est)}>
+                  <Settings2 size={15} />
+                </Button>
                 <Button size="sm" variant="ghost" onClick={() => showQR(est.slug)}>
                   <QrCode size={15} />
                 </Button>
@@ -272,6 +351,18 @@ export function EstablishmentsManager({ establishments: initial, brands, default
             )
           })}
         </div>
+      )}
+
+      {/* Features Modal */}
+      {featuresModal && (
+        <FeaturesModal
+          est={featuresModal}
+          featureList={FEATURE_LIST}
+          getFeatures={getFeatures}
+          onSave={saveFeatures}
+          onClose={() => setFeaturesModal(null)}
+          loading={featuresLoading}
+        />
       )}
 
       {/* QR Modal */}
