@@ -9,7 +9,7 @@ import {
   Users, Store, Menu, ChevronLeft, ChevronRight,
   LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
-  Settings, Shield,
+  Settings, Shield, UserCircle,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -226,7 +226,7 @@ export function AppShell({ children, role, fullName, email, brandName, establish
     if (href.startsWith('/admin/appointments') && !activeModules.appointments) return false
     if (href.startsWith('/admin/surveys') && !activeModules.surveys) return false
     if (href.startsWith('/admin/menu') && !activeModules.menu) return false
-    if (href.startsWith('/admin/display') && !activeModules.display) return false
+    // display config is always visible (it's an admin tool, not a customer-facing module)
     return true
   }
 
@@ -324,15 +324,26 @@ export function AppShell({ children, role, fullName, email, brandName, establish
 
         {/* Footer */}
         <div className="shrink-0 border-t border-gray-100 p-2">
-          {!collapsed && (
-            <div className="px-2 py-1.5 mb-1">
-              <p className="text-sm font-medium text-gray-900 truncate">{fullName || email}</p>
-              {subtitle
-                ? <p className="text-xs text-gray-400 truncate">{subtitle}</p>
-                : <p className="text-xs text-gray-400">{roleLabel[role]}</p>
-              }
-            </div>
-          )}
+          <Link
+            href="/profile"
+            onClick={() => setMobileOpen(false)}
+            title={collapsed ? 'Mi perfil' : undefined}
+            className={cn(
+              'flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors mb-1 w-full text-left',
+              collapsed && 'justify-center',
+            )}
+          >
+            <UserCircle size={18} className="text-gray-400 shrink-0" />
+            {!collapsed && (
+              <div className="min-w-0">
+                <p className="text-sm font-medium text-gray-900 truncate">{fullName || email}</p>
+                {subtitle
+                  ? <p className="text-xs text-gray-400 truncate">{subtitle}</p>
+                  : <p className="text-xs text-gray-400">{roleLabel[role]}</p>
+                }
+              </div>
+            )}
+          </Link>
           {/* Botón ver como asesor */}
           {CAN_IMPERSONATE.includes(role) && !viewAs && (
             <button
