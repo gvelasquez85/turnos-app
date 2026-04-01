@@ -25,10 +25,17 @@ export default async function BrandSettingsPage() {
     .limit(1)
     .single()
 
+  const { data: moduleSubscriptions } = await supabase
+    .from('module_subscriptions')
+    .select('*')
+    .eq('brand_id', profile.brand_id)
+    .order('created_at', { ascending: false })
+
   return (
     <BrandSettings
       brand={brand}
       membership={membership || null}
+      moduleSubscriptions={moduleSubscriptions || []}
     />
   )
 }

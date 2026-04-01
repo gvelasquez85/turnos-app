@@ -9,7 +9,7 @@ import {
   Users, Store, Menu, ChevronLeft, ChevronRight,
   LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
-  Settings, Shield, UserCircle,
+  Settings, Shield, UserCircle, ShoppingBag,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -68,6 +68,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
       section: 'Marca',
       items: [
         { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
+        { href: '/admin/marketplace', label: 'Marketplace', icon: ShoppingBag },
       ],
     },
     {
@@ -98,6 +99,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
       section: 'Marca',
       items: [
         { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
+        { href: '/admin/marketplace', label: 'Marketplace', icon: ShoppingBag },
       ],
     },
     {

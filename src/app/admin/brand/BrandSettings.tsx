@@ -29,13 +29,14 @@ interface Membership {
 interface Props {
   brand: Brand
   membership: Membership | null
+  moduleSubscriptions: any[]
 }
 
 const PLAN_LABELS: Record<string, string> = { basic: 'Básico', professional: 'Profesional', enterprise: 'Empresarial' }
 const PLAN_COLORS: Record<string, string> = { basic: 'bg-gray-100 text-gray-700', professional: 'bg-blue-100 text-blue-700', enterprise: 'bg-purple-100 text-purple-700' }
 const STATUS_COLORS: Record<string, string> = { active: 'bg-green-100 text-green-700', expired: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-500', trial: 'bg-amber-100 text-amber-700' }
 
-export function BrandSettings({ brand: initialBrand, membership }: Props) {
+export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions }: Props) {
   const [tab, setTab] = useState<'profile' | 'membership'>('profile')
   const [brand, setBrand] = useState(initialBrand)
   const [form, setForm] = useState({
@@ -183,6 +184,31 @@ export function BrandSettings({ brand: initialBrand, membership }: Props) {
               <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">Para cambios en tu membresía, contacta a soporte@turnapp.co</p>
             </div>
           )}
+
+          {/* Módulos adicionales */}
+          <div className="mt-4">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Módulos adicionales</h3>
+            {moduleSubscriptions.length === 0 ? (
+              <p className="text-sm text-gray-400">Sin módulos contratados. <a href="/admin/marketplace" className="text-indigo-600 underline">Ver marketplace</a></p>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {moduleSubscriptions.map(sub => (
+                  <div key={sub.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <span className="text-sm text-gray-700 capitalize">{sub.module_key.replace(/_/g, ' ')}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      sub.status === 'active' ? 'bg-green-100 text-green-700' :
+                      sub.status === 'trial' ? 'bg-amber-100 text-amber-700' :
+                      'bg-gray-100 text-gray-500'
+                    }`}>
+                      {sub.status === 'trial' ? `Trial — vence ${new Date(sub.trial_expires_at).toLocaleDateString('es')}` :
+                       sub.status === 'active' ? 'Activo' : sub.status === 'expired' ? 'Vencido' : 'Cancelado'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <a href="/admin/marketplace" className="inline-block mt-3 text-xs text-indigo-600 hover:underline">Ir al marketplace →</a>
+          </div>
         </div>
       )}
     </div>
