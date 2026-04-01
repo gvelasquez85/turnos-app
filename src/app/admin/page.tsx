@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { EstablishmentsManager } from './EstablishmentsManager'
+import { getLimits } from '@/lib/planLimits'
 
 export default async function AdminPage() {
   const supabase = await createClient()
@@ -35,6 +36,14 @@ export default async function AdminPage() {
   // For superadmin, load all brands (including slug for auto-prefixing establishment slugs)
   const { data: brands } = await supabase.from('brands').select('id, name, slug').eq('active', true)
 
+  // Load membership to enforce limits
+  const { data: membership } = profile?.brand_id
+    ? await supabase.from('memberships').select('plan, max_establishments, max_advisors').eq('brand_id', profile.brand_id).single()
+    : { data: null }
+
+  const limits = getLimits(membership?.plan ?? 'free')
+  const maxEstablishments = membership?.max_establishments ?? limits.maxEstablishments
+
   return (
     <EstablishmentsManager
       establishments={establishments || []}
@@ -42,6 +51,7 @@ export default async function AdminPage() {
       defaultBrandId={profile?.brand_id || null}
       ticketStats={ticketStats}
       isSuperAdmin={profile?.role === 'superadmin'}
+      maxEstablishments={maxEstablishments}
     />
   )
 }

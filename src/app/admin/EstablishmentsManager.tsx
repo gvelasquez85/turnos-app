@@ -16,6 +16,7 @@ interface Props {
   defaultBrandId: string | null
   ticketStats?: Record<string, EstStat>
   isSuperAdmin?: boolean
+  maxEstablishments?: number
 }
 
 function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading }: {
@@ -67,7 +68,7 @@ function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading
   )
 }
 
-export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {}, isSuperAdmin }: Props) {
+export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {}, isSuperAdmin, maxEstablishments }: Props) {
   const [establishments, setEstablishments] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Establishment | null>(null)
@@ -150,6 +151,16 @@ export function EstablishmentsManager({ establishments: initial, brands, default
   }
 
   function openNew() {
+    // Limit check: superadmin is unrestricted; brand_admin respects maxEstablishments
+    if (!isSuperAdmin && maxEstablishments !== undefined) {
+      const brandEsts = establishments.filter(e => e.brand_id === selectedBrandId)
+      if (brandEsts.length >= maxEstablishments) {
+        setFormError(`Tu plan permite hasta ${maxEstablishments} establecimiento${maxEstablishments === 1 ? '' : 's'}. Actualiza tu membresía para agregar más.`)
+        setShowForm(true)
+        setEditing(null)
+        return
+      }
+    }
     setEditing(null)
     setFormError('')
     setForm({ name: '', slug: '', address: '', brand_id: selectedBrandId })

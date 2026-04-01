@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Establishment, VisitReason, Promotion } from '@/types/database'
-import { ChevronRight, CheckCircle, Clock, Tag, ChevronDown } from 'lucide-react'
+import { ChevronRight, CheckCircle, Clock, Tag, ChevronDown, Bell } from 'lucide-react'
+import { usePushNotifications } from '@/hooks/usePushNotifications'
 
 const CONSENT_TEXT = `Al proporcionar sus datos personales, usted autoriza el tratamiento de los mismos conforme a nuestra Política de Privacidad y Tratamiento de Datos Personales. Sus datos serán utilizados para: (1) gestionar su turno de atención, (2) brindarle el servicio solicitado, y (3) enviarle información comercial si usted así lo autoriza. Tiene derecho a conocer, actualizar, rectificar y suprimir sus datos. Puede ejercer estos derechos contactándonos. Esta autorización es válida indefinidamente hasta que usted solicite su revocación.`
 
@@ -25,7 +26,9 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConsentText, setShowConsentText] = useState(false)
+  const [notifEnabled, setNotifEnabled] = useState(false)
 
+  const { permission, requestAndGetToken } = usePushNotifications()
   const brand = establishment.brands
 
   function validateForm() {
@@ -75,6 +78,18 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         data_processing_consent: true,
         consent_text: CONSENT_TEXT,
       })
+
+      // Request push notification permission and save FCM token
+      if (permission !== 'denied') {
+        const token = await requestAndGetToken()
+        if (token) {
+          await supabase
+            .from('tickets')
+            .update({ push_subscription: { token, type: 'fcm' } })
+            .eq('id', data.id)
+          setNotifEnabled(true)
+        }
+      }
 
       setTicket(data)
       setStep('confirm')
@@ -292,6 +307,14 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             <Clock size={16} />
             <span>Por favor espera a ser llamado</span>
           </div>
+
+          {notifEnabled && (
+            <div className="mt-4 flex items-center justify-center gap-2 text-green-600 text-sm">
+              <Bell size={14} />
+              <span>Te notificaremos cuando sea tu turno</span>
+            </div>
+          )}
+
           <div className="mt-4 pt-4 border-t border-gray-100 text-left">
             <p className="text-xs text-gray-500">Motivo: <span className="font-medium text-gray-700">{selectedReason?.name}</span></p>
             <p className="text-xs text-gray-500 mt-1">Nombre: <span className="font-medium text-gray-700">{form.name}</span></p>

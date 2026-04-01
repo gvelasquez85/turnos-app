@@ -13,7 +13,7 @@ export default async function MarketplacePage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile?.brand_id || !['brand_admin', 'manager', 'superadmin'].includes(profile.role)) redirect('/admin')
+  if (profile?.role !== 'superadmin') redirect('/admin')
 
   const { data: subscriptions } = await supabase
     .from('module_subscriptions')

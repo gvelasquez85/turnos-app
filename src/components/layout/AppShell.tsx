@@ -68,7 +68,6 @@ const navByRole: Record<AppRole, NavSection[]> = {
       section: 'Marca',
       items: [
         { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
-        { href: '/admin/marketplace', label: 'Marketplace', icon: ShoppingBag },
       ],
     },
     {
@@ -99,7 +98,6 @@ const navByRole: Record<AppRole, NavSection[]> = {
       section: 'Marca',
       items: [
         { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
-        { href: '/admin/marketplace', label: 'Marketplace', icon: ShoppingBag },
       ],
     },
     {

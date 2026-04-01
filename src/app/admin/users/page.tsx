@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { BrandUsersManager } from './BrandUsersManager'
+import { getLimits } from '@/lib/planLimits'
 
 export default async function BrandUsersPage() {
   const supabase = await createClient()
@@ -38,11 +39,21 @@ export default async function BrandUsersPage() {
     .eq('active', true)
     .order('name')
 
+  const { data: membership } = await supabase
+    .from('memberships')
+    .select('plan, max_advisors')
+    .eq('brand_id', brandId)
+    .single()
+
+  const limits = getLimits(membership?.plan ?? 'free')
+  const maxAdvisors = membership?.max_advisors ?? limits.maxAdvisors
+
   return (
     <BrandUsersManager
       users={users || []}
       establishments={establishments || []}
       brandId={brandId}
+      maxAdvisors={maxAdvisors}
     />
   )
 }

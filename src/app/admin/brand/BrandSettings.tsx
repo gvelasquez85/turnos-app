@@ -3,7 +3,10 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Building2, CreditCard, Check } from 'lucide-react'
+import {
+  Building2, CreditCard, Check, CheckCircle, ArrowRight,
+  Zap, Star, Crown, Rocket,
+} from 'lucide-react'
 
 interface Brand {
   id: string
@@ -32,9 +35,74 @@ interface Props {
   moduleSubscriptions: any[]
 }
 
-const PLAN_LABELS: Record<string, string> = { basic: 'Básico', professional: 'Profesional', enterprise: 'Empresarial' }
-const PLAN_COLORS: Record<string, string> = { basic: 'bg-gray-100 text-gray-700', professional: 'bg-blue-100 text-blue-700', enterprise: 'bg-purple-100 text-purple-700' }
-const STATUS_COLORS: Record<string, string> = { active: 'bg-green-100 text-green-700', expired: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-500', trial: 'bg-amber-100 text-amber-700' }
+const PLANS = [
+  {
+    key: 'free',
+    label: 'Gratis',
+    price: 0,
+    icon: Zap,
+    color: 'text-gray-500',
+    border: 'border-gray-200',
+    badge: 'bg-gray-100 text-gray-600',
+    maxEstablishments: 1,
+    maxAdvisors: 3,
+    modules: ['Cola de espera básica'],
+    cta: null,
+  },
+  {
+    key: 'basic',
+    label: 'Básico',
+    price: 29,
+    icon: Star,
+    color: 'text-blue-600',
+    border: 'border-blue-200',
+    badge: 'bg-blue-100 text-blue-700',
+    maxEstablishments: 3,
+    maxAdvisors: 10,
+    modules: ['Cola de espera', 'Pantalla sala (display)', 'Encuestas NPS/CSAT'],
+    cta: 'Contratar Básico',
+  },
+  {
+    key: 'professional',
+    label: 'Profesional',
+    price: 79,
+    icon: Rocket,
+    color: 'text-indigo-600',
+    border: 'border-indigo-400',
+    badge: 'bg-indigo-100 text-indigo-700',
+    maxEstablishments: 10,
+    maxAdvisors: 30,
+    modules: ['Todo lo del Básico', 'Citas programadas', 'Menú y preorden', 'Pre check-in / check-out'],
+    cta: 'Contratar Profesional',
+    highlight: true,
+  },
+  {
+    key: 'enterprise',
+    label: 'Empresarial',
+    price: null,
+    icon: Crown,
+    color: 'text-purple-600',
+    border: 'border-purple-200',
+    badge: 'bg-purple-100 text-purple-700',
+    maxEstablishments: null,
+    maxAdvisors: null,
+    modules: ['Todo lo del Profesional', 'Establecimientos ilimitados', 'Asesores ilimitados', 'SLA y soporte dedicado'],
+    cta: 'Hablar con ventas',
+  },
+]
+
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Activa',
+  trial: 'Prueba',
+  expired: 'Vencida',
+  cancelled: 'Cancelada',
+}
+const STATUS_COLORS: Record<string, string> = {
+  active: 'bg-green-100 text-green-700',
+  trial: 'bg-amber-100 text-amber-700',
+  expired: 'bg-red-100 text-red-700',
+  cancelled: 'bg-gray-100 text-gray-500',
+}
 
 export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions }: Props) {
   const [tab, setTab] = useState<'profile' | 'membership'>('profile')
@@ -49,6 +117,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [upgradeModal, setUpgradeModal] = useState<string | null>(null)
 
   async function handleSave() {
     setSaving(true)
@@ -71,6 +140,9 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
+
+  const currentPlan = membership?.plan ?? 'free'
+  const currentPlanDef = PLANS.find(p => p.key === currentPlan) ?? PLANS[0]
 
   return (
     <div>
@@ -117,7 +189,6 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                     setForm(f => ({ ...f, primary_color: val }))
                   }}
                   onBlur={e => {
-                    // Normalise: if user typed without #, add it; validate hex
                     let val = e.target.value.trim()
                     if (val && !val.startsWith('#')) val = '#' + val
                     if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val)) {
@@ -146,54 +217,114 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       )}
 
       {tab === 'membership' && (
-        <div className="max-w-lg">
-          {!membership ? (
-            <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
-              <CreditCard size={40} className="mx-auto mb-3 opacity-30" />
-              <p className="font-medium">Sin membresía registrada</p>
-              <p className="text-sm mt-1">Contacta a soporte para activar tu plan.</p>
-            </div>
-          ) : (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 flex flex-col gap-4">
-              <div className="flex items-center gap-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${PLAN_COLORS[membership.plan] || 'bg-gray-100 text-gray-700'}`}>
-                  {PLAN_LABELS[membership.plan] || membership.plan}
-                </span>
-                <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[membership.status] || 'bg-gray-100'}`}>
-                  {membership.status === 'active' ? 'Activa' : membership.status === 'trial' ? 'Prueba' : membership.status === 'expired' ? 'Vencida' : 'Cancelada'}
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <p className="text-gray-500">Inicio</p>
-                  <p className="font-medium">{new Date(membership.started_at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Vencimiento</p>
-                  <p className="font-medium">{membership.expires_at ? new Date(membership.expires_at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' }) : 'Sin vencimiento'}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Establecimientos</p>
-                  <p className="font-medium">Hasta {membership.max_establishments}</p>
-                </div>
-                <div>
-                  <p className="text-gray-500">Asesores</p>
-                  <p className="font-medium">Hasta {membership.max_advisors}</p>
+        <div className="max-w-4xl">
+          {/* Current plan banner */}
+          <div className={`bg-white rounded-xl border-2 ${currentPlanDef.border} p-5 mb-8 flex items-center justify-between flex-wrap gap-4`}>
+            <div className="flex items-center gap-3">
+              <currentPlanDef.icon size={22} className={currentPlanDef.color} />
+              <div>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Plan actual</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-lg font-bold text-gray-900">{currentPlanDef.label}</span>
+                  {membership && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[membership.status] ?? ''}`}>
+                      {STATUS_LABELS[membership.status] ?? membership.status}
+                    </span>
+                  )}
                 </div>
               </div>
-              <p className="text-xs text-gray-400 pt-2 border-t border-gray-100">Para cambios en tu membresía, contacta a soporte@turnapp.co</p>
             </div>
-          )}
+            <div className="flex gap-6 text-sm">
+              <div className="text-center">
+                <p className="font-bold text-gray-900">{membership?.max_establishments ?? 1}</p>
+                <p className="text-gray-500 text-xs">Establecimientos</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-900">{membership?.max_advisors ?? 3}</p>
+                <p className="text-gray-500 text-xs">Asesores</p>
+              </div>
+              {membership?.expires_at && (
+                <div className="text-center">
+                  <p className="font-bold text-gray-900">{new Date(membership.expires_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</p>
+                  <p className="text-gray-500 text-xs">Vencimiento</p>
+                </div>
+              )}
+            </div>
+          </div>
 
-          {/* Módulos adicionales */}
-          <div className="mt-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Módulos adicionales</h3>
-            {moduleSubscriptions.length === 0 ? (
-              <p className="text-sm text-gray-400">Sin módulos contratados. <a href="/admin/marketplace" className="text-indigo-600 underline">Ver marketplace</a></p>
-            ) : (
-              <div className="flex flex-col gap-2">
+          {/* Plan comparison grid */}
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Planes disponibles</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {PLANS.map(plan => {
+              const isCurrent = plan.key === currentPlan
+              const Icon = plan.icon
+              return (
+                <div
+                  key={plan.key}
+                  className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
+                    plan.highlight ? 'border-indigo-400 shadow-lg shadow-indigo-100' : isCurrent ? plan.border : 'border-gray-100'
+                  }`}
+                >
+                  {plan.highlight && (
+                    <div className="bg-indigo-600 text-white text-xs font-bold text-center py-1.5 rounded-t-xl tracking-wider">
+                      MÁS POPULAR
+                    </div>
+                  )}
+                  <div className="p-5 flex-1 flex flex-col">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Icon size={18} className={plan.color} />
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${plan.badge}`}>{plan.label}</span>
+                    </div>
+                    <div className="mb-4">
+                      {plan.price === null ? (
+                        <span className="text-2xl font-black text-gray-900">Personalizado</span>
+                      ) : plan.price === 0 ? (
+                        <span className="text-2xl font-black text-gray-900">Gratis</span>
+                      ) : (
+                        <>
+                          <span className="text-2xl font-black text-gray-900">${plan.price}</span>
+                          <span className="text-gray-400 text-sm">/mes</span>
+                        </>
+                      )}
+                    </div>
+                    <div className="text-xs text-gray-500 mb-4 space-y-1">
+                      <p><span className="font-semibold text-gray-700">{plan.maxEstablishments ?? '∞'}</span> establecimientos</p>
+                      <p><span className="font-semibold text-gray-700">{plan.maxAdvisors ?? '∞'}</span> asesores</p>
+                    </div>
+                    <ul className="space-y-1.5 flex-1 mb-5">
+                      {plan.modules.map(m => (
+                        <li key={m} className="flex items-start gap-2 text-xs text-gray-600">
+                          <CheckCircle size={12} className="text-green-500 shrink-0 mt-0.5" />
+                          {m}
+                        </li>
+                      ))}
+                    </ul>
+                    {isCurrent ? (
+                      <div className="w-full py-2 text-center text-sm font-medium text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
+                        Plan actual
+                      </div>
+                    ) : plan.cta ? (
+                      <Button
+                        className="w-full"
+                        variant={plan.highlight ? 'primary' : 'secondary'}
+                        onClick={() => setUpgradeModal(plan.key)}
+                      >
+                        {plan.cta} <ArrowRight size={14} className="ml-1" />
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Active module subscriptions */}
+          {moduleSubscriptions.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Módulos adicionales activos</h3>
+              <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
                 {moduleSubscriptions.map(sub => (
-                  <div key={sub.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div key={sub.id} className="flex items-center justify-between px-4 py-3">
                     <span className="text-sm text-gray-700 capitalize">{sub.module_key.replace(/_/g, ' ')}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       sub.status === 'active' ? 'bg-green-100 text-green-700' :
@@ -206,11 +337,45 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   </div>
                 ))}
               </div>
-            )}
-            <a href="/admin/marketplace" className="inline-block mt-3 text-xs text-indigo-600 hover:underline">Ir al marketplace →</a>
-          </div>
+            </div>
+          )}
         </div>
       )}
+
+      {/* Upgrade modal */}
+      {upgradeModal && (() => {
+        const plan = PLANS.find(p => p.key === upgradeModal)!
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+              <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <plan.icon size={24} className="text-indigo-600" />
+              </div>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Contratar plan {plan.label}</h2>
+              <p className="text-sm text-gray-500 mb-5">
+                Estamos integrando el proceso de pago. Por ahora, contáctanos y activamos tu plan en minutos:
+              </p>
+              <a
+                href={`mailto:soporte@turnapp.co?subject=Quiero contratar plan ${plan.label}&body=Hola, soy administrador de la marca "${brand.name}" y quiero contratar el plan ${plan.label}.`}
+                className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
+              >
+                Contactar soporte →
+              </a>
+              <a
+                href="https://wa.me/573001234567?text=Hola, quiero contratar TurnApp plan "
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-2.5 px-4 bg-green-500 text-white rounded-xl font-medium text-sm hover:bg-green-600 transition-colors mb-3"
+              >
+                Escribir por WhatsApp
+              </a>
+              <button onClick={() => setUpgradeModal(null)} className="text-sm text-gray-400 hover:text-gray-600">
+                Cerrar
+              </button>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

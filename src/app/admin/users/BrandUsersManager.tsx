@@ -33,10 +33,12 @@ export function BrandUsersManager({
   users: initial,
   establishments,
   brandId,
+  maxAdvisors,
 }: {
   users: ProfileRow[]
   establishments: { id: string; name: string }[]
   brandId: string
+  maxAdvisors?: number
 }) {
   const [users, setUsers] = useState(initial)
   const [showForm, setShowForm] = useState(false)
@@ -61,6 +63,12 @@ export function BrandUsersManager({
   const [verifySuccess, setVerifySuccess] = useState<string | null>(null)
 
   function openNew() {
+    if (maxAdvisors !== undefined && users.length >= maxAdvisors) {
+      setError(`Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'}. Actualiza tu membresía en Mi marca → Membresía.`)
+      setShowForm(true)
+      setEditing(null)
+      return
+    }
     setEditing(null)
     setForm({ email: '', password: '', full_name: '', role: 'advisor', establishment_id: '' })
     setError('')

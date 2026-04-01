@@ -61,6 +61,12 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
       attended_at: new Date().toISOString(),
     }).eq('id', ticket.id)
     setActiveTicket({ ...ticket, status: 'in_progress' })
+    // Fire-and-forget push notification to customer
+    fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ticketId: ticket.id }),
+    }).catch(() => null)
   }
 
   async function cancelTicket(ticketId: string) {
