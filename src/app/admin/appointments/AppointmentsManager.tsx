@@ -219,7 +219,7 @@ export function AppointmentsManager({
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
           <h2 className="font-semibold text-gray-900 mb-4">Nueva cita</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Select label="Establecimiento *" value={form.establishment_id}
+            <Select label="Sucursal *" value={form.establishment_id}
               onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}>
               <option value="">— Seleccionar —</option>
               {brandEstablishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}

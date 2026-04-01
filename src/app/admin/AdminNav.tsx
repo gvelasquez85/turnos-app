@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils'
 import { Store, MessageSquare, FileText, Tag, BarChart2, LogOut, Building2, Users, UserCheck } from 'lucide-react'
 
 const adminLinks = [
-  { href: '/admin', label: 'Establecimientos', icon: Store, exact: true },
+  { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/advisor-fields', label: 'Campos', icon: FileText },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },

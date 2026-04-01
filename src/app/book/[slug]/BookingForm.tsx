@@ -97,7 +97,7 @@ export function BookingForm({ establishment, visitReasons }: Props) {
             <div className="border-t border-gray-100 pt-4 space-y-1 text-sm">
               <p className="text-gray-500">Nombre: <span className="font-medium text-gray-900">{form.name}</span></p>
               {selectedReason && <p className="text-gray-500">Motivo: <span className="font-medium text-gray-900">{selectedReason.name}</span></p>}
-              <p className="text-gray-500">Establecimiento: <span className="font-medium text-gray-900">{establishment.name}</span></p>
+              <p className="text-gray-500">Sucursal: <span className="font-medium text-gray-900">{establishment.name}</span></p>
             </div>
           </div>
           <p className="text-white/50 text-xs mt-6">{brand.name}</p>

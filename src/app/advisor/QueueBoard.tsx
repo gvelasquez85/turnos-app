@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { formatTime } from '@/lib/utils'
 import type { Ticket, AdvisorField, TicketStatus } from '@/types/database'
-import { Users, Clock, CheckCircle, X } from 'lucide-react'
+import { Users, Clock, CheckCircle, X, TrendingUp } from 'lucide-react'
 import { AttentionModal } from './AttentionModal'
 
 interface TicketRow extends Ticket {
@@ -22,9 +22,14 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
   const [tickets, setTickets] = useState<TicketRow[]>([])
   const [activeTicket, setActiveTicket] = useState<TicketRow | null>(null)
   const [loading, setLoading] = useState(true)
+  const [doneToday, setDoneToday] = useState(0)
 
   function loadTickets() {
     const supabase = createClient()
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+
+    // Active queue
     supabase
       .from('tickets')
       .select('*, visit_reasons(name)')
@@ -35,6 +40,15 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
         setTickets((data as TicketRow[]) || [])
         setLoading(false)
       })
+
+    // Atendidos hoy
+    supabase
+      .from('tickets')
+      .select('id', { count: 'exact', head: true })
+      .eq('establishment_id', establishmentId)
+      .eq('status', 'done')
+      .gte('created_at', todayStart.toISOString())
+      .then(({ count }) => setDoneToday(count ?? 0))
   }
 
   useEffect(() => {
@@ -84,9 +98,9 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
   return (
     <>
       {/* Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center shrink-0">
             <Clock size={20} className="text-yellow-600" />
           </div>
           <div>
@@ -95,12 +109,21 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
           </div>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center shrink-0">
             <Users size={20} className="text-blue-600" />
           </div>
           <div>
             <p className="text-2xl font-bold text-gray-900">{inProgress.length}</p>
             <p className="text-xs text-gray-500">En atención</p>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+          <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center shrink-0">
+            <TrendingUp size={20} className="text-green-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-gray-900">{doneToday}</p>
+            <p className="text-xs text-gray-500">Atendidos hoy</p>
           </div>
         </div>
       </div>

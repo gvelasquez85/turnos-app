@@ -11,7 +11,7 @@ interface Props {
   establishments: { id: string; name: string }[]
 }
 
-type Period = 'day' | 'week' | 'month'
+type Period = 'day' | 'week' | 'month' | 'custom'
 type Tab = 'general' | 'establishment' | 'advisor' | 'reason' | 'surveys'
 
 interface TicketStat {
@@ -21,14 +21,62 @@ interface TicketStat {
   cancelled: number
 }
 
-function PeriodSelector({ period, onChange }: { period: Period; onChange: (p: Period) => void }) {
+interface DateRange {
+  period: Period
+  customStart: string
+  customEnd: string
+}
+
+function today() { return new Date().toISOString().split('T')[0] }
+
+function getStartDate(range: DateRange): Date {
+  const now = new Date()
+  if (range.period === 'day') return new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  if (range.period === 'week') { const d = new Date(now); d.setDate(now.getDate() - 7); return d }
+  if (range.period === 'month') { const d = new Date(now); d.setMonth(now.getMonth() - 1); return d }
+  // custom
+  return range.customStart ? new Date(range.customStart + 'T00:00:00') : new Date(now.getFullYear(), now.getMonth(), now.getDate())
+}
+
+function getEndDate(range: DateRange): Date | null {
+  if (range.period !== 'custom') return null
+  return range.customEnd ? new Date(range.customEnd + 'T23:59:59') : new Date()
+}
+
+function PeriodSelector({ range, onChange }: { range: DateRange; onChange: (r: DateRange) => void }) {
   return (
-    <div className="flex rounded-lg border border-gray-300 overflow-hidden">
-      {(['day', 'week', 'month'] as Period[]).map(p => (
-        <button key={p} onClick={() => onChange(p)} className={`px-4 py-2 text-sm font-medium transition-colors ${period === p ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}>
-          {p === 'day' ? 'Hoy' : p === 'week' ? '7 días' : '30 días'}
-        </button>
-      ))}
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+        {(['day', 'week', 'month', 'custom'] as Period[]).map(p => (
+          <button
+            key={p}
+            onClick={() => onChange({ ...range, period: p })}
+            className={`px-3 py-2 text-sm font-medium transition-colors ${range.period === p ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+          >
+            {p === 'day' ? 'Hoy' : p === 'week' ? '7 días' : p === 'month' ? '30 días' : 'Personalizado'}
+          </button>
+        ))}
+      </div>
+      {range.period === 'custom' && (
+        <div className="flex items-center gap-2">
+          <input
+            type="date"
+            value={range.customStart}
+            max={range.customEnd || today()}
+            onChange={e => onChange({ ...range, customStart: e.target.value })}
+            className="h-9 rounded-lg border border-gray-300 px-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+          <span className="text-gray-400 text-sm">→</span>
+          <input
+            type="date"
+            value={range.customEnd}
+            min={range.customStart}
+            max={today()}
+            onChange={e => onChange({ ...range, customEnd: e.target.value })}
+            className="h-9 rounded-lg border border-gray-300 px-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          />
+        </div>
+      )}
     </div>
   )
 }
@@ -36,7 +84,7 @@ function PeriodSelector({ period, onChange }: { period: Period; onChange: (p: Pe
 // ─── TAB: General ─────────────────────────────────────────────────────────────
 function GeneralTab({ establishments }: { establishments: { id: string; name: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
-  const [period, setPeriod] = useState<Period>('week')
+  const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [stats, setStats] = useState<TicketStat[]>([])
   const [reasonStats, setReasonStats] = useState<{ name: string; count: number }[]>([])
   const [hourStats, setHourStats] = useState<{ hour: string; count: number }[]>([])
@@ -48,16 +96,15 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
     setLoading(true)
     const supabase = createClient()
     const now = new Date()
-    let startDate: Date
-    if (period === 'day') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7) }
-    else { startDate = new Date(now); startDate.setMonth(now.getMonth() - 1) }
+    const startDate = getStartDate(range)
+    const endDate = getEndDate(range)
 
     const { data: tickets } = await supabase
       .from('tickets')
       .select('id, status, created_at, attended_at, visit_reason_id, visit_reasons(name)')
       .eq('establishment_id', selectedEst)
       .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate ? endDate.toISOString() : new Date().toISOString())
       .order('created_at')
 
     if (!tickets) { setLoading(false); return }
@@ -91,7 +138,7 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
       : 0
     setTotals({ total: tickets.length, done: tickets.filter(t => t.status === 'done').length, avg_wait: avgWait, today: todayCount })
     setLoading(false)
-  }, [selectedEst, period])
+  }, [selectedEst, range])
 
   useEffect(() => { load() }, [load])
 
@@ -103,7 +150,7 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
             {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         )}
-        <PeriodSelector period={period} onChange={setPeriod} />
+        <PeriodSelector range={range} onChange={setRange} />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -178,9 +225,9 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
   )
 }
 
-// ─── TAB: Por Establecimiento ─────────────────────────────────────────────────
+// ─── TAB: Por Sucursal ─────────────────────────────────────────────────
 function EstablishmentTab({ establishments }: { establishments: { id: string; name: string }[] }) {
-  const [period, setPeriod] = useState<Period>('week')
+  const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [data, setData] = useState<{ name: string; total: number; done: number; avg_wait: number }[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -188,16 +235,15 @@ function EstablishmentTab({ establishments }: { establishments: { id: string; na
     setLoading(true)
     const supabase = createClient()
     const now = new Date()
-    let startDate: Date
-    if (period === 'day') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7) }
-    else { startDate = new Date(now); startDate.setMonth(now.getMonth() - 1) }
+    const startDate = getStartDate(range)
+    const endDate = getEndDate(range)
 
     const { data: tickets } = await supabase
       .from('tickets')
       .select('establishment_id, status, created_at, attended_at')
       .in('establishment_id', establishments.map(e => e.id))
       .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate ? endDate.toISOString() : new Date().toISOString())
 
     if (!tickets) { setLoading(false); return }
 
@@ -224,18 +270,18 @@ function EstablishmentTab({ establishments }: { establishments: { id: string; na
       }
     }))
     setLoading(false)
-  }, [establishments, period])
+  }, [establishments, range])
 
   useEffect(() => { load() }, [load])
 
   return (
     <div>
       <div className="flex justify-end mb-6">
-        <PeriodSelector period={period} onChange={setPeriod} />
+        <PeriodSelector range={range} onChange={setRange} />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Tickets por establecimiento</h3>
+        <h3 className="font-semibold text-gray-900 mb-4">Tickets por sucursal</h3>
         {loading ? <p className="text-center text-gray-400 py-10">Cargando...</p> : (
           <ResponsiveContainer width="100%" height={260}>
             <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
@@ -254,7 +300,7 @@ function EstablishmentTab({ establishments }: { establishments: { id: string; na
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-4 py-3 text-left font-semibold text-gray-600">Establecimiento</th>
+              <th className="px-4 py-3 text-left font-semibold text-gray-600">Sucursal</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-600">Total</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-600">Atendidos</th>
               <th className="px-4 py-3 text-right font-semibold text-gray-600">% Atención</th>
@@ -278,10 +324,10 @@ function EstablishmentTab({ establishments }: { establishments: { id: string; na
   )
 }
 
-// ─── TAB: Por Asesor ──────────────────────────────────────────────────────────
+// ─── TAB: Por Agente ──────────────────────────────────────────────────────────
 function AdvisorTab({ establishments }: { establishments: { id: string; name: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
-  const [period, setPeriod] = useState<Period>('week')
+  const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [data, setData] = useState<{ name: string; done: number; avg_wait: number }[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -290,10 +336,8 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
     setLoading(true)
     const supabase = createClient()
     const now = new Date()
-    let startDate: Date
-    if (period === 'day') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7) }
-    else { startDate = new Date(now); startDate.setMonth(now.getMonth() - 1) }
+    const startDate = getStartDate(range)
+    const endDate = getEndDate(range)
 
     const { data: tickets } = await supabase
       .from('tickets')
@@ -301,13 +345,14 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
       .eq('establishment_id', selectedEst)
       .eq('status', 'done')
       .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate ? endDate.toISOString() : new Date().toISOString())
 
     if (!tickets) { setLoading(false); return }
 
     const byAdvisor: Record<string, { name: string; done: number; wait_sum: number; wait_count: number }> = {}
     tickets.forEach(t => {
       const advisorId = t.advisor_id || 'unknown'
-      const name = (t.profiles as any)?.full_name || 'Sin asesor'
+      const name = (t.profiles as any)?.full_name || 'Sin agente'
       if (!byAdvisor[advisorId]) byAdvisor[advisorId] = { name, done: 0, wait_sum: 0, wait_count: 0 }
       byAdvisor[advisorId].done++
       if (t.attended_at) {
@@ -322,7 +367,7 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
         .sort((a, b) => b.done - a.done)
     )
     setLoading(false)
-  }, [selectedEst, period])
+  }, [selectedEst, range])
 
   useEffect(() => { load() }, [load])
 
@@ -334,11 +379,11 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
             {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         )}
-        <PeriodSelector period={period} onChange={setPeriod} />
+        <PeriodSelector range={range} onChange={setRange} />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Atenciones por asesor</h3>
+        <h3 className="font-semibold text-gray-900 mb-4">Atenciones por agente</h3>
         {loading ? <p className="text-center text-gray-400 py-10">Cargando...</p> : data.length === 0 ? (
           <p className="text-gray-400 text-sm text-center py-8">Sin datos para el período</p>
         ) : (
@@ -359,7 +404,7 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
           <table className="min-w-full divide-y divide-gray-200 text-sm">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Asesor</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">Agente</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">Atendidos</th>
                 <th className="px-4 py-3 text-right font-semibold text-gray-600">Espera prom.</th>
               </tr>
@@ -383,7 +428,7 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
 // ─── TAB: Por Motivo ──────────────────────────────────────────────────────────
 function ReasonTab({ establishments }: { establishments: { id: string; name: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
-  const [period, setPeriod] = useState<Period>('week')
+  const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [data, setData] = useState<{ name: string; count: number; done: number }[]>([])
   const [loading, setLoading] = useState(false)
 
@@ -392,16 +437,15 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
     setLoading(true)
     const supabase = createClient()
     const now = new Date()
-    let startDate: Date
-    if (period === 'day') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7) }
-    else { startDate = new Date(now); startDate.setMonth(now.getMonth() - 1) }
+    const startDate = getStartDate(range)
+    const endDate = getEndDate(range)
 
     const { data: tickets } = await supabase
       .from('tickets')
       .select('status, visit_reason_id, visit_reasons(name)')
       .eq('establishment_id', selectedEst)
       .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate ? endDate.toISOString() : new Date().toISOString())
 
     if (!tickets) { setLoading(false); return }
 
@@ -415,7 +459,7 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
     })
     setData(Object.values(byReason).sort((a, b) => b.count - a.count))
     setLoading(false)
-  }, [selectedEst, period])
+  }, [selectedEst, range])
 
   useEffect(() => { load() }, [load])
 
@@ -427,7 +471,7 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
             {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
           </select>
         )}
-        <PeriodSelector period={period} onChange={setPeriod} />
+        <PeriodSelector range={range} onChange={setRange} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -497,7 +541,7 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
 
 // ─── TAB: Encuestas ───────────────────────────────────────────────────────────
 function SurveysTab({ establishments }: { establishments: { id: string; name: string }[] }) {
-  const [period, setPeriod] = useState<Period>('month')
+  const [range, setRange] = useState<DateRange>({ period: 'month', customStart: '', customEnd: '' })
   const [responses, setResponses] = useState<any[]>([])
   const [npsData, setNpsData] = useState<{ label: string; count: number }[]>([])
   const [avgScores, setAvgScores] = useState<{ nps: number | null; csat: number | null; ces: number | null; count: number }>({ nps: null, csat: null, ces: null, count: 0 })
@@ -507,15 +551,14 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
     setLoading(true)
     const supabase = createClient()
     const now = new Date()
-    let startDate: Date
-    if (period === 'day') startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    else if (period === 'week') { startDate = new Date(now); startDate.setDate(now.getDate() - 7) }
-    else { startDate = new Date(now); startDate.setMonth(now.getMonth() - 1) }
+    const startDate = getStartDate(range)
+    const endDate = getEndDate(range)
 
     const { data } = await supabase
       .from('survey_responses')
       .select('*, tickets(establishment_id, customer_name)')
       .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate ? endDate.toISOString() : new Date().toISOString())
       .order('created_at', { ascending: false })
 
     if (!data) { setLoading(false); return }
@@ -558,7 +601,7 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
       count: filtered.length,
     })
     setLoading(false)
-  }, [establishments, period])
+  }, [establishments, range])
 
   useEffect(() => { load() }, [load])
 
@@ -572,7 +615,7 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
   return (
     <div>
       <div className="flex justify-end mb-6">
-        <PeriodSelector period={period} onChange={setPeriod} />
+        <PeriodSelector range={range} onChange={setRange} />
       </div>
 
       {/* KPI scores */}
@@ -667,8 +710,8 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
 // ─── Main component ───────────────────────────────────────────────────────────
 const TABS: { id: Tab; label: string }[] = [
   { id: 'general', label: 'General' },
-  { id: 'establishment', label: 'Por Establecimiento' },
-  { id: 'advisor', label: 'Por Asesor' },
+  { id: 'establishment', label: 'Por Sucursal' },
+  { id: 'advisor', label: 'Por Agente' },
   { id: 'reason', label: 'Por Motivo' },
   { id: 'surveys', label: 'Encuestas' },
 ]

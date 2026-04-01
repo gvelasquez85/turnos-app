@@ -170,7 +170,7 @@ export function MenuBuilder({ establishments, menus: initialMenus, preOrders: in
       {/* Establishment selector */}
       {establishments.length > 1 && (
         <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4">
-          <Select label="Establecimiento" value={selectedEst}
+          <Select label="Sucursal" value={selectedEst}
             onChange={e => setSelectedEst(e.target.value)}>
             <option value="">— Seleccionar —</option>
             {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}

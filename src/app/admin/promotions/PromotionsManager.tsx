@@ -39,7 +39,7 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
   const showBrandSelector = brands.length > 1
   const selectedBrand = brands.find(b => b.id === selectedBrandId)
 
-  // Establecimientos de la marca seleccionada
+  // Sucursales de la marca seleccionada
   const brandEstablishments = selectedBrandId
     ? establishments.filter(e => e.brand_id === selectedBrandId)
     : establishments
@@ -122,7 +122,7 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Promociones</h1>
+          <h1 className="text-xl font-bold text-gray-900">Promociones <span className="ml-1 text-sm font-normal text-gray-400">({promotions.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {selectedBrand ? `Marca: ${selectedBrand.name}` : 'Se muestran al cliente al escanear el QR'}
           </p>
@@ -154,7 +154,7 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="Título *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <Select
-              label="Establecimiento *"
+              label="Sucursal *"
               value={form.establishment_id}
               onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
             >

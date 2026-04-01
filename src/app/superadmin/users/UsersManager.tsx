@@ -12,7 +12,7 @@ const roles: { value: UserRole; label: string }[] = [
   { value: 'superadmin', label: 'Super Admin' },
   { value: 'brand_admin', label: 'Admin de Marca' },
   { value: 'manager', label: 'Manager' },
-  { value: 'advisor', label: 'Asesor' },
+  { value: 'advisor', label: 'Agente' },
   { value: 'reporting', label: 'Reporting' },
 ]
 
@@ -123,7 +123,7 @@ export function UsersManager({ users: initial, brands, establishments }: {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Usuarios</h1>
+          <h1 className="text-xl font-bold text-gray-900">Usuarios <span className="ml-1 text-sm font-normal text-gray-400">({users.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">Asesores, administradores y superadmins</p>
         </div>
         <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nuevo usuario</Button>
@@ -146,7 +146,7 @@ export function UsersManager({ users: initial, brands, establishments }: {
               </Select>
             )}
             {form.role === 'advisor' && (
-              <Select label="Establecimiento" value={form.establishment_id} onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}>
+              <Select label="Sucursal" value={form.establishment_id} onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}>
                 <option value="">Sin establecimiento</option>
                 {filteredEsts.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </Select>

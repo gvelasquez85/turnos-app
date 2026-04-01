@@ -29,7 +29,7 @@ interface NavSection {
 }
 
 const CONFIG_ITEMS: NavItem[] = [
-  { href: '/admin', label: 'Establecimientos', icon: Store, exact: true },
+  { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/advisor-fields', label: 'Campos asesor', icon: FileText },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },
@@ -138,7 +138,7 @@ const roleLabel: Record<AppRole, string> = {
   superadmin: 'Super Admin',
   brand_admin: 'Admin',
   manager: 'Manager',
-  advisor: 'Asesor',
+  advisor: 'Agente',
   reporting: 'Reportes',
 }
 
@@ -276,6 +276,7 @@ export function AppShell({ children, role, fullName, email, brandName, establish
               value={selectedBrandId}
               onChange={e => setSelectedBrandId(e.target.value)}
             >
+              <option value="">— Todas las marcas —</option>
               {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
           </div>

@@ -78,7 +78,7 @@ export function ConsentsManager({ consents, brands, defaultBrandId }: Props) {
             <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
               <div className="col-span-3">Cliente</div>
               <div className="col-span-2">Contacto</div>
-              <div className="col-span-2">Establecimiento</div>
+              <div className="col-span-2">Sucursal</div>
               <div className="col-span-1 text-center">Turno</div>
               <div className="col-span-2 text-center">Autorizaciones</div>
               <div className="col-span-1">Fecha</div>

@@ -46,7 +46,7 @@ export function BrandsManager({ brands: initial }: { brands: BrandWithCount[] })
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Marcas</h1>
+          <h1 className="text-xl font-bold text-gray-900">Marcas <span className="ml-1 text-sm font-normal text-gray-400">({brands.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de todas las marcas del sistema</p>
         </div>
         <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nueva marca</Button>

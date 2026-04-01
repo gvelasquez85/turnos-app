@@ -46,7 +46,7 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
   const showBrandSelector = brands.length > 1
   const selectedBrand = brands.find(b => b.id === selectedBrandId)
 
-  // Establecimientos de la marca seleccionada
+  // Sucursales de la marca seleccionada
   const brandEstablishments = selectedBrandId
     ? establishments.filter(e => e.brand_id === selectedBrandId)
     : establishments
@@ -132,7 +132,7 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Campos del asesor</h1>
+          <h1 className="text-xl font-bold text-gray-900">Campos del agente <span className="ml-1 text-sm font-normal text-gray-400">({fields.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {selectedBrand ? `Marca: ${selectedBrand.name}` : 'Información que el asesor completa al atender al cliente'}
           </p>
@@ -180,7 +180,7 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
               />
             )}
             <Select
-              label="Establecimiento *"
+              label="Sucursal *"
               value={form.establishment_id}
               onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
             >

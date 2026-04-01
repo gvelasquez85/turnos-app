@@ -378,7 +378,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
       {/* Left panel */}
       <div className="md:col-span-1 flex flex-col gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <label className="text-sm font-medium text-gray-700 block mb-2">Establecimiento</label>
+          <label className="text-sm font-medium text-gray-700 block mb-2">Sucursal</label>
           <select
             className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
             value={selectedEstId}
@@ -518,7 +518,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
             <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10">
               <div>
                 <div className="font-black text-xs">Marca</div>
-                <div className="opacity-60 text-[7px]">Establecimiento</div>
+                <div className="opacity-60 text-[7px]">Sucursal</div>
               </div>
               <div className="font-mono font-bold text-sm opacity-80">12:00:00</div>
             </div>

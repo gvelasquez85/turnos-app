@@ -37,7 +37,7 @@ export default async function SurveyPreviewPage({ searchParams }: { searchParams
       <div className="pt-10">
         <SurveyForm
           ticket={{ id: 'preview', queue_number: '000', customer_name: 'Cliente de prueba' }}
-          establishment={{ id: 'preview', name: 'Establecimiento', brand_name: brand?.name ?? '', primary_color: brand?.primary_color }}
+          establishment={{ id: 'preview', name: 'Sucursal', brand_name: brand?.name ?? '', primary_color: brand?.primary_color }}
           template={{ id: template.id, name: template.name, questions: template.questions || [] }}
           preview
         />

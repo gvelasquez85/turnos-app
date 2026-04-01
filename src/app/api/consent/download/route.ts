@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 <div class="section">
   <div class="section-title">Información del negocio</div>
   <div class="row"><span class="label">Empresa / Marca:</span><span class="value">${brandName}</span></div>
-  <div class="row"><span class="label">Establecimiento:</span><span class="value">${estName}</span></div>
+  <div class="row"><span class="label">Sucursal:</span><span class="value">${estName}</span></div>
 </div>
 
 <div class="section">

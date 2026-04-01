@@ -8,7 +8,7 @@ import { Building2, Users, BarChart2, LogOut, Store, MessageSquare, FileText, Ta
 const links = [
   { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
   { href: '/superadmin/users', label: 'Usuarios', icon: Users },
-  { href: '/admin', label: 'Establecimientos', icon: Store, exact: true },
+  { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/advisor-fields', label: 'Campos', icon: FileText },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },

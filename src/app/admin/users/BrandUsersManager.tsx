@@ -18,7 +18,7 @@ type ProfileRow = {
 
 // Roles que brand_admin puede crear dentro de su marca
 const BRAND_ROLES: { value: UserRole; label: string; description: string }[] = [
-  { value: 'advisor', label: 'Asesor', description: 'Atiende la cola de espera' },
+  { value: 'advisor', label: 'Agente', description: 'Atiende la cola de espera' },
   { value: 'manager', label: 'Manager', description: 'Configura establecimientos, motivos y promociones' },
   { value: 'reporting', label: 'Reporting', description: 'Solo accede a reportes' },
 ]
@@ -160,7 +160,7 @@ export function BrandUsersManager({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Equipo</h1>
+          <h1 className="text-xl font-bold text-gray-900">Equipo <span className="ml-1 text-sm font-normal text-gray-400">({users.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">Asesores, managers y usuarios de reportes</p>
         </div>
         <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nuevo usuario</Button>
@@ -192,7 +192,7 @@ export function BrandUsersManager({
             </Select>
             {form.role === 'advisor' && (
               <Select
-                label="Establecimiento"
+                label="Sucursal"
                 value={form.establishment_id}
                 onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
               >

@@ -87,7 +87,7 @@ export function VisitReasonsManager({ brands, defaultBrandId, reasons: initial }
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Motivos de visita</h1>
+          <h1 className="text-xl font-bold text-gray-900">Motivos de visita <span className="ml-1 text-sm font-normal text-gray-400">({reasons.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {selectedBrand ? `Marca: ${selectedBrand.name}` : 'Selecciona una marca'}
           </p>

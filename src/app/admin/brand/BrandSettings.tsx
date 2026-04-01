@@ -86,7 +86,7 @@ const PLANS = [
     badge: 'bg-purple-100 text-purple-700',
     maxEstablishments: null,
     maxAdvisors: null,
-    modules: ['Todo lo del Profesional', 'Establecimientos ilimitados', 'Asesores ilimitados', 'SLA y soporte dedicado'],
+    modules: ['Todo lo del Profesional', 'Sucursales ilimitadas', 'Asesores ilimitados', 'SLA y soporte dedicado'],
     cta: 'Hablar con ventas',
   },
 ]
@@ -237,7 +237,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             <div className="flex gap-6 text-sm">
               <div className="text-center">
                 <p className="font-bold text-gray-900">{membership?.max_establishments ?? 1}</p>
-                <p className="text-gray-500 text-xs">Establecimientos</p>
+                <p className="text-gray-500 text-xs">Sucursales</p>
               </div>
               <div className="text-center">
                 <p className="font-bold text-gray-900">{membership?.max_advisors ?? 3}</p>
