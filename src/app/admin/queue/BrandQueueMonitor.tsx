@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrandStore } from '@/stores/brandStore'
 import { Building2, ChevronDown, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTime } from '@/lib/utils'
@@ -32,7 +33,12 @@ interface Props {
 
 export function BrandQueueMonitor({ brands, establishments, defaultBrandId }: Props) {
   const autoBrand = defaultBrandId || (brands.length === 1 ? brands[0].id : '')
-  const [selectedBrand, setSelectedBrand] = useState(autoBrand)
+  const { selectedBrandId: storeBrandId } = useBrandStore()
+  const [selectedBrand, setSelectedBrand] = useState(() => storeBrandId || autoBrand)
+
+  useEffect(() => {
+    if (storeBrandId) setSelectedBrand(storeBrandId)
+  }, [storeBrandId])
   const [stats, setStats] = useState<EstablishmentStats[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
@@ -100,21 +106,6 @@ export function BrandQueueMonitor({ brands, establishments, defaultBrandId }: Pr
           </p>
         </div>
 
-        {/* Selector de marca (solo si hay más de una) */}
-        {brands.length > 1 && (
-          <div className="relative">
-            <Building2 size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-            <select
-              className="pl-8 pr-7 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 appearance-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              value={selectedBrand}
-              onChange={e => setSelectedBrand(e.target.value)}
-            >
-              <option value="">Todas las marcas</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            <ChevronDown size={13} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          </div>
-        )}
       </div>
 
       {/* KPIs globales */}

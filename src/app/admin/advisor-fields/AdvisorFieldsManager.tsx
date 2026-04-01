@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrandStore } from '@/stores/brandStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, Edit2, Trash2, Building2, ChevronDown } from 'lucide-react'
@@ -27,7 +28,16 @@ const fieldTypes: { value: FieldType; label: string }[] = [
 
 export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, fields: initial }: Props) {
   const autoBrandId = defaultBrandId || (brands.length === 1 ? brands[0].id : '')
-  const [selectedBrandId, setSelectedBrandId] = useState(autoBrandId)
+  const { selectedBrandId: storeBrandId } = useBrandStore()
+  const [selectedBrandId, setSelectedBrandId] = useState(() => storeBrandId || autoBrandId)
+
+  useEffect(() => {
+    if (storeBrandId) {
+      setSelectedBrandId(storeBrandId)
+      setShowForm(false)
+      setEditing(null)
+    }
+  }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fields, setFields] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<FieldWithEst | null>(null)
@@ -132,26 +142,6 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
         </Button>
       </div>
 
-      {/* Selector de marca */}
-      {showBrandSelector && (
-        <div className="bg-white border border-gray-200 rounded-xl p-4 mb-6 flex items-center gap-3">
-          <Building2 size={18} className="text-indigo-500 shrink-0" />
-          <div className="flex-1">
-            <label className="text-xs font-medium text-gray-500 block mb-1 uppercase tracking-wide">Marca</label>
-            <div className="relative max-w-xs">
-              <select
-                className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                value={selectedBrandId}
-                onChange={e => handleBrandChange(e.target.value)}
-              >
-                <option value="">— Seleccionar marca —</option>
-                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Sin establecimientos en esta marca */}
       {selectedBrandId && brandEstablishments.length === 0 && (
