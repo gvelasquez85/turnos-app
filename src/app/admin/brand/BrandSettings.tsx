@@ -101,15 +101,35 @@ export function BrandSettings({ brand: initialBrand, membership }: Props) {
             <Input label="URL del logo" value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} placeholder="https://..." />
             <div className="flex flex-col gap-1">
               <label className="text-sm font-medium text-gray-700">Color principal</label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <input
                   type="color"
                   value={form.primary_color}
                   onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}
-                  className="w-12 h-10 rounded-lg border border-gray-300 cursor-pointer p-0.5"
+                  className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer p-0.5 shrink-0"
                 />
-                <span className="text-sm text-gray-500 font-mono">{form.primary_color}</span>
-                <div className="w-8 h-8 rounded-lg border border-gray-200" style={{ backgroundColor: form.primary_color }} />
+                <input
+                  type="text"
+                  value={form.primary_color}
+                  onChange={e => {
+                    const val = e.target.value
+                    setForm(f => ({ ...f, primary_color: val }))
+                  }}
+                  onBlur={e => {
+                    // Normalise: if user typed without #, add it; validate hex
+                    let val = e.target.value.trim()
+                    if (val && !val.startsWith('#')) val = '#' + val
+                    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val)) {
+                      setForm(f => ({ ...f, primary_color: val.toLowerCase() }))
+                    } else {
+                      setForm(f => ({ ...f, primary_color: form.primary_color }))
+                    }
+                  }}
+                  maxLength={7}
+                  placeholder="#6366f1"
+                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+                <div className="w-9 h-9 rounded-lg border border-gray-200 shrink-0" style={{ backgroundColor: form.primary_color }} />
               </div>
             </div>
             <Input label="Dirección principal" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle 123, Ciudad" />
