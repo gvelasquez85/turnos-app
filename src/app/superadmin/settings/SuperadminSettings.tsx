@@ -2,7 +2,8 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
-import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2 } from 'lucide-react'
+import { Input } from '@/components/ui/input'
+import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 
 const MODULE_LIST = [
   { key: 'queue', label: 'Cola de turnos', desc: 'Sistema de turnos en espera' },
@@ -15,6 +16,117 @@ const MODULE_LIST = [
 const PLAN_LABELS: Record<string, string> = { basic: 'Básico', professional: 'Profesional', enterprise: 'Empresarial' }
 const PLAN_COLORS: Record<string, string> = { basic: 'bg-gray-100 text-gray-700', professional: 'bg-blue-100 text-blue-700', enterprise: 'bg-purple-100 text-purple-700' }
 const STATUS_COLORS: Record<string, string> = { active: 'bg-green-100 text-green-700', expired: 'bg-red-100 text-red-700', cancelled: 'bg-gray-100 text-gray-500', trial: 'bg-amber-100 text-amber-700' }
+
+// ─── Integrations Tab ─────────────────────────────────────────────────────────
+
+const INTEGRATIONS = [
+  {
+    key: 'firebase',
+    label: 'Firebase / FCM',
+    icon: '🔥',
+    color: 'bg-orange-50 border-orange-200',
+    vars: [
+      { env: 'NEXT_PUBLIC_FIREBASE_API_KEY', label: 'API Key', hint: 'Firebase Console → Configuración → General → Tus apps → API Key' },
+      { env: 'NEXT_PUBLIC_FIREBASE_PROJECT_ID', label: 'Project ID', hint: 'Firebase Console → Configuración → General → ID del proyecto' },
+      { env: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', label: 'Sender ID', hint: 'Firebase Console → Configuración → Cloud Messaging → ID del remitente' },
+      { env: 'NEXT_PUBLIC_FIREBASE_APP_ID', label: 'App ID', hint: 'Firebase Console → Configuración → General → ID de la app' },
+      { env: 'NEXT_PUBLIC_FIREBASE_VAPID_KEY', label: 'VAPID Key', hint: 'Firebase Console → Configuración → Cloud Messaging → Certificados push web → Clave pública' },
+      { env: 'FIREBASE_SERVER_KEY', label: 'Server Key ⚠️', hint: 'Firebase Console → Configuración → Cloud Messaging → Server key. REQUERIDA para enviar notificaciones push.', required: true },
+    ],
+    docs: 'https://firebase.google.com/docs/web/setup',
+    status: 'partial' as const,
+    statusNote: 'Server Key pendiente de agregar en Vercel. Sin ella las notificaciones push no se envían.',
+  },
+  {
+    key: 'vercel',
+    label: 'Vercel',
+    icon: '▲',
+    color: 'bg-gray-50 border-gray-200',
+    vars: [
+      { env: 'VERCEL_TOKEN', label: 'Token API', hint: 'vercel.com → Account Settings → Tokens' },
+    ],
+    docs: 'https://vercel.com/docs/rest-api',
+    status: 'info' as const,
+    statusNote: 'El deploy actual se realiza via CLI. Para auto-deploy reconectar el repo en Vercel Dashboard → Settings → Git.',
+  },
+  {
+    key: 'supabase',
+    label: 'Supabase',
+    icon: '⚡',
+    color: 'bg-emerald-50 border-emerald-200',
+    vars: [
+      { env: 'NEXT_PUBLIC_SUPABASE_URL', label: 'URL del proyecto', hint: 'Supabase Dashboard → Settings → API → Project URL' },
+      { env: 'NEXT_PUBLIC_SUPABASE_ANON_KEY', label: 'Anon Key', hint: 'Supabase Dashboard → Settings → API → anon public' },
+      { env: 'SUPABASE_SERVICE_ROLE_KEY', label: 'Service Role Key', hint: 'Supabase Dashboard → Settings → API → service_role (privada)' },
+    ],
+    docs: 'https://supabase.com/docs',
+    status: 'ok' as const,
+    statusNote: 'Conectado y operativo.',
+  },
+]
+
+function IntegrationsTab() {
+  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+        <p className="font-semibold mb-1">⚠️ Variables de entorno</p>
+        <p>Las llaves de integración se gestionan en <strong>Vercel Dashboard → Settings → Environment Variables</strong>. Esta pantalla muestra el estado y dónde obtener cada valor, pero no puede modificar las variables directamente.</p>
+        <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 mt-2 text-amber-700 font-medium underline hover:text-amber-900">
+          Ir a Vercel Dashboard <ExternalLink size={12} />
+        </a>
+      </div>
+
+      {INTEGRATIONS.map(integration => (
+        <div key={integration.key} className={`bg-white rounded-xl border-2 ${integration.color} overflow-hidden`}>
+          <div className="px-5 py-4 flex items-center justify-between border-b border-inherit">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{integration.icon}</span>
+              <div>
+                <p className="font-semibold text-gray-900">{integration.label}</p>
+                <p className="text-xs text-gray-500">{integration.statusNote}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {integration.status === 'ok' && <span className="flex items-center gap-1 text-xs text-green-600 font-medium"><CheckCircle size={13} /> Activo</span>}
+              {integration.status === 'partial' && <span className="flex items-center gap-1 text-xs text-amber-600 font-medium"><AlertCircle size={13} /> Parcial</span>}
+              {integration.status === 'info' && <span className="flex items-center gap-1 text-xs text-gray-500 font-medium"><AlertCircle size={13} /> Info</span>}
+              <a href={integration.docs} target="_blank" rel="noopener noreferrer"
+                className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">Docs <ExternalLink size={10} /></a>
+            </div>
+          </div>
+          <div className="divide-y divide-gray-100">
+            {integration.vars.map(v => (
+              <div key={v.env} className="px-5 py-3 flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <code className="text-xs font-mono text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded">{v.env}</code>
+                    <span className="text-xs text-gray-600">{v.label}</span>
+                  </div>
+                  <p className="text-xs text-gray-400 leading-snug">{v.hint}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <h3 className="font-semibold text-gray-800 mb-3">Pasos para activar notificaciones push</h3>
+        <ol className="space-y-2 text-sm text-gray-600 list-decimal list-inside">
+          <li>Ir a <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">Firebase Console</a></li>
+          <li>Seleccionar el proyecto → Configuración del proyecto → Cloud Messaging</li>
+          <li>Copiar el valor de <strong>Server key</strong></li>
+          <li>En <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">Vercel Dashboard</a> → Settings → Environment Variables</li>
+          <li>Agregar <code className="bg-gray-100 px-1 rounded font-mono text-xs">FIREBASE_SERVER_KEY</code> con ese valor</li>
+          <li>Re-deployar (o esperar al próximo deploy)</li>
+        </ol>
+      </div>
+    </div>
+  )
+}
 
 interface Brand { id: string; name: string; slug: string; active_modules: Record<string, boolean> | null; primary_color: string | null }
 interface Membership { id: string; brand_id: string; plan: string; status: string; started_at: string; expires_at: string | null; max_establishments: number; max_advisors: number; brands: { name: string } | null }
@@ -248,13 +360,7 @@ export function SuperadminSettings({ brands: initialBrands, memberships: initial
       )}
 
       {/* Integraciones */}
-      {tab === 'integrations' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
-          <Puzzle size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-gray-700">Integraciones externas</p>
-          <p className="text-sm mt-1">Conecta TurnApp con otras plataformas — próximamente</p>
-        </div>
-      )}
+      {tab === 'integrations' && <IntegrationsTab />}
 
       {membershipModal && (
         <MembershipModal
