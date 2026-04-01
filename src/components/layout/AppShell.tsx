@@ -345,18 +345,18 @@ export function AppShell({ children, role, fullName, email, brandName, establish
               </div>
             )}
           </Link>
-          {/* Botón ver como asesor */}
+          {/* Botón ver como agente */}
           {CAN_IMPERSONATE.includes(role) && !viewAs && (
             <button
               onClick={startImpersonate}
-              title={collapsed ? 'Ver como asesor' : undefined}
+              title={collapsed ? 'Ver como agente' : undefined}
               className={cn(
                 'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-indigo-500 hover:bg-indigo-50 w-full transition-colors mb-1',
                 collapsed && 'justify-center',
               )}
             >
               <Eye size={15} />
-              {!collapsed && <span>Ver como asesor</span>}
+              {!collapsed && <span>Ver como agente</span>}
             </button>
           )}
           {/* Salir de vista asesor */}
