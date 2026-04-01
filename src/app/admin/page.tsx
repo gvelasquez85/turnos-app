@@ -41,6 +41,7 @@ export default async function AdminPage() {
       brands={brands || []}
       defaultBrandId={profile?.brand_id || null}
       ticketStats={ticketStats}
+      isSuperAdmin={profile?.role === 'superadmin'}
     />
   )
 }

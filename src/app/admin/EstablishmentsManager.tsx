@@ -15,6 +15,7 @@ interface Props {
   brands: Pick<Brand, 'id' | 'name' | 'slug'>[]
   defaultBrandId: string | null
   ticketStats?: Record<string, EstStat>
+  isSuperAdmin?: boolean
 }
 
 function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading }: {
@@ -66,7 +67,7 @@ function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading
   )
 }
 
-export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {} }: Props) {
+export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {}, isSuperAdmin }: Props) {
   const [establishments, setEstablishments] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Establishment | null>(null)
@@ -317,9 +318,11 @@ export function EstablishmentsManager({ establishments: initial, brands, default
                 <span className={`text-xs px-2 py-0.5 rounded-full ${est.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                   {est.active ? 'Activo' : 'Inactivo'}
                 </span>
-                <Button size="sm" variant="ghost" title="Módulos" onClick={() => setFeaturesModal(est)}>
-                  <Settings2 size={15} />
-                </Button>
+                {isSuperAdmin && (
+                  <Button size="sm" variant="ghost" title="Módulos" onClick={() => setFeaturesModal(est)}>
+                    <Settings2 size={15} />
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => showQR(est.slug)}>
                   <QrCode size={15} />
                 </Button>

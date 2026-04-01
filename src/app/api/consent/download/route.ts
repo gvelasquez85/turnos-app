@@ -3,16 +3,31 @@ import { NextResponse, NextRequest } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const ticketId = request.nextUrl.searchParams.get('ticketId')
-  if (!ticketId) return new NextResponse('Missing ticketId', { status: 400 })
+  const consentId = request.nextUrl.searchParams.get('consentId')
+
+  if (!ticketId && !consentId) return new NextResponse('Missing ticketId or consentId', { status: 400 })
 
   const supabase = await createClient()
 
-  // Fetch consent record
-  const { data: consent } = await supabase
-    .from('data_consents')
-    .select('*, establishments(name, brands(name))')
-    .eq('ticket_id', ticketId)
-    .single()
+  let consent: any = null
+
+  if (consentId) {
+    // Look up consent directly by ID
+    const { data } = await supabase
+      .from('data_consents')
+      .select('*, establishments(name, brands(name))')
+      .eq('id', consentId)
+      .single()
+    consent = data
+  } else {
+    // Legacy: look up consent by ticket_id
+    const { data } = await supabase
+      .from('data_consents')
+      .select('*, establishments(name, brands(name))')
+      .eq('ticket_id', ticketId)
+      .single()
+    consent = data
+  }
 
   if (!consent) return new NextResponse('Consent not found', { status: 404 })
 
@@ -22,6 +37,9 @@ export async function GET(request: NextRequest) {
   const date = new Date(consent.consented_at).toLocaleString('es', {
     dateStyle: 'full', timeStyle: 'medium'
   })
+
+  // For the operation ID row, use the most descriptive available identifier
+  const operationId = ticketId || consent.ticket_id || consent.id
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -88,7 +106,7 @@ export async function GET(request: NextRequest) {
 <div class="section">
   <div class="section-title">Registro de la operación</div>
   <div class="row"><span class="label">Fecha y hora:</span><span class="value">${date}</span></div>
-  <div class="row"><span class="label">ID del turno:</span><span class="id">${ticketId}</span></div>
+  ${operationId !== consent.id ? `<div class="row"><span class="label">ID del turno:</span><span class="id">${operationId}</span></div>` : ''}
   <div class="row"><span class="label">ID del registro:</span><span class="id">${consent.id}</span></div>
 </div>
 

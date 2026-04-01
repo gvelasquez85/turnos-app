@@ -9,6 +9,7 @@ import {
   Users, Store, Menu, ChevronLeft, ChevronRight,
   LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
+  Settings, Shield,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -41,6 +42,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
       items: [
         { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
         { href: '/superadmin/users', label: 'Usuarios', icon: Users },
+        { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
       ],
     },
     {
@@ -55,12 +57,19 @@ const navByRole: Record<AppRole, NavSection[]> = {
         { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
         { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
         { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
+        { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
         { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
         { href: '/reports', label: 'Reportes', icon: BarChart2 },
       ],
     },
   ],
   brand_admin: [
+    {
+      section: 'Marca',
+      items: [
+        { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
+      ],
+    },
     {
       section: 'Usuarios',
       items: [
@@ -79,11 +88,18 @@ const navByRole: Record<AppRole, NavSection[]> = {
         { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
         { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
         { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
+        { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
         { href: '/reports', label: 'Reportes', icon: BarChart2 },
       ],
     },
   ],
   manager: [
+    {
+      section: 'Marca',
+      items: [
+        { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
+      ],
+    },
     {
       section: 'Configuración',
       items: CONFIG_ITEMS,
@@ -96,6 +112,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
         { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
         { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
         { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
+        { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
         { href: '/reports', label: 'Reportes', icon: BarChart2 },
       ],
     },
@@ -133,11 +150,12 @@ export interface AppShellProps {
   brandName?: string | null
   establishmentName?: string | null
   brands?: { id: string; name: string }[]
+  activeModules?: Record<string, boolean>
 }
 
 const CAN_IMPERSONATE: AppRole[] = ['superadmin', 'brand_admin']
 
-export function AppShell({ children, role, fullName, email, brandName, establishmentName, brands: initialBrands }: AppShellProps) {
+export function AppShell({ children, role, fullName, email, brandName, establishmentName, brands: initialBrands, activeModules }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
@@ -201,6 +219,15 @@ export function AppShell({ children, role, fullName, email, brandName, establish
   function isActive(href: string, exact?: boolean) {
     if (exact) return pathname === href
     return pathname.startsWith(href)
+  }
+
+  function isModuleAllowed(href: string): boolean {
+    if (!activeModules) return true // if not provided, show all
+    if (href.startsWith('/admin/appointments') && !activeModules.appointments) return false
+    if (href.startsWith('/admin/surveys') && !activeModules.surveys) return false
+    if (href.startsWith('/admin/menu') && !activeModules.menu) return false
+    if (href.startsWith('/admin/display') && !activeModules.display) return false
+    return true
   }
 
   const activeRole = viewAs || role
@@ -269,7 +296,7 @@ export function AppShell({ children, role, fullName, email, brandName, establish
                 </p>
               )}
               {collapsed && si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />}
-              {section.items.map(item => {
+              {section.items.filter(item => isModuleAllowed(item.href)).map(item => {
                 const active = isActive(item.href, item.exact)
                 const Icon = item.icon
                 return (
