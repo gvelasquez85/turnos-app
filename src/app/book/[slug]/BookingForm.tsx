@@ -22,6 +22,7 @@ export function BookingForm({ establishment, visitReasons }: Props) {
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
 
   const brand = establishment.brands
+  const primaryColor = (brand as any)?.primary_color ?? '#6366f1'
 
   function validateForm() {
     const errs: Record<string, string> = {}
@@ -74,7 +75,7 @@ export function BookingForm({ establishment, visitReasons }: Props) {
   if (step === 'done') {
     const d = new Date(`${form.scheduled_date}T${form.scheduled_time}`)
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${primaryColor}, #7c3aed)` }}>
         <div className="w-full max-w-sm text-center">
           <CheckCircle size={64} className="text-white mx-auto mb-4" />
           <h1 className="text-white text-2xl font-bold mb-1">¡Cita agendada!</h1>
@@ -107,12 +108,12 @@ export function BookingForm({ establishment, visitReasons }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-indigo-600 text-white text-center py-6 px-4">
+      <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
         <div className="flex items-center justify-center gap-2 mb-1">
           <CalendarClock size={20} />
           <h1 className="text-xl font-bold">{brand.name}</h1>
         </div>
-        <p className="text-indigo-200 text-sm">Agenda tu cita en {establishment.name}</p>
+        <p className="text-white/70 text-sm">Agenda tu cita en {establishment.name}</p>
       </div>
 
       <div className="flex-1 p-6 max-w-sm mx-auto w-full">

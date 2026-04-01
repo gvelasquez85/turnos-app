@@ -12,18 +12,20 @@ interface Question {
 
 interface Props {
   ticket: { id: string; queue_number: string; customer_name: string }
-  establishment: { id: string; name: string; brand_name: string }
+  establishment: { id: string; name: string; brand_name: string; primary_color?: string | null }
   template: { id: string; name: string; questions: Question[] } | null
+  preview?: boolean
 }
 
-export function SurveyForm({ ticket, establishment, template }: Props) {
+export function SurveyForm({ ticket, establishment, template, preview }: Props) {
   const [responses, setResponses] = useState<Record<string, string | number>>({})
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const primaryColor = establishment.primary_color ?? '#6366f1'
 
   if (!template || !template.questions || template.questions.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${primaryColor}, #7c3aed)` }}>
         <div className="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl">
           <CheckCircle size={48} className="text-green-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 mb-2">¡Gracias por tu visita!</h2>
@@ -35,7 +37,7 @@ export function SurveyForm({ ticket, establishment, template }: Props) {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${primaryColor}, #7c3aed)` }}>
         <div className="bg-white rounded-2xl p-8 text-center max-w-sm w-full shadow-2xl">
           <CheckCircle size={64} className="text-green-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Gracias!</h2>
@@ -47,6 +49,7 @@ export function SurveyForm({ ticket, establishment, template }: Props) {
   }
 
   async function handleSubmit() {
+    if (preview) { setSubmitted(true); return }
     setLoading(true)
     const supabase = createClient()
     await supabase.from('survey_responses').insert({
@@ -141,7 +144,7 @@ export function SurveyForm({ ticket, establishment, template }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-indigo-600 text-white text-center py-6 px-4">
+      <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
         <h1 className="text-xl font-bold">{establishment.brand_name}</h1>
         <p className="text-indigo-200 text-sm">{establishment.name}</p>
       </div>

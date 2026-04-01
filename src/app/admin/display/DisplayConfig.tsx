@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrandStore } from '@/stores/brandStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -263,7 +264,12 @@ function WidgetRow({
 }
 
 export function DisplayConfig({ brands, establishments, displayConfigs, defaultBrandId }: Props) {
-  const [selectedBrand, setSelectedBrand] = useState(defaultBrandId || brands[0]?.id || '')
+  const { selectedBrandId: storeBrandId } = useBrandStore()
+  const [selectedBrand, setSelectedBrand] = useState(() => storeBrandId || defaultBrandId || brands[0]?.id || '')
+
+  useEffect(() => {
+    if (storeBrandId) { setSelectedBrand(storeBrandId); setSelectedEstId('') }
+  }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
   const [selectedEstId, setSelectedEstId] = useState('')
   const [bgColor, setBgColor] = useState(DEFAULT_CONFIG.bg_color)
   const [accentColor, setAccentColor] = useState(DEFAULT_CONFIG.accent_color)
@@ -371,19 +377,6 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Left panel */}
       <div className="md:col-span-1 flex flex-col gap-4">
-        {brands.length > 1 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <label className="text-sm font-medium text-gray-700 block mb-2">Marca</label>
-            <select
-              className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
-              value={selectedBrand}
-              onChange={e => { setSelectedBrand(e.target.value); setSelectedEstId('') }}
-            >
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-          </div>
-        )}
-
         <div className="bg-white rounded-xl border border-gray-200 p-4">
           <label className="text-sm font-medium text-gray-700 block mb-2">Establecimiento</label>
           <select

@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrandStore } from '@/stores/brandStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
@@ -70,7 +71,12 @@ export function AppointmentsManager({
   const [filterStatus, setFilterStatus] = useState<'' | ApptStatus>('')
 
   const autoBrandId = defaultBrandId || (brands.length === 1 ? brands[0].id : '')
-  const [selectedBrand, setSelectedBrand] = useState(autoBrandId)
+  const { selectedBrandId: storeBrandId } = useBrandStore()
+  const [selectedBrand, setSelectedBrand] = useState(() => storeBrandId || autoBrandId)
+
+  useEffect(() => {
+    if (storeBrandId) { setSelectedBrand(storeBrandId); setFilterEst('') }
+  }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const brandEstablishments = selectedBrand
     ? establishments.filter(e => e.brand_id === selectedBrand)
@@ -188,20 +194,6 @@ export function AppointmentsManager({
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-4">
-        {brands.length > 1 && (
-          <div className="relative">
-            <Building2 size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            <select
-              className="pl-8 pr-7 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 appearance-none focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-              value={selectedBrand}
-              onChange={e => { setSelectedBrand(e.target.value); setFilterEst('') }}
-            >
-              <option value="">Todas las marcas</option>
-              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-            </select>
-            <ChevronDown size={13} className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" />
-          </div>
-        )}
         <select
           className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           value={filterEst}
@@ -227,13 +219,6 @@ export function AppointmentsManager({
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
           <h2 className="font-semibold text-gray-900 mb-4">Nueva cita</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {brands.length > 1 && (
-              <Select label="Marca" value={selectedBrand}
-                onChange={e => { setSelectedBrand(e.target.value); setForm(f => ({ ...f, establishment_id: '', visit_reason_id: '' })) }}>
-                <option value="">— Seleccionar marca —</option>
-                {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-              </Select>
-            )}
             <Select label="Establecimiento *" value={form.establishment_id}
               onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}>
               <option value="">— Seleccionar —</option>

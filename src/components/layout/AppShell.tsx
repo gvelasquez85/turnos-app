@@ -11,6 +11,7 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
+import { useBrandStore } from '@/stores/brandStore'
 
 export type AppRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 'reporting'
 
@@ -131,16 +132,33 @@ export interface AppShellProps {
   email: string
   brandName?: string | null
   establishmentName?: string | null
+  brands?: { id: string; name: string }[]
 }
 
 const CAN_IMPERSONATE: AppRole[] = ['superadmin', 'brand_admin']
 
-export function AppShell({ children, role, fullName, email, brandName, establishmentName }: AppShellProps) {
+export function AppShell({ children, role, fullName, email, brandName, establishmentName, brands: initialBrands }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
   const pathname = usePathname()
   const router = useRouter()
+  const { selectedBrandId, setSelectedBrandId } = useBrandStore()
+  const [brands, setBrands] = useState<{ id: string; name: string }[]>(initialBrands || [])
+
+  useEffect(() => {
+    if (role === 'superadmin' && (!initialBrands || initialBrands.length === 0)) {
+      createClient().from('brands').select('id, name').order('name').then(({ data }) => {
+        if (data) setBrands(data)
+      })
+    }
+  }, [role]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (brands.length > 0 && !selectedBrandId) {
+      setSelectedBrandId(brands[0].id)
+    }
+  }, [brands, selectedBrandId, setSelectedBrandId])
 
   useEffect(() => {
     try {
@@ -221,6 +239,25 @@ export function AppShell({ children, role, fullName, email, brandName, establish
             <X size={15} />
           </button>
         </div>
+
+        {/* Brand selector (superadmin only) */}
+        {role === 'superadmin' && brands.length > 0 && !collapsed && (
+          <div className="px-3 pt-2 pb-1 border-b border-gray-100">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Marca</p>
+            <select
+              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+              value={selectedBrandId}
+              onChange={e => setSelectedBrandId(e.target.value)}
+            >
+              {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          </div>
+        )}
+        {role === 'superadmin' && brands.length > 0 && collapsed && (
+          <div className="flex justify-center py-2 border-b border-gray-100">
+            <Building2 size={16} className="text-gray-400" aria-label={brands.find(b => b.id === selectedBrandId)?.name} />
+          </div>
+        )}
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">

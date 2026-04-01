@@ -22,6 +22,7 @@ type View = 'landing' | 'queue' | 'checkin'
 
 export function EstablishmentLanding({ establishment, visitReasons, promotions }: Props) {
   const [view, setView] = useState<View>('landing')
+  const primaryColor = (establishment.brands as any)?.primary_color ?? '#6366f1'
 
   const features = establishment.features ?? { queue: true }
   const hasAppointments = !!features.appointments
@@ -45,7 +46,7 @@ export function EstablishmentLanding({ establishment, visitReasons, promotions }
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-indigo-600 py-10 text-center text-white">
+      <div className="py-10 text-center text-white" style={{ backgroundColor: primaryColor }}>
         <p className="text-lg font-medium opacity-80">{establishment.brands.name}</p>
         <h1 className="text-3xl font-bold mt-1">{establishment.name}</h1>
       </div>

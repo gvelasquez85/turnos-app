@@ -8,7 +8,7 @@ export default async function SurveyPage({ params }: { params: Promise<{ ticketI
   // Fetch ticket with establishment
   const { data: ticket } = await supabase
     .from('tickets')
-    .select('*, establishments(id, name, brand_id, brands(name))')
+    .select('*, establishments(id, name, brand_id, brands(name, primary_color))')
     .eq('id', ticketId)
     .single()
 
@@ -38,7 +38,7 @@ export default async function SurveyPage({ params }: { params: Promise<{ ticketI
   return (
     <SurveyForm
       ticket={{ id: ticket.id, queue_number: ticket.queue_number, customer_name: ticket.customer_name }}
-      establishment={{ id: est?.id, name: est?.name, brand_name: est?.brands?.name }}
+      establishment={{ id: est?.id, name: est?.name, brand_name: est?.brands?.name, primary_color: est?.brands?.primary_color }}
       template={template || null}
     />
   )

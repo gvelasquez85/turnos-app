@@ -25,6 +25,7 @@ export function OrderFlow({ establishment, menu }: Props) {
   const [orderId, setOrderId] = useState<string | null>(null)
 
   const brand = establishment.brands
+  const primaryColor = (brand as any)?.primary_color ?? '#6366f1'
 
   function addToCart(item: MenuItem) {
     setCart(prev => {
@@ -94,7 +95,7 @@ export function OrderFlow({ establishment, menu }: Props) {
 
   if (step === 'done') {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${primaryColor}, #7c3aed)` }}>
         <div className="w-full max-w-sm text-center">
           <CheckCircle size={64} className="text-white mx-auto mb-4" />
           <h1 className="text-white text-2xl font-bold mb-1">¡Pedido enviado!</h1>
@@ -127,7 +128,7 @@ export function OrderFlow({ establishment, menu }: Props) {
   if (step === 'checkout') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-indigo-600 text-white text-center py-5 px-4">
+        <div className="text-white text-center py-5 px-4" style={{ backgroundColor: primaryColor }}>
           <h1 className="text-xl font-bold">{brand.name}</h1>
           <p className="text-indigo-200 text-sm">{establishment.name}</p>
         </div>
@@ -178,9 +179,9 @@ export function OrderFlow({ establishment, menu }: Props) {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col pb-24">
-      <div className="bg-indigo-600 text-white text-center py-5 px-4">
+      <div className="text-white text-center py-5 px-4" style={{ backgroundColor: primaryColor }}>
         <h1 className="text-xl font-bold">{brand.name}</h1>
-        <p className="text-indigo-200 text-sm">{establishment.name}</p>
+        <p className="text-white/70 text-sm">{establishment.name}</p>
       </div>
 
       <div className="flex-1 max-w-lg mx-auto w-full p-4">
