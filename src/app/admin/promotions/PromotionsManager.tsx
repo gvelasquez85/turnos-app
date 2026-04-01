@@ -25,11 +25,9 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
   const [selectedBrandId, setSelectedBrandId] = useState(() => storeBrandId || autoBrandId)
 
   useEffect(() => {
-    if (storeBrandId) {
-      setSelectedBrandId(storeBrandId)
-      setShowForm(false)
-      setEditing(null)
-    }
+    setSelectedBrandId(storeBrandId || autoBrandId)
+    setShowForm(false)
+    setEditing(null)
   }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
   const [promotions, setPromotions] = useState(initial)
   const [showForm, setShowForm] = useState(false)

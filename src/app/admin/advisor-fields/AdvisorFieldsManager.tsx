@@ -32,11 +32,9 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
   const [selectedBrandId, setSelectedBrandId] = useState(() => storeBrandId || autoBrandId)
 
   useEffect(() => {
-    if (storeBrandId) {
-      setSelectedBrandId(storeBrandId)
-      setShowForm(false)
-      setEditing(null)
-    }
+    setSelectedBrandId(storeBrandId || autoBrandId)
+    setShowForm(false)
+    setEditing(null)
   }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
   const [fields, setFields] = useState(initial)
   const [showForm, setShowForm] = useState(false)

@@ -79,11 +79,10 @@ export function EstablishmentsManager({ establishments: initial, brands, default
   const [selectedBrandId, setSelectedBrandId] = useState(() => storeBrandId || autoBrandId)
 
   useEffect(() => {
-    if (storeBrandId) {
-      setSelectedBrandId(storeBrandId)
-      setShowForm(false)
-      setEditing(null)
-    }
+    // storeBrandId puede ser '' (todas las marcas) o un UUID — ambos casos deben aplicarse
+    setSelectedBrandId(storeBrandId || autoBrandId)
+    setShowForm(false)
+    setEditing(null)
   }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const emptyForm = { name: '', slug: '', address: '', brand_id: selectedBrandId }

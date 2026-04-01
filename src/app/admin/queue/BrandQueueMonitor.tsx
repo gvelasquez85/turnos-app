@@ -37,7 +37,7 @@ export function BrandQueueMonitor({ brands, establishments, defaultBrandId }: Pr
   const [selectedBrand, setSelectedBrand] = useState(() => storeBrandId || autoBrand)
 
   useEffect(() => {
-    if (storeBrandId) setSelectedBrand(storeBrandId)
+    setSelectedBrand(storeBrandId || autoBrand)
   }, [storeBrandId])
   const [stats, setStats] = useState<EstablishmentStats[]>([])
   const [loading, setLoading] = useState(true)
