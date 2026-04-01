@@ -6,8 +6,10 @@ import { Input } from '@/components/ui/input'
 import {
   Building2, CreditCard, Check, CheckCircle, ArrowRight,
   Zap, Star, Crown, Rocket, Sparkles, X, AlertTriangle,
-  Plus, Minus, Users, Store,
+  Plus, Minus, Users, Store, Key, Webhook, Copy, Trash2,
+  RefreshCw, ExternalLink, Eye, EyeOff,
 } from 'lucide-react'
+import { useEffect, useCallback } from 'react'
 import { ADDON_PRICES } from '@/lib/planLimits'
 
 interface Brand {
@@ -149,7 +151,7 @@ function nextBillingDate(membership: Membership | null): Date {
 }
 
 export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs }: Props) {
-  const [tab, setTab] = useState<'profile' | 'membership'>('profile')
+  const [tab, setTab] = useState<'profile' | 'membership' | 'integrations'>('profile')
   const [brand, setBrand] = useState(initialBrand)
   const [form, setForm] = useState({
     name: initialBrand.name,
@@ -168,6 +170,82 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [addonAgents, setAddonAgents] = useState(1)
   const [addonLocations, setAddonLocations] = useState(1)
   const [addonModal, setAddonModal] = useState<'agents' | 'locations' | null>(null)
+
+  // ── Integrations state ───────────────────────────────────────────────────
+  type ApiKey = { id: string; name: string; key_prefix: string; active: boolean; created_at: string; last_used_at: string | null }
+  const WEBHOOK_EVENTS = ['ticket.created', 'ticket.attended', 'ticket.done', 'ticket.cancelled'] as const
+  const WEBHOOK_LABELS: Record<string, string> = {
+    'ticket.created': 'Ticket creado',
+    'ticket.attended': 'Ticket atendido (en atención)',
+    'ticket.done': 'Ticket completado',
+    'ticket.cancelled': 'Ticket cancelado',
+  }
+  const [apiKeys, setApiKeys] = useState<ApiKey[]>([])
+  const [webhooks, setWebhooks] = useState<Record<string, { id: string | null; url: string; active: boolean }>>({})
+  const [integrationsLoaded, setIntegrationsLoaded] = useState(false)
+  const [newKeyName, setNewKeyName] = useState('')
+  const [createdKey, setCreatedKey] = useState<string | null>(null)
+  const [keyCreating, setKeyCreating] = useState(false)
+  const [webhooksSaving, setWebhooksSaving] = useState(false)
+  const [webhooksSaved, setWebhooksSaved] = useState(false)
+  const [copiedKey, setCopiedKey] = useState(false)
+
+  const loadIntegrations = useCallback(async () => {
+    const [keysRes, hooksRes] = await Promise.all([
+      fetch('/api/brand/api-keys').then(r => r.json()),
+      fetch('/api/brand/webhooks').then(r => r.json()),
+    ])
+    setApiKeys(keysRes.data ?? [])
+    setWebhooks(hooksRes.data ?? {})
+    setIntegrationsLoaded(true)
+  }, [])
+
+  useEffect(() => {
+    if (tab === 'integrations' && !integrationsLoaded) loadIntegrations()
+  }, [tab, integrationsLoaded, loadIntegrations])
+
+  async function createApiKey() {
+    if (!newKeyName.trim()) return
+    setKeyCreating(true)
+    const res = await fetch('/api/brand/api-keys', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newKeyName.trim() }),
+    })
+    const json = await res.json()
+    setKeyCreating(false)
+    if (res.ok) {
+      setApiKeys(prev => [json.data, ...prev])
+      setCreatedKey(json.data.full_key)
+      setNewKeyName('')
+    }
+  }
+
+  async function deleteApiKey(id: string) {
+    await fetch(`/api/brand/api-keys/${id}`, { method: 'DELETE' })
+    setApiKeys(prev => prev.filter(k => k.id !== id))
+  }
+
+  async function saveWebhooks() {
+    setWebhooksSaving(true)
+    const body = Object.fromEntries(
+      WEBHOOK_EVENTS.map(e => [e, webhooks[e]?.url ?? ''])
+    )
+    await fetch('/api/brand/webhooks', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    setWebhooksSaving(false)
+    setWebhooksSaved(true)
+    setTimeout(() => setWebhooksSaved(false), 2000)
+  }
+
+  function copyKey(key: string) {
+    navigator.clipboard.writeText(key).catch(() => null)
+    setCopiedKey(true)
+    setTimeout(() => setCopiedKey(false), 2000)
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -216,7 +294,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
 
       {/* Tabs */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
-        {([['profile', 'Perfil de marca', Building2], ['membership', 'Membresía', CreditCard]] as const).map(([t, label, Icon]) => (
+        {([['profile', 'Perfil de marca', Building2], ['membership', 'Membresía', CreditCard], ['integrations', 'Integraciones', Key]] as const).map(([t, label, Icon]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
@@ -539,6 +617,133 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
           <p className="text-xs text-gray-400 mt-4">
             Todos los planes admiten agentes y sucursales adicionales: +${ADDON_PRICES.extraAdvisor}/agente/mes · +${ADDON_PRICES.extraEstablishment}/sucursal/mes
           </p>
+        </div>
+      )}
+
+      {/* ── Integrations tab ── */}
+      {tab === 'integrations' && (
+        <div className="max-w-3xl">
+          {/* API Keys */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2"><Key size={16} />API Keys</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Autenticate con <code className="bg-gray-100 px-1 rounded text-xs">X-API-Key: &lt;tu-clave&gt;</code> en todas las solicitudes a <code className="bg-gray-100 px-1 rounded text-xs">/api/v1/*</code></p>
+              </div>
+            </div>
+
+            {/* Create new key */}
+            <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 flex items-end gap-3">
+              <div className="flex-1">
+                <Input label="Nombre de la clave" value={newKeyName} onChange={e => setNewKeyName(e.target.value)} placeholder="ej. Zapier producción" />
+              </div>
+              <Button loading={keyCreating} onClick={createApiKey} disabled={!newKeyName.trim()}>
+                <Plus size={14} className="mr-1" /> Generar clave
+              </Button>
+            </div>
+
+            {/* Reveal modal */}
+            {createdKey && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                <p className="text-sm font-semibold text-green-800 mb-2">✅ Clave generada — cópiala ahora, no se volverá a mostrar</p>
+                <div className="flex items-center gap-2 bg-white border border-green-300 rounded-lg px-3 py-2">
+                  <code className="flex-1 text-xs font-mono text-gray-900 break-all">{createdKey}</code>
+                  <button onClick={() => copyKey(createdKey)} className="shrink-0 p-1.5 rounded-lg hover:bg-green-100 text-green-700" title="Copiar">
+                    {copiedKey ? <Check size={14} /> : <Copy size={14} />}
+                  </button>
+                </div>
+                <button onClick={() => setCreatedKey(null)} className="text-xs text-green-700 mt-2 underline">
+                  Ya la copié, cerrar
+                </button>
+              </div>
+            )}
+
+            {/* Keys list */}
+            {!integrationsLoaded ? (
+              <p className="text-sm text-gray-400 py-4 text-center">Cargando...</p>
+            ) : apiKeys.length === 0 ? (
+              <p className="text-sm text-gray-400 py-6 text-center bg-white border border-gray-200 rounded-xl">No hay claves API generadas todavía</p>
+            ) : (
+              <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+                {apiKeys.map(k => (
+                  <div key={k.id} className="flex items-center gap-3 px-4 py-3">
+                    <Key size={14} className={k.active ? 'text-indigo-500' : 'text-gray-300'} />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{k.name}</p>
+                      <p className="text-xs font-mono text-gray-400">{k.key_prefix}••••••••••••••••••••••</p>
+                    </div>
+                    <div className="text-xs text-gray-400 text-right">
+                      <p>Creada {new Date(k.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</p>
+                      {k.last_used_at && <p>Usada {new Date(k.last_used_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</p>}
+                    </div>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${k.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                      {k.active ? 'Activa' : 'Inactiva'}
+                    </span>
+                    <button onClick={() => deleteApiKey(k.id)} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50" title="Revocar clave">
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Webhooks */}
+          <div className="mb-8">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2"><Webhook size={16} />Webhooks salientes</h2>
+              <p className="text-xs text-gray-500 mt-0.5">TurnApp enviará un POST JSON a estas URLs cuando ocurra cada evento. Deja vacío para deshabilitar.</p>
+            </div>
+
+            <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
+              {WEBHOOK_EVENTS.map(event => (
+                <div key={event} className="px-4 py-3 flex items-center gap-3">
+                  <div className="w-40 shrink-0">
+                    <p className="text-sm font-medium text-gray-900">{WEBHOOK_LABELS[event]}</p>
+                    <code className="text-xs text-gray-400">{event}</code>
+                  </div>
+                  <input
+                    type="url"
+                    value={webhooks[event]?.url ?? ''}
+                    onChange={e => setWebhooks(prev => ({ ...prev, [event]: { ...prev[event], url: e.target.value, id: prev[event]?.id ?? null, active: true } }))}
+                    placeholder="https://hooks.zapier.com/..."
+                    className="flex-1 h-9 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                  {webhooks[event]?.url && (
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${webhooks[event]?.active ? 'bg-green-400' : 'bg-gray-300'}`} title={webhooks[event]?.active ? 'Activo' : 'Inactivo'} />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3 mt-4">
+              <Button loading={webhooksSaving} onClick={saveWebhooks}>
+                {webhooksSaved ? <><Check size={14} className="mr-1" />Guardado</> : 'Guardar webhooks'}
+              </Button>
+              <p className="text-xs text-gray-400">Los cambios aplican inmediatamente</p>
+            </div>
+          </div>
+
+          {/* API Reference */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-5">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Referencia rápida de endpoints</h3>
+            <div className="space-y-2 font-mono text-xs text-gray-600">
+              {[
+                ['GET', '/api/v1/establishments', 'Listar sucursales'],
+                ['GET', '/api/v1/tickets?status=waiting', 'Tickets activos'],
+                ['POST', '/api/v1/tickets', 'Crear ticket'],
+                ['GET', '/api/v1/tickets/:id', 'Estado de un ticket'],
+                ['GET', '/api/v1/stats/today', 'Resumen del día'],
+              ].map(([method, path, desc]) => (
+                <div key={path} className="flex items-center gap-3">
+                  <span className={`w-12 text-center font-bold shrink-0 ${method === 'GET' ? 'text-blue-600' : 'text-green-600'}`}>{method}</span>
+                  <code className="flex-1 bg-white border border-gray-200 rounded px-2 py-1">{path}</code>
+                  <span className="text-gray-400 text-xs">{desc}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-3">Base URL: <code className="bg-white border border-gray-200 rounded px-1">{typeof window !== 'undefined' ? window.location.origin : 'https://turnos-app-rose.vercel.app'}</code></p>
+          </div>
         </div>
       )}
 

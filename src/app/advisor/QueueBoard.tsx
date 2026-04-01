@@ -67,6 +67,14 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
     return () => { supabase.removeChannel(channel) }
   }, [establishmentId])
 
+  function dispatchEvent(event: string, ticketId: string) {
+    fetch('/api/internal/webhooks/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event, ticket_id: ticketId }),
+    }).catch(() => null)
+  }
+
   async function attendTicket(ticket: TicketRow) {
     const supabase = createClient()
     await supabase.from('tickets').update({
@@ -75,17 +83,19 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
       attended_at: new Date().toISOString(),
     }).eq('id', ticket.id)
     setActiveTicket({ ...ticket, status: 'in_progress' })
-    // Fire-and-forget push notification to customer
+    // Fire-and-forget: push notification + webhook
     fetch('/api/notify', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ticketId: ticket.id }),
     }).catch(() => null)
+    dispatchEvent('ticket.attended', ticket.id)
   }
 
   async function cancelTicket(ticketId: string) {
     const supabase = createClient()
     await supabase.from('tickets').update({ status: 'cancelled' }).eq('id', ticketId)
+    dispatchEvent('ticket.cancelled', ticketId)
   }
 
   const waiting = tickets.filter(t => t.status === 'waiting')
@@ -175,7 +185,10 @@ export function QueueBoard({ establishmentId, advisorId, advisorFields }: Props)
           advisorId={advisorId}
           advisorFields={advisorFields}
           onClose={() => setActiveTicket(null)}
-          onComplete={() => { setActiveTicket(null); loadTickets() }}
+          onComplete={() => {
+            if (activeTicket) dispatchEvent('ticket.done', activeTicket.id)
+            setActiveTicket(null); loadTickets()
+          }}
         />
       )}
     </>
