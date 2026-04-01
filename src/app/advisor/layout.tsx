@@ -9,7 +9,7 @@ export default async function AdvisorLayout({ children }: { children: React.Reac
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, brands(name, active_modules), establishments(name)')
+    .select('*, brands(name, active_modules), establishments(name, slug)')
     .eq('id', user.id)
     .single()
 
@@ -24,6 +24,7 @@ export default async function AdvisorLayout({ children }: { children: React.Reac
       email={profile.email}
       brandName={(profile.brands as any)?.name ?? null}
       establishmentName={(profile.establishments as any)?.name ?? null}
+      establishmentSlug={(profile.establishments as any)?.slug ?? null}
       activeModules={(profile.brands as any)?.active_modules ?? undefined}
     >
       {children}

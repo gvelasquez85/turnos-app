@@ -149,13 +149,14 @@ export interface AppShellProps {
   email: string
   brandName?: string | null
   establishmentName?: string | null
+  establishmentSlug?: string | null
   brands?: { id: string; name: string }[]
   activeModules?: Record<string, boolean>
 }
 
 const CAN_IMPERSONATE: AppRole[] = ['superadmin', 'brand_admin']
 
-export function AppShell({ children, role, fullName, email, brandName, establishmentName, brands: initialBrands, activeModules }: AppShellProps) {
+export function AppShell({ children, role, fullName, email, brandName, establishmentName, establishmentSlug, brands: initialBrands, activeModules }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
@@ -345,6 +346,22 @@ export function AppShell({ children, role, fullName, email, brandName, establish
               </div>
             )}
           </Link>
+          {/* Pantalla sala (advisor with establishment) */}
+          {activeRole === 'advisor' && establishmentSlug && (
+            <a
+              href={`/display/${establishmentSlug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={collapsed ? 'Pantalla sala' : undefined}
+              className={cn(
+                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 w-full transition-colors mb-1',
+                collapsed && 'justify-center',
+              )}
+            >
+              <Monitor size={15} />
+              {!collapsed && <span>Pantalla sala</span>}
+            </a>
+          )}
           {/* Botón ver como agente */}
           {CAN_IMPERSONATE.includes(role) && !viewAs && (
             <button

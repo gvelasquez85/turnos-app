@@ -1,4 +1,4 @@
-export type Plan = 'free' | 'basic' | 'professional' | 'enterprise'
+export type Plan = 'free' | 'basic' | 'professional' | 'enterprise' | 'enterprise_plus'
 
 export interface PlanLimits {
   maxEstablishments: number
@@ -25,18 +25,30 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
   },
   professional: {
     label: 'Profesional',
-    priceMonthly: 79,
+    priceMonthly: 49,
     maxEstablishments: 10,
     maxAdvisors: 30,
-    modules: ['queue', 'display', 'surveys', 'appointments', 'menu'],
+    modules: ['queue', 'display', 'surveys', 'appointments'],
   },
   enterprise: {
     label: 'Empresarial',
+    priceMonthly: 79,
+    maxEstablishments: 9999,
+    maxAdvisors: 9999,
+    modules: ['queue', 'display', 'surveys', 'appointments'],
+  },
+  enterprise_plus: {
+    label: 'Empresarial Plus',
     priceMonthly: null,
     maxEstablishments: 9999,
     maxAdvisors: 9999,
     modules: ['queue', 'display', 'surveys', 'appointments', 'menu', 'precheckin', 'precheckout', 'minibar'],
   },
+}
+
+export const ADDON_PRICES = {
+  extraAdvisor: 3.99,
+  extraEstablishment: 5.99,
 }
 
 export function getLimits(plan: string): PlanLimits {
