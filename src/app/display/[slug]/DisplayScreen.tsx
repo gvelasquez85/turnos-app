@@ -275,9 +275,19 @@ export function DisplayScreen({ establishment, config }: Props) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-4 border-b border-white/10">
-        <div>
-          <div className="text-2xl font-black tracking-tight">{establishment.brands.name}</div>
-          <div className="text-sm opacity-60">{establishment.name}</div>
+        <div className="flex items-center gap-4">
+          {establishment.brands.logo_url && (
+            <img
+              src={establishment.brands.logo_url}
+              alt={establishment.brands.name}
+              className="h-12 w-auto object-contain rounded-lg"
+              style={{ maxWidth: '120px' }}
+            />
+          )}
+          <div>
+            <div className="text-2xl font-black tracking-tight">{establishment.brands.name}</div>
+            <div className="text-sm opacity-60">{establishment.name}</div>
+          </div>
         </div>
         {hasClockInConfig && (
           <div className="text-right">
