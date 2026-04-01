@@ -6,6 +6,10 @@ export interface PlanLimits {
   modules: string[]
   label: string
   priceMonthly: number | null
+  hasReports: boolean
+  hasSurveys: boolean
+  hasAppointments: boolean
+  hasMenu: boolean
 }
 
 export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
@@ -14,7 +18,11 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     priceMonthly: 0,
     maxEstablishments: 1,
     maxAdvisors: 3,
-    modules: ['queue'],
+    modules: ['queue', 'display'],
+    hasReports: false,
+    hasSurveys: false,
+    hasAppointments: false,
+    hasMenu: false,
   },
   basic: {
     label: 'Básico',
@@ -22,6 +30,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxEstablishments: 3,
     maxAdvisors: 10,
     modules: ['queue', 'display', 'surveys'],
+    hasReports: true,
+    hasSurveys: true,
+    hasAppointments: false,
+    hasMenu: false,
   },
   professional: {
     label: 'Profesional',
@@ -29,6 +41,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxEstablishments: 10,
     maxAdvisors: 30,
     modules: ['queue', 'display', 'surveys', 'appointments'],
+    hasReports: true,
+    hasSurveys: true,
+    hasAppointments: true,
+    hasMenu: false,
   },
   enterprise: {
     label: 'Empresarial',
@@ -36,6 +52,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxEstablishments: 9999,
     maxAdvisors: 9999,
     modules: ['queue', 'display', 'surveys', 'appointments'],
+    hasReports: true,
+    hasSurveys: true,
+    hasAppointments: true,
+    hasMenu: false,
   },
   enterprise_plus: {
     label: 'Empresarial Plus',
@@ -43,6 +63,10 @@ export const PLAN_LIMITS: Record<Plan, PlanLimits> = {
     maxEstablishments: 9999,
     maxAdvisors: 9999,
     modules: ['queue', 'display', 'surveys', 'appointments', 'menu', 'precheckin', 'precheckout', 'minibar'],
+    hasReports: true,
+    hasSurveys: true,
+    hasAppointments: true,
+    hasMenu: true,
   },
 }
 

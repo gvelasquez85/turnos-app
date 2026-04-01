@@ -1,11 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import { Plus, User, Edit2, KeyRound, MailCheck } from 'lucide-react'
 import type { Profile, UserRole } from '@/types/database'
+import { useBrandStore } from '@/stores/brandStore'
 
 type ProfileWithRels = Profile & { brands: { name: string } | null; establishments: { name: string } | null }
 const roles: { value: UserRole; label: string }[] = [
@@ -21,7 +22,13 @@ export function UsersManager({ users: initial, brands, establishments }: {
   brands: { id: string; name: string }[]
   establishments: { id: string; name: string; brand_id: string }[]
 }) {
+  const { selectedBrandId } = useBrandStore()
   const [users, setUsers] = useState(initial)
+
+  // filter by brand store selection
+  const filteredUsers = selectedBrandId
+    ? users.filter(u => u.brand_id === selectedBrandId)
+    : users
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<ProfileWithRels | null>(null)
   const [form, setForm] = useState({ email: '', password: '', full_name: '', role: 'advisor' as UserRole, brand_id: '', establishment_id: '' })
@@ -123,7 +130,7 @@ export function UsersManager({ users: initial, brands, establishments }: {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Usuarios <span className="ml-1 text-sm font-normal text-gray-400">({users.length})</span></h1>
+          <h1 className="text-xl font-bold text-gray-900">Usuarios <span className="ml-1 text-sm font-normal text-gray-400">({filteredUsers.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">Asesores, administradores y superadmins</p>
         </div>
         <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nuevo usuario</Button>
@@ -161,8 +168,8 @@ export function UsersManager({ users: initial, brands, establishments }: {
       )}
 
       <div className="flex flex-col gap-3">
-        {users.length === 0 && <div className="text-center py-12 bg-white rounded-xl border border-gray-200 text-gray-500">No hay usuarios.</div>}
-        {users.map(u => (
+        {filteredUsers.length === 0 && <div className="text-center py-12 bg-white rounded-xl border border-gray-200 text-gray-500">No hay usuarios.</div>}
+        {filteredUsers.map(u => (
           <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center"><User size={18} className="text-gray-500" /></div>
             <div className="flex-1 min-w-0">

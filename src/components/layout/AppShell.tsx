@@ -9,10 +9,11 @@ import {
   Users, Store, Menu, ChevronLeft, ChevronRight,
   LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
-  Settings, Shield, UserCircle, ShoppingBag,
+  Settings, Shield, UserCircle, CreditCard,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
+import { getLimits } from '@/lib/planLimits'
 
 export type AppRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 'reporting'
 
@@ -28,11 +29,28 @@ interface NavSection {
   items: NavItem[]
 }
 
-const CONFIG_ITEMS: NavItem[] = [
+const BRAND_MGMT_ITEMS: NavItem[] = [
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/advisor-fields', label: 'Campos asesor', icon: FileText },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },
+]
+
+const OPERATION_ITEMS: NavItem[] = [
+  { href: '/admin/queue', label: 'Monitor de colas', icon: MonitorPlay },
+  { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
+  { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
+]
+
+const MODULE_ITEMS: NavItem[] = [
+  { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
+  { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
+  { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
+]
+
+const REPORT_ITEMS: NavItem[] = [
+  { href: '/reports', label: 'Reportes', icon: BarChart2 },
+  { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
 ]
 
 const navByRole: Record<AppRole, NavSection[]> = {
@@ -41,96 +59,46 @@ const navByRole: Record<AppRole, NavSection[]> = {
       section: 'Administración',
       items: [
         { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
+        { href: '/superadmin/memberships', label: 'Membresías', icon: CreditCard },
         { href: '/superadmin/users', label: 'Usuarios', icon: Users },
         { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
       ],
     },
-    {
-      section: 'Configuración',
-      items: CONFIG_ITEMS,
-    },
-    {
-      section: 'Operación',
-      items: [
-        { href: '/admin/queue', label: 'Monitor de colas', icon: MonitorPlay },
-        { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
-        { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
-        { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
-        { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
-        { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
-        { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
-        { href: '/reports', label: 'Reportes', icon: BarChart2 },
-      ],
-    },
+    { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
+    { section: 'Operación', items: OPERATION_ITEMS },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
+    { section: 'Reportes', items: REPORT_ITEMS },
   ],
   brand_admin: [
     {
       section: 'Marca',
-      items: [
-        { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
-      ],
+      items: [{ href: '/admin/brand', label: 'Mi marca', icon: Building2 }],
     },
     {
-      section: 'Usuarios',
-      items: [
-        { href: '/admin/users', label: 'Equipo', icon: Users },
-      ],
+      section: 'Administración',
+      items: [{ href: '/admin/users', label: 'Equipo', icon: Users }],
     },
-    {
-      section: 'Configuración',
-      items: CONFIG_ITEMS,
-    },
-    {
-      section: 'Operación',
-      items: [
-        { href: '/admin/queue', label: 'Monitor de colas', icon: MonitorPlay },
-        { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
-        { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
-        { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
-        { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
-        { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
-        { href: '/reports', label: 'Reportes', icon: BarChart2 },
-      ],
-    },
+    { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
+    { section: 'Operación', items: OPERATION_ITEMS },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
+    { section: 'Reportes', items: REPORT_ITEMS },
   ],
   manager: [
     {
       section: 'Marca',
-      items: [
-        { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
-      ],
+      items: [{ href: '/admin/brand', label: 'Mi marca', icon: Building2 }],
     },
-    {
-      section: 'Configuración',
-      items: CONFIG_ITEMS,
-    },
-    {
-      section: 'Operación',
-      items: [
-        { href: '/admin/queue', label: 'Monitor de colas', icon: MonitorPlay },
-        { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
-        { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
-        { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
-        { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
-        { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
-        { href: '/reports', label: 'Reportes', icon: BarChart2 },
-      ],
-    },
+    { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
+    { section: 'Operación', items: OPERATION_ITEMS },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
+    { section: 'Reportes', items: REPORT_ITEMS },
   ],
   advisor: [
-    {
-      items: [
-        { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
-        { href: '/reports', label: 'Reportes', icon: BarChart2 },
-      ],
-    },
+    { section: 'Operación', items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }] },
+    { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
   ],
   reporting: [
-    {
-      items: [
-        { href: '/reports', label: 'Reportes', icon: BarChart2 },
-      ],
-    },
+    { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
   ],
 }
 
@@ -152,11 +120,12 @@ export interface AppShellProps {
   establishmentSlug?: string | null
   brands?: { id: string; name: string }[]
   activeModules?: Record<string, boolean>
+  plan?: string
 }
 
 const CAN_IMPERSONATE: AppRole[] = ['superadmin', 'brand_admin']
 
-export function AppShell({ children, role, fullName, email, brandName, establishmentName, establishmentSlug, brands: initialBrands, activeModules }: AppShellProps) {
+export function AppShell({ children, role, fullName, email, brandName, establishmentName, establishmentSlug, brands: initialBrands, activeModules, plan }: AppShellProps) {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
@@ -223,11 +192,24 @@ export function AppShell({ children, role, fullName, email, brandName, establish
   }
 
   function isModuleAllowed(href: string): boolean {
-    if (!activeModules) return true // if not provided, show all
-    if (href.startsWith('/admin/appointments') && !activeModules.appointments) return false
-    if (href.startsWith('/admin/surveys') && !activeModules.surveys) return false
-    if (href.startsWith('/admin/menu') && !activeModules.menu) return false
-    // display config is always visible (it's an admin tool, not a customer-facing module)
+    // superadmin always sees everything
+    if (role === 'superadmin') return true
+
+    const limits = getLimits(plan ?? 'free')
+
+    // Plan-level gates
+    if (href.startsWith('/reports') && !limits.hasReports) return false
+    if (href.startsWith('/admin/surveys') && !limits.hasSurveys) return false
+    if (href.startsWith('/admin/appointments') && !limits.hasAppointments) return false
+    if (href.startsWith('/admin/menu') && !limits.hasMenu) return false
+
+    // Brand-level active_modules toggle (overrides plan for specific modules)
+    if (activeModules) {
+      if (href.startsWith('/admin/appointments') && !activeModules.appointments) return false
+      if (href.startsWith('/admin/surveys') && !activeModules.surveys) return false
+      if (href.startsWith('/admin/menu') && !activeModules.menu) return false
+    }
+
     return true
   }
 

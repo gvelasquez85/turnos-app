@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import {
   Building2, CreditCard, Check, CheckCircle, ArrowRight,
   Zap, Star, Crown, Rocket, Sparkles, X, AlertTriangle,
+  Plus, Minus, Users, Store,
 } from 'lucide-react'
 import { ADDON_PRICES } from '@/lib/planLimits'
 
@@ -164,6 +165,9 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [moduleSubs, setModuleSubs] = useState<ModuleSub[]>(initialModuleSubs)
   const [cancellingModule, setCancellingModule] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
+  const [addonAgents, setAddonAgents] = useState(1)
+  const [addonLocations, setAddonLocations] = useState(1)
+  const [addonModal, setAddonModal] = useState<'agents' | 'locations' | null>(null)
 
   async function handleSave() {
     setSaving(true)
@@ -401,6 +405,68 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </div>
           )}
 
+          {/* Add-ons */}
+          <div className="mb-8">
+            <h3 className="text-sm font-semibold text-gray-700 mb-3">Agregar capacidad</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Extra agents */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 bg-indigo-100 rounded-lg flex items-center justify-center">
+                    <Users size={16} className="text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Agentes adicionales</p>
+                    <p className="text-xs text-gray-500">${ADDON_PRICES.extraAdvisor}/agente/mes</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <button onClick={() => setAddonAgents(n => Math.max(1, n - 1))} className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-10 text-center text-lg font-bold text-gray-900">{addonAgents}</span>
+                  <button onClick={() => setAddonAgents(n => n + 1)} className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+                    <Plus size={14} />
+                  </button>
+                  <span className="text-sm text-gray-500 ml-1">
+                    = <span className="font-semibold text-gray-900">${(addonAgents * ADDON_PRICES.extraAdvisor).toFixed(2)}/mes</span>
+                  </span>
+                </div>
+                <Button className="w-full" variant="secondary" onClick={() => setAddonModal('agents')}>
+                  Solicitar {addonAgents} agente{addonAgents !== 1 ? 's' : ''} extra <ArrowRight size={13} className="ml-1" />
+                </Button>
+              </div>
+
+              {/* Extra locations */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <Store size={16} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">Sucursales adicionales</p>
+                    <p className="text-xs text-gray-500">${ADDON_PRICES.extraEstablishment}/sucursal/mes</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <button onClick={() => setAddonLocations(n => Math.max(1, n - 1))} className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+                    <Minus size={14} />
+                  </button>
+                  <span className="w-10 text-center text-lg font-bold text-gray-900">{addonLocations}</span>
+                  <button onClick={() => setAddonLocations(n => n + 1)} className="w-8 h-8 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50">
+                    <Plus size={14} />
+                  </button>
+                  <span className="text-sm text-gray-500 ml-1">
+                    = <span className="font-semibold text-gray-900">${(addonLocations * ADDON_PRICES.extraEstablishment).toFixed(2)}/mes</span>
+                  </span>
+                </div>
+                <Button className="w-full" variant="secondary" onClick={() => setAddonModal('locations')}>
+                  Solicitar {addonLocations} sucursal{addonLocations !== 1 ? 'es' : ''} extra <ArrowRight size={13} className="ml-1" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
           {/* Plan comparison grid */}
           <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Planes disponibles</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
@@ -539,6 +605,44 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
           </div>
         )
       })()}
+
+      {/* Add-ons contact modal */}
+      {addonModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              {addonModal === 'agents' ? <Users size={24} className="text-indigo-600" /> : <Store size={24} className="text-indigo-600" />}
+            </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">
+              {addonModal === 'agents'
+                ? `${addonAgents} agente${addonAgents !== 1 ? 's' : ''} adicional${addonAgents !== 1 ? 'es' : ''}`
+                : `${addonLocations} sucursal${addonLocations !== 1 ? 'es' : ''} adicional${addonLocations !== 1 ? 'es' : ''}`}
+            </h2>
+            <p className="text-sm font-semibold text-indigo-600 mb-3">
+              ${addonModal === 'agents'
+                ? (addonAgents * ADDON_PRICES.extraAdvisor).toFixed(2)
+                : (addonLocations * ADDON_PRICES.extraEstablishment).toFixed(2)}/mes adicionales
+            </p>
+            <p className="text-sm text-gray-500 mb-5">
+              Contáctanos para activar la capacidad adicional en tu cuenta:
+            </p>
+            <a
+              href={`mailto:soporte@turnapp.co?subject=Add-on ${addonModal === 'agents' ? 'agentes' : 'sucursales'} TurnApp&body=Hola, soy administrador de la marca "${initialBrand.name}". Quiero agregar ${addonModal === 'agents' ? addonAgents + ' agente(s) adicional(es)' : addonLocations + ' sucursal(es) adicional(es)'}.`}
+              className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
+            >
+              Contactar soporte →
+            </a>
+            <a
+              href={`https://wa.me/573001234567?text=Hola%2C+quiero+agregar+${addonModal === 'agents' ? addonAgents + '+agente(s)+adicional(es)' : addonLocations + '+sucursal(es)+adicional(es)'}`}
+              target="_blank" rel="noopener noreferrer"
+              className="block w-full py-2.5 px-4 bg-green-500 text-white rounded-xl font-medium text-sm hover:bg-green-600 transition-colors mb-3"
+            >
+              WhatsApp
+            </a>
+            <button onClick={() => setAddonModal(null)} className="text-sm text-gray-400 hover:text-gray-600">Cerrar</button>
+          </div>
+        </div>
+      )}
 
       {/* Payment method modal */}
       {upgradeModal === 'payment' && (

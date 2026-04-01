@@ -3,9 +3,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { formatDate } from '@/lib/utils'
-import { Users, Clock, CheckCircle, TrendingUp, Star, BarChart2 } from 'lucide-react'
+import { Users, Clock, CheckCircle, TrendingUp, Star, BarChart2, Download } from 'lucide-react'
 
 const COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#3b82f6']
+
+function downloadCSV(rows: Record<string, unknown>[], filename: string) {
+  if (!rows.length) return
+  const headers = Object.keys(rows[0])
+  const escape = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`
+  const csv = [headers.join(','), ...rows.map(r => headers.map(h => escape(r[h])).join(','))].join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
+}
 
 interface Props {
   establishments: { id: string; name: string }[]
@@ -144,13 +155,21 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-6">
-        {establishments.length > 1 && (
-          <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
-            {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
-        )}
-        <PeriodSelector range={range} onChange={setRange} />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap gap-3">
+          {establishments.length > 1 && (
+            <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
+              {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
+          <PeriodSelector range={range} onChange={setRange} />
+        </div>
+        <button
+          onClick={() => downloadCSV(stats.map(s => ({ Fecha: s.date, Total: s.total, Atendidos: s.done, Cancelados: s.cancelled })), `reporte_general.csv`)}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -276,8 +295,14 @@ function EstablishmentTab({ establishments }: { establishments: { id: string; na
 
   return (
     <div>
-      <div className="flex justify-end mb-6">
+      <div className="flex items-center justify-between mb-6">
         <PeriodSelector range={range} onChange={setRange} />
+        <button
+          onClick={() => downloadCSV(data.map(r => ({ Sucursal: r.name, Total: r.total, Atendidos: r.done, 'Espera prom (min)': r.avg_wait })), `reporte_sucursales.csv`)}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
@@ -373,13 +398,21 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-6">
-        {establishments.length > 1 && (
-          <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
-            {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
-        )}
-        <PeriodSelector range={range} onChange={setRange} />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap gap-3">
+          {establishments.length > 1 && (
+            <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
+              {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
+          <PeriodSelector range={range} onChange={setRange} />
+        </div>
+        <button
+          onClick={() => downloadCSV(data.map(r => ({ Agente: r.name, Atendidos: r.done, 'Espera prom (min)': r.avg_wait })), `reporte_agentes.csv`)}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
@@ -465,13 +498,21 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
 
   return (
     <div>
-      <div className="flex flex-wrap gap-3 mb-6">
-        {establishments.length > 1 && (
-          <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
-            {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
-        )}
-        <PeriodSelector range={range} onChange={setRange} />
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap gap-3">
+          {establishments.length > 1 && (
+            <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
+              {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
+          <PeriodSelector range={range} onChange={setRange} />
+        </div>
+        <button
+          onClick={() => downloadCSV(data.map(r => ({ Motivo: r.name, Cantidad: r.count })), `reporte_motivos.csv`)}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
@@ -614,8 +655,14 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
 
   return (
     <div>
-      <div className="flex justify-end mb-6">
+      <div className="flex items-center justify-between mb-6">
         <PeriodSelector range={range} onChange={setRange} />
+        <button
+          onClick={() => downloadCSV(responses.map(r => ({ Cliente: (r.tickets as any)?.customer_name || '', Fecha: new Date(r.created_at).toLocaleDateString('es'), Respuestas: JSON.stringify(r.responses) })), `reporte_encuestas.csv`)}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
       </div>
 
       {/* KPI scores */}
