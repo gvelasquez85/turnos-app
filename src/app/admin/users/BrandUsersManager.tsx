@@ -71,9 +71,12 @@ export function BrandUsersManager({
   const [claimLoading, setClaimLoading] = useState(false)
   const [claimError, setClaimError] = useState('')
 
+  // brand_admin no cuenta para el límite del plan
+  const teamCount = users.filter(u => u.role !== 'brand_admin').length
+
   function openNew() {
-    if (maxAdvisors !== undefined && users.length >= maxAdvisors) {
-      setError(`Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'}. Actualiza tu membresía en Mi marca → Membresía.`)
+    if (maxAdvisors !== undefined && teamCount >= maxAdvisors) {
+      setError(`Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu membresía en Mi marca → Membresía.`)
       setShowForm(true)
       setEditing(null)
       return
@@ -93,6 +96,13 @@ export function BrandUsersManager({
 
   async function handleSave() {
     setError(''); setLoading(true)
+
+    // Re-verificar límite al guardar (previene bypass de openNew)
+    if (!editing && maxAdvisors !== undefined && teamCount >= maxAdvisors) {
+      setError(`Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu membresía en Mi marca → Membresía.`)
+      setLoading(false)
+      return
+    }
 
     if (editing) {
       const res = await fetch('/api/admin/users', {
@@ -190,7 +200,12 @@ export function BrandUsersManager({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Equipo <span className="ml-1 text-sm font-normal text-gray-400">({users.length})</span></h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            Equipo
+            <span className="ml-1 text-sm font-normal text-gray-400">
+              ({teamCount}{maxAdvisors !== undefined ? `/${maxAdvisors}` : ''})
+            </span>
+          </h1>
           <p className="text-sm text-gray-500 mt-0.5">Asesores, managers y usuarios de reportes</p>
         </div>
         <div className="flex gap-2">

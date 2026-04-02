@@ -65,6 +65,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No puedes crear ese rol' }, { status: 403 })
     }
 
+    // Server-side plan limit check (brand_admin no cuenta hacia el límite)
+    if (!isSuperAdmin && brand_id) {
+      const { data: mem } = await admin
+        .from('memberships')
+        .select('plan, max_advisors')
+        .eq('brand_id', brand_id)
+        .single()
+
+      const { getLimits } = await import('@/lib/planLimits')
+      const limits = getLimits(mem?.plan ?? 'free')
+      const maxAdvisors = mem?.max_advisors ?? limits.maxAdvisors
+
+      const { count } = await admin
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('brand_id', brand_id)
+        .neq('role', 'superadmin')
+        .neq('role', 'brand_admin')
+
+      if ((count ?? 0) >= maxAdvisors) {
+        return NextResponse.json({
+          error: `Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu membresía.`,
+        }, { status: 403 })
+      }
+    }
+
     const { data, error: createErr } = await admin.auth.admin.createUser({
       email,
       password,
