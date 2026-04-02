@@ -254,100 +254,110 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Header */}
-          <div className="grid grid-cols-12 gap-2 px-4 py-2.5 border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            <div className="col-span-4">
-              <button className="flex items-center gap-1 hover:text-gray-700" onClick={() => toggleSort('name')}>
-                Cliente <SortIcon field="name" />
-              </button>
-            </div>
-            <div className="col-span-2 hidden sm:block">Contacto</div>
-            <div className="col-span-2 hidden md:block">Sucursales</div>
-            <div className="col-span-2">
-              <button className="flex items-center gap-1 hover:text-gray-700" onClick={() => toggleSort('total_visits')}>
-                Visitas <SortIcon field="total_visits" />
-              </button>
-            </div>
-            <div className="col-span-2">
-              <button className="flex items-center gap-1 hover:text-gray-700" onClick={() => toggleSort('last_visit_at')}>
-                Última visita <SortIcon field="last_visit_at" />
-              </button>
-            </div>
-          </div>
-
-          {filtered.length === 0 ? (
-            <div className="py-10 text-center text-sm text-gray-400">
-              Sin resultados para los filtros aplicados
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-50">
-              {filtered.map(customer => {
-                const tag = visitTag(customer.total_visits)
-                const days = daysSince(customer.last_visit_at)
-                return (
-                  <div key={customer.id} className="grid grid-cols-12 gap-2 px-4 py-3 hover:bg-gray-50 group">
-                    <div className="col-span-4 flex items-center gap-2 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-xs font-bold text-indigo-700">
-                        {customer.name.charAt(0).toUpperCase()}
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{customer.name}</p>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tag.color}`}>{tag.label}</span>
-                      </div>
-                    </div>
-                    <div className="col-span-2 hidden sm:flex flex-col justify-center gap-0.5">
-                      {customer.phone && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Phone size={10} className="shrink-0" /> {customer.phone}
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[600px]">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <th className="px-4 py-2.5 text-left">
+                    <button className="flex items-center gap-1 hover:text-gray-700" onClick={() => toggleSort('name')}>
+                      Cliente <SortIcon field="name" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5 text-left">Contacto</th>
+                  <th className="px-4 py-2.5 text-left hidden lg:table-cell">Sucursales</th>
+                  <th className="px-4 py-2.5 text-center">
+                    <button className="flex items-center gap-1 hover:text-gray-700 mx-auto" onClick={() => toggleSort('total_visits')}>
+                      Visitas <SortIcon field="total_visits" />
+                    </button>
+                  </th>
+                  <th className="px-4 py-2.5 text-left">
+                    <button className="flex items-center gap-1 hover:text-gray-700" onClick={() => toggleSort('last_visit_at')}>
+                      Última visita <SortIcon field="last_visit_at" />
+                    </button>
+                  </th>
+                  <th className="px-3 py-2.5 w-10" />
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-10 text-center text-sm text-gray-400">
+                      Sin resultados para los filtros aplicados
+                    </td>
+                  </tr>
+                ) : filtered.map(customer => {
+                  const tag = visitTag(customer.total_visits)
+                  const days = daysSince(customer.last_visit_at)
+                  return (
+                    <tr key={customer.id} className="hover:bg-gray-50 group">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 text-xs font-bold text-indigo-700">
+                            {customer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{customer.name}</p>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${tag.color}`}>{tag.label}</span>
+                          </div>
                         </div>
-                      )}
-                      {customer.email && (
-                        <div className="flex items-center gap-1 text-xs text-gray-500">
-                          <Mail size={10} className="shrink-0" /> <span className="truncate">{customer.email}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-col gap-0.5">
+                          {customer.phone && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <Phone size={10} className="shrink-0 text-gray-400" /> {customer.phone}
+                            </div>
+                          )}
+                          {customer.email && (
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <Mail size={10} className="shrink-0 text-gray-400" />
+                              <span className="truncate max-w-[160px]">{customer.email}</span>
+                            </div>
+                          )}
+                          {!customer.phone && !customer.email && <span className="text-xs text-gray-300">—</span>}
                         </div>
-                      )}
-                      {!customer.phone && !customer.email && <span className="text-xs text-gray-300">—</span>}
-                    </div>
-                    <div className="col-span-2 hidden md:flex items-center gap-1 flex-wrap">
-                      {customer.establishment_ids.slice(0, 2).map(eid => (
-                        <span key={eid} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">
-                          {estMap[eid] ?? '?'}
-                        </span>
-                      ))}
-                      {customer.establishment_ids.length > 2 && (
-                        <span className="text-[10px] text-gray-400">+{customer.establishment_ids.length - 2}</span>
-                      )}
-                    </div>
-                    <div className="col-span-2 flex items-center">
-                      <div>
+                      </td>
+                      <td className="px-4 py-3 hidden lg:table-cell">
+                        <div className="flex flex-wrap gap-1">
+                          {customer.establishment_ids.slice(0, 2).map(eid => (
+                            <span key={eid} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                              {estMap[eid] ?? '?'}
+                            </span>
+                          ))}
+                          {customer.establishment_ids.length > 2 && (
+                            <span className="text-[10px] text-gray-400">+{customer.establishment_ids.length - 2}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
                         <p className="text-sm font-bold text-gray-900">{customer.total_visits}</p>
                         <p className="text-[10px] text-gray-400">
-                          Desde {new Date(customer.first_visit_at).toLocaleDateString('es', { month: 'short', year: '2-digit' })}
+                          desde {new Date(customer.first_visit_at).toLocaleDateString('es', { month: 'short', year: '2-digit' })}
                         </p>
-                      </div>
-                    </div>
-                    <div className="col-span-2 flex items-center justify-between gap-1">
-                      <div>
-                        <p className="text-xs text-gray-700">
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="text-sm text-gray-700">
                           {days === 0 ? 'Hoy' : days === 1 ? 'Ayer' : `Hace ${days}d`}
                         </p>
                         <p className="text-[10px] text-gray-400">
                           {new Date(customer.last_visit_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
                         </p>
-                      </div>
-                      <button
-                        onClick={() => setEditModal(customer)}
-                        className="p-1.5 rounded-lg text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-all"
-                        title="Editar"
-                      >
-                        <Edit2 size={13} />
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          )}
+                      </td>
+                      <td className="px-3 py-3">
+                        <button
+                          onClick={() => setEditModal(customer)}
+                          className="p-1.5 rounded-lg text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover:opacity-100 transition-all"
+                          title="Editar"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
 
           <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
             {filtered.length} de {total} clientes
