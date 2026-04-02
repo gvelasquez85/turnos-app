@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -133,6 +133,7 @@ export function AppShell({ children, role, fullName, email, brandName, establish
   const router = useRouter()
   const { selectedBrandId, setSelectedBrandId } = useBrandStore()
   const [brands, setBrands] = useState<{ id: string; name: string }[]>(initialBrands || [])
+  const brandInitialized = useRef(false)
 
   useEffect(() => {
     if (role === 'superadmin' && (!initialBrands || initialBrands.length === 0)) {
@@ -143,10 +144,14 @@ export function AppShell({ children, role, fullName, email, brandName, establish
   }, [role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (brands.length > 0 && !selectedBrandId) {
+    // Only auto-select the first brand on initial mount if nothing is stored yet.
+    // Once the user explicitly selects "Todas las marcas" (empty string), never override.
+    if (!brandInitialized.current && brands.length > 0 && !selectedBrandId) {
+      brandInitialized.current = true
       setSelectedBrandId(brands[0].id)
     }
-  }, [brands, selectedBrandId, setSelectedBrandId])
+    if (brands.length > 0) brandInitialized.current = true
+  }, [brands]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     try {

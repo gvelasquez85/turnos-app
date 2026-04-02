@@ -7,26 +7,13 @@ export async function OPTIONS() { return handleOptions() }
 /**
  * GET /api/v1/tickets/:id
  * Get a single ticket by ID. Must belong to the authenticated brand.
- *
- * Response 200:
- * {
- *   "data": {
- *     "id": "uuid",
- *     "queue_number": "007",
- *     "customer_name": "...",
- *     "status": "waiting" | "in_progress" | "done" | "cancelled",
- *     "establishment_id": "uuid",
- *     "establishment_name": "...",
- *     "visit_reason": "...",
- *     "created_at": "...",
- *     "attended_at": "..."
- *   }
- * }
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
+
   const auth = await validateApiKey(req)
   if ('error' in auth) {
     return NextResponse.json({ error: auth.error }, { status: auth.status, headers: API_CORS_HEADERS })
@@ -40,14 +27,13 @@ export async function GET(
   const { data: ticket, error } = await supabase
     .from('tickets')
     .select('id, queue_number, customer_name, status, created_at, attended_at, establishment_id, establishments(name, brand_id), visit_reasons(name)')
-    .eq('id', params.id)
+    .eq('id', id)
     .single()
 
   if (error || !ticket) {
     return NextResponse.json({ error: 'Ticket not found' }, { status: 404, headers: API_CORS_HEADERS })
   }
 
-  // Verify the ticket belongs to the authenticated brand
   if ((ticket.establishments as any)?.brand_id !== auth.brandId) {
     return NextResponse.json({ error: 'Ticket not found' }, { status: 404, headers: API_CORS_HEADERS })
   }

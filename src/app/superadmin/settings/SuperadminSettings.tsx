@@ -1,9 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
+import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save } from 'lucide-react'
 
 const MODULE_LIST = [
   { key: 'queue', label: 'Cola de turnos', desc: 'Sistema de turnos en espera' },
@@ -65,53 +65,188 @@ const INTEGRATIONS = [
   },
 ]
 
+type SettingEntry = { masked: string; source: 'env' | 'db'; editable: boolean; set: boolean }
+type SettingsData = Record<string, SettingEntry>
+
 function IntegrationsTab() {
-  const [showKeys, setShowKeys] = useState<Record<string, boolean>>({})
+  const [settings, setSettings] = useState<SettingsData>({})
+  const [loading, setLoading] = useState(true)
+  const [edits, setEdits] = useState<Record<string, string>>({})
+  const [showVal, setShowVal] = useState<Record<string, boolean>>({})
+  const [saving, setSaving] = useState<string | null>(null)
+  const [saved, setSaved] = useState<Record<string, boolean>>({})
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/superadmin/settings')
+      const json = await res.json()
+      if (json.data) setSettings(json.data)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function saveKey(envKey: string) {
+    const value = edits[envKey] ?? ''
+    setSaving(envKey)
+    await fetch('/api/superadmin/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [envKey]: value }),
+    })
+    setSaved(s => ({ ...s, [envKey]: true }))
+    setTimeout(() => setSaved(s => ({ ...s, [envKey]: false })), 2000)
+    setSaving(null)
+    // refresh
+    await load()
+    setEdits(e => { const n = { ...e }; delete n[envKey]; return n })
+  }
+
+  const statusForIntegration = (key: string): 'ok' | 'partial' | 'info' => {
+    if (key === 'firebase') {
+      const serverKey = settings['FIREBASE_SERVER_KEY']
+      const hasAll = ['NEXT_PUBLIC_FIREBASE_API_KEY','NEXT_PUBLIC_FIREBASE_PROJECT_ID','NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID','NEXT_PUBLIC_FIREBASE_APP_ID','NEXT_PUBLIC_FIREBASE_VAPID_KEY'].every(k => settings[k]?.set)
+      if (hasAll && serverKey?.set) return 'ok'
+      return 'partial'
+    }
+    if (key === 'supabase') {
+      const allSet = ['NEXT_PUBLIC_SUPABASE_URL','NEXT_PUBLIC_SUPABASE_ANON_KEY','SUPABASE_SERVICE_ROLE_KEY'].every(k => settings[k]?.set)
+      return allSet ? 'ok' : 'partial'
+    }
+    if (key === 'vercel') return settings['VERCEL_TOKEN']?.set ? 'ok' : 'info'
+    return 'info'
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-gray-400">
+        <Loader2 size={24} className="animate-spin mr-2" /> Cargando configuración...
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-        <p className="font-semibold mb-1">⚠️ Variables de entorno</p>
-        <p>Las llaves de integración se gestionan en <strong>Vercel Dashboard → Settings → Environment Variables</strong>. Esta pantalla muestra el estado y dónde obtener cada valor, pero no puede modificar las variables directamente.</p>
-        <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 mt-2 text-amber-700 font-medium underline hover:text-amber-900">
-          Ir a Vercel Dashboard <ExternalLink size={12} />
-        </a>
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+        <p className="font-semibold mb-1">Llaves de integración</p>
+        <p>Las llaves marcadas como <span className="font-medium">editables</span> se guardan en la base de datos y se aplican sin redeploy. Las variables <code className="bg-blue-100 px-1 rounded font-mono text-xs">NEXT_PUBLIC_*</code> se configuran en el build y requieren un redeploy para actualizarse.</p>
       </div>
 
-      {INTEGRATIONS.map(integration => (
-        <div key={integration.key} className={`bg-white rounded-xl border-2 ${integration.color} overflow-hidden`}>
-          <div className="px-5 py-4 flex items-center justify-between border-b border-inherit">
-            <div className="flex items-center gap-3">
-              <span className="text-2xl">{integration.icon}</span>
-              <div>
-                <p className="font-semibold text-gray-900">{integration.label}</p>
-                <p className="text-xs text-gray-500">{integration.statusNote}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              {integration.status === 'ok' && <span className="flex items-center gap-1 text-xs text-green-600 font-medium"><CheckCircle size={13} /> Activo</span>}
-              {integration.status === 'partial' && <span className="flex items-center gap-1 text-xs text-amber-600 font-medium"><AlertCircle size={13} /> Parcial</span>}
-              {integration.status === 'info' && <span className="flex items-center gap-1 text-xs text-gray-500 font-medium"><AlertCircle size={13} /> Info</span>}
-              <a href={integration.docs} target="_blank" rel="noopener noreferrer"
-                className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">Docs <ExternalLink size={10} /></a>
-            </div>
-          </div>
-          <div className="divide-y divide-gray-100">
-            {integration.vars.map(v => (
-              <div key={v.env} className="px-5 py-3 flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    <code className="text-xs font-mono text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded">{v.env}</code>
-                    <span className="text-xs text-gray-600">{v.label}</span>
-                  </div>
-                  <p className="text-xs text-gray-400 leading-snug">{v.hint}</p>
+      {INTEGRATIONS.map(integration => {
+        const status = statusForIntegration(integration.key)
+        return (
+          <div key={integration.key} className={`bg-white rounded-xl border-2 ${integration.color} overflow-hidden`}>
+            <div className="px-5 py-4 flex items-center justify-between border-b border-inherit">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">{integration.icon}</span>
+                <div>
+                  <p className="font-semibold text-gray-900">{integration.label}</p>
+                  <p className="text-xs text-gray-500">{integration.statusNote}</p>
                 </div>
               </div>
-            ))}
+              <div className="flex items-center gap-2">
+                {status === 'ok' && <span className="flex items-center gap-1 text-xs text-green-600 font-medium"><CheckCircle size={13} /> Activo</span>}
+                {status === 'partial' && <span className="flex items-center gap-1 text-xs text-amber-600 font-medium"><AlertCircle size={13} /> Parcial</span>}
+                {status === 'info' && <span className="flex items-center gap-1 text-xs text-gray-500 font-medium"><AlertCircle size={13} /> Info</span>}
+                <a href={integration.docs} target="_blank" rel="noopener noreferrer"
+                  className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">Docs <ExternalLink size={10} /></a>
+              </div>
+            </div>
+
+            <div className="divide-y divide-gray-100">
+              {integration.vars.map(v => {
+                const entry = settings[v.env]
+                const isEditable = entry?.editable ?? false
+                const isSet = entry?.set ?? false
+                const isSaving = saving === v.env
+                const isSaved = saved[v.env]
+                const isShowingVal = showVal[v.env]
+                const currentEdit = edits[v.env]
+                const isDirty = currentEdit !== undefined
+
+                return (
+                  <div key={v.env} className="px-5 py-4">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <code className="text-xs font-mono text-gray-800 bg-gray-100 px-1.5 py-0.5 rounded">{v.env}</code>
+                      <span className="text-xs text-gray-600 font-medium">{v.label}</span>
+                      {isEditable
+                        ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-600 font-semibold">Editable</span>
+                        : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500 font-semibold">Requiere redeploy</span>
+                      }
+                      {isSet
+                        ? <span className="flex items-center gap-0.5 text-[10px] text-green-600 font-medium"><CheckCircle size={10} /> Configurada</span>
+                        : <span className="flex items-center gap-0.5 text-[10px] text-red-500 font-medium"><AlertCircle size={10} /> Sin configurar</span>
+                      }
+                    </div>
+                    <p className="text-xs text-gray-400 mb-2 leading-snug">{v.hint}</p>
+
+                    {isEditable ? (
+                      <div className="flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <input
+                            type={isShowingVal ? 'text' : 'password'}
+                            className="w-full rounded-lg border border-gray-300 px-3 py-2 pr-9 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:outline-none bg-white placeholder:text-gray-400"
+                            placeholder={isSet ? entry.masked : 'Pegar valor aquí…'}
+                            value={currentEdit ?? ''}
+                            onChange={e => setEdits(ed => ({ ...ed, [v.env]: e.target.value }))}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowVal(s => ({ ...s, [v.env]: !s[v.env] }))}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {isShowingVal ? <EyeOff size={14} /> : <Eye size={14} />}
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => saveKey(v.env)}
+                          disabled={isSaving || !isDirty}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                            isSaved
+                              ? 'bg-green-500 text-white'
+                              : isDirty
+                                ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                          }`}
+                        >
+                          {isSaving ? <Loader2 size={13} className="animate-spin" /> : isSaved ? <CheckCircle size={13} /> : <Save size={13} />}
+                          {isSaved ? 'Guardado' : 'Guardar'}
+                        </button>
+                        {isSet && entry.source === 'db' && (
+                          <button
+                            title="Borrar override (vuelve al valor de env)"
+                            className="text-xs text-gray-400 hover:text-red-500 px-2 py-2"
+                            onClick={() => setEdits(ed => ({ ...ed, [v.env]: '' }))}
+                          >
+                            Limpiar
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm font-mono text-gray-500 select-all">
+                          {isSet ? entry.masked : <span className="text-gray-400 italic text-xs">No configurada en Vercel</span>}
+                        </div>
+                        <a
+                          href="https://vercel.com/dashboard"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-xs text-indigo-500 hover:underline whitespace-nowrap"
+                        >
+                          Editar en Vercel <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
 
       <div className="bg-white rounded-xl border border-gray-200 p-5">
         <h3 className="font-semibold text-gray-800 mb-3">Pasos para activar notificaciones push</h3>
@@ -119,9 +254,8 @@ function IntegrationsTab() {
           <li>Ir a <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">Firebase Console</a></li>
           <li>Seleccionar el proyecto → Configuración del proyecto → Cloud Messaging</li>
           <li>Copiar el valor de <strong>Server key</strong></li>
-          <li>En <a href="https://vercel.com/dashboard" target="_blank" rel="noopener noreferrer" className="text-indigo-600 underline">Vercel Dashboard</a> → Settings → Environment Variables</li>
-          <li>Agregar <code className="bg-gray-100 px-1 rounded font-mono text-xs">FIREBASE_SERVER_KEY</code> con ese valor</li>
-          <li>Re-deployar (o esperar al próximo deploy)</li>
+          <li>Pegar en el campo <code className="bg-gray-100 px-1 rounded font-mono text-xs">FIREBASE_SERVER_KEY</code> de arriba y guardar</li>
+          <li>Las notificaciones push quedarán activas de inmediato (sin redeploy)</li>
         </ol>
       </div>
     </div>

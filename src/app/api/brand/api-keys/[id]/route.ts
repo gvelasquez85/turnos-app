@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabase/server'
 /** DELETE /api/brand/api-keys/:id — deactivate (soft-delete) a key */
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) {
+  const { id } = await params
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -23,8 +24,8 @@ export async function DELETE(
   const { error } = await supabase
     .from('api_keys')
     .update({ active: false })
-    .eq('id', params.id)
-    .eq('brand_id', profile.brand_id) // ensure ownership
+    .eq('id', id)
+    .eq('brand_id', profile.brand_id)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 

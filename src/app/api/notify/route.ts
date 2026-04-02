@@ -1,9 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createServiceClient } from '@supabase/supabase-js'
 
-const FCM_SERVER_KEY = process.env.FIREBASE_SERVER_KEY
+async function getFcmServerKey(): Promise<string | null> {
+  // Try DB override first (system_settings), then fall back to env var
+  try {
+    const service = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data } = await service
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'FIREBASE_SERVER_KEY')
+      .single()
+    if (data?.value) return data.value
+  } catch {}
+  return process.env.FIREBASE_SERVER_KEY ?? null
+}
 
 export async function POST(req: NextRequest) {
+  const FCM_SERVER_KEY = await getFcmServerKey()
   if (!FCM_SERVER_KEY) {
     return NextResponse.json({ error: 'FCM not configured' }, { status: 503 })
   }
