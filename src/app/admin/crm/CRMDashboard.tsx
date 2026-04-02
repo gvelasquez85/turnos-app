@@ -191,22 +191,23 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         {[
-          { label: 'Total', value: total, icon: Users, color: 'bg-indigo-100 text-indigo-600' },
-          { label: 'Nuevos', value: newOnes, icon: UserPlus, color: 'bg-blue-100 text-blue-600' },
-          { label: 'Recurrentes', value: returning, icon: RotateCcw, color: 'bg-green-100 text-green-600' },
-          { label: 'Fieles (10+)', value: loyal, icon: Star, color: 'bg-purple-100 text-purple-600' },
-          { label: 'Promedio visitas', value: avgVisits, icon: TrendingUp, color: 'bg-amber-100 text-amber-600' },
-        ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-            <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
-              <Icon size={16} />
+          { label: 'Total', sub: 'clientes', value: total, icon: Users, color: 'bg-indigo-100 text-indigo-600' },
+          { label: 'Nuevos', sub: '1 sola visita', value: newOnes, icon: UserPlus, color: 'bg-blue-100 text-blue-600' },
+          { label: 'Recurrentes', sub: '2 o más visitas', value: returning, icon: RotateCcw, color: 'bg-green-100 text-green-600' },
+          { label: 'Fieles', sub: '10+ visitas', value: loyal, icon: Star, color: 'bg-purple-100 text-purple-600' },
+          { label: 'Promedio', sub: 'visitas por cliente', value: avgVisits, icon: TrendingUp, color: 'bg-amber-100 text-amber-600' },
+        ].map(({ label, sub, value, icon: Icon, color }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
+                <Icon size={13} />
+              </div>
+              <p className="text-xs font-semibold text-gray-500">{label}</p>
             </div>
-            <div>
-              <p className="text-xl font-bold text-gray-900">{value}</p>
-              <p className="text-xs text-gray-500">{label}</p>
-            </div>
+            <p className="text-2xl font-bold text-gray-900">{value}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
           </div>
         ))}
       </div>
@@ -247,10 +248,17 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
 
       {/* Table */}
       {customers.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
-          <UserCheck size={40} className="mx-auto mb-3 text-gray-200" />
-          <p className="font-medium text-gray-500">Aún no hay clientes registrados</p>
-          <p className="text-sm text-gray-400 mt-1">Se registran automáticamente cuando se atiende un turno</p>
+        <div className="bg-white rounded-xl border border-gray-200 py-14 text-center px-6">
+          <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <UserCheck size={28} className="text-indigo-300" />
+          </div>
+          <p className="font-semibold text-gray-700 mb-1">Aún no hay clientes registrados</p>
+          <p className="text-sm text-gray-400 max-w-xs mx-auto">
+            Los clientes se registran automáticamente cada vez que se atiende un turno en la cola de espera.
+          </p>
+          <div className="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-xs text-amber-700">
+            <span className="font-semibold">Paso pendiente:</span> ejecutar <code className="bg-amber-100 px-1 rounded font-mono">phase10_crm_comms.sql</code> en Supabase
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
