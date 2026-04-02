@@ -9,7 +9,7 @@ import {
   Users, Store, Menu, ChevronLeft, ChevronRight,
   LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
-  Settings, Shield, UserCircle, CreditCard,
+  Settings, Shield, UserCircle, CreditCard, UserCheck,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -66,8 +66,8 @@ const navByRole: Record<AppRole, NavSection[]> = {
     },
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
   ],
   brand_admin: [
     {
@@ -76,12 +76,15 @@ const navByRole: Record<AppRole, NavSection[]> = {
     },
     {
       section: 'Administración',
-      items: [{ href: '/admin/users', label: 'Equipo', icon: Users }],
+      items: [
+        { href: '/admin/users', label: 'Equipo', icon: Users },
+        { href: '/admin/crm', label: 'Clientes', icon: UserCheck },
+      ],
     },
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
   ],
   manager: [
     {
@@ -90,12 +93,11 @@ const navByRole: Record<AppRole, NavSection[]> = {
     },
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
   ],
   advisor: [
     { section: 'Operación', items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }] },
-    { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
   ],
   reporting: [
     { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
@@ -277,7 +279,10 @@ export function AppShell({ children, role, fullName, email, brandName, establish
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-2">
-          {sections.map((section, si) => (
+          {sections.map((section, si) => {
+            const allowedItems = section.items.filter(item => isModuleAllowed(item.href))
+            if (allowedItems.length === 0) return null
+            return (
             <div key={si} className={cn('flex flex-col gap-0.5', si > 0 && 'mt-4')}>
               {!collapsed && section.section && (
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-2 mb-1.5">
@@ -285,7 +290,7 @@ export function AppShell({ children, role, fullName, email, brandName, establish
                 </p>
               )}
               {collapsed && si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />}
-              {section.items.filter(item => isModuleAllowed(item.href)).map(item => {
+              {allowedItems.map(item => {
                 const active = isActive(item.href, item.exact)
                 const Icon = item.icon
                 return (
@@ -308,7 +313,8 @@ export function AppShell({ children, role, fullName, email, brandName, establish
                 )
               })}
             </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* Footer */}

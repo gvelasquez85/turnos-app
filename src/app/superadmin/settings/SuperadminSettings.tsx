@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save } from 'lucide-react'
+import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save, Key, Trash2, Send, FileText } from 'lucide-react'
 
 const MODULE_LIST = [
   { key: 'queue', label: 'Cola de turnos', desc: 'Sistema de turnos en espera' },
@@ -64,6 +64,247 @@ const INTEGRATIONS = [
     statusNote: 'Conectado y operativo.',
   },
 ]
+
+// ─── API Keys per brand Tab ───────────────────────────────────────────────────
+type ApiKeyEntry = { id: string; name: string; key_prefix: string; active: boolean; created_at: string; last_used_at: string | null }
+
+function ApiKeysTab({ brands }: { brands: { id: string; name: string; primary_color: string | null }[] }) {
+  const [selectedBrand, setSelectedBrand] = useState<string>(brands[0]?.id ?? '')
+  const [keys, setKeys] = useState<ApiKeyEntry[]>([])
+  const [loading, setLoading] = useState(false)
+  const [revoking, setRevoking] = useState<string | null>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!selectedBrand) return
+    setLoading(true)
+    supabase
+      .from('api_keys')
+      .select('id, name, key_prefix, active, created_at, last_used_at')
+      .eq('brand_id', selectedBrand)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { setKeys(data ?? []); setLoading(false) })
+  }, [selectedBrand])
+
+  async function revokeKey(id: string) {
+    setRevoking(id)
+    await supabase.from('api_keys').update({ active: false }).eq('id', id)
+    setKeys(ks => ks.map(k => k.id === id ? { ...k, active: false } : k))
+    setRevoking(null)
+  }
+
+  const brand = brands.find(b => b.id === selectedBrand)
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+        <Building2 size={16} className="text-gray-400" />
+        <select
+          className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+          value={selectedBrand}
+          onChange={e => setSelectedBrand(e.target.value)}
+        >
+          {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+        </select>
+      </div>
+
+      {loading ? (
+        <div className="flex items-center justify-center py-12 text-gray-400">
+          <Loader2 size={20} className="animate-spin mr-2" /> Cargando...
+        </div>
+      ) : keys.length === 0 ? (
+        <div className="bg-white rounded-xl border border-gray-200 py-12 text-center text-gray-400">
+          <Key size={32} className="mx-auto mb-2 opacity-30" />
+          <p className="text-sm">{brand?.name ?? 'Esta marca'} no tiene API keys generadas</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          {keys.map(k => (
+            <div key={k.id} className="flex items-center gap-3 px-4 py-3">
+              <Key size={14} className={k.active ? 'text-indigo-500' : 'text-gray-300'} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-900">{k.name}</p>
+                <p className="text-xs font-mono text-gray-400">{k.key_prefix}••••••••••••••••••••••</p>
+              </div>
+              <div className="text-xs text-gray-400 text-right hidden sm:block">
+                <p>Creada {new Date(k.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                {k.last_used_at && <p>Usada {new Date(k.last_used_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</p>}
+              </div>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${k.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
+                {k.active ? 'Activa' : 'Revocada'}
+              </span>
+              {k.active && (
+                <button
+                  onClick={() => revokeKey(k.id)}
+                  disabled={revoking === k.id}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="Revocar clave"
+                >
+                  {revoking === k.id ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      <p className="text-xs text-gray-400 text-center">
+        Las claves se generan desde <strong>Mi marca → Integraciones</strong> dentro de cada cuenta de marca.
+      </p>
+    </div>
+  )
+}
+
+// ─── Communications Tab ───────────────────────────────────────────────────────
+type ConsentContact = { id: string; customer_name: string; customer_email: string | null; customer_phone: string | null; establishment_id: string }
+
+function CommsTab({ brands }: { brands: { id: string; name: string; primary_color: string | null }[] }) {
+  const [selectedBrand, setSelectedBrand] = useState<string>(brands[0]?.id ?? '')
+  const [contacts, setContacts] = useState<ConsentContact[]>([])
+  const [loadingContacts, setLoadingContacts] = useState(false)
+  const [subject, setSubject] = useState('')
+  const [body, setBody] = useState('<h2>Hola {{nombre}},</h2>\n<p>Te escribimos desde [tu marca].</p>\n<p></p>\n<p>Saludos,<br/>El equipo</p>')
+  const [preview, setPreview] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState<{ ok: number; fail: number } | null>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!selectedBrand) return
+    setLoadingContacts(true)
+    setSent(null)
+    supabase
+      .from('consents')
+      .select('id, customer_name, customer_email, customer_phone, establishment_id')
+      .eq('brand_id', selectedBrand)
+      .eq('consented', true)
+      .not('customer_email', 'is', null)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => { setContacts(data ?? []); setLoadingContacts(false) })
+  }, [selectedBrand])
+
+  async function handleSend() {
+    if (!subject.trim() || !body.trim() || contacts.length === 0) return
+    setSending(true)
+    setSent(null)
+    const res = await fetch('/api/superadmin/comms/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand_id: selectedBrand, subject, body, contacts }),
+    })
+    const json = await res.json()
+    setSent({ ok: json.sent ?? 0, fail: json.failed ?? 0 })
+    setSending(false)
+  }
+
+  const previewHtml = body
+    .replace(/\{\{nombre\}\}/g, contacts[0]?.customer_name ?? 'Cliente')
+
+  return (
+    <div className="space-y-5">
+      {/* Brand + contact list */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <Building2 size={16} className="text-gray-400 shrink-0" />
+          <select
+            className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+            value={selectedBrand}
+            onChange={e => setSelectedBrand(e.target.value)}
+          >
+            {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+          </select>
+        </div>
+        {loadingContacts ? (
+          <p className="text-sm text-gray-400 flex items-center gap-1"><Loader2 size={13} className="animate-spin" /> Cargando contactos...</p>
+        ) : (
+          <div className="flex items-center gap-2">
+            <CheckCircle size={14} className={contacts.length > 0 ? 'text-green-500' : 'text-gray-300'} />
+            <p className="text-sm text-gray-700">
+              <strong>{contacts.length}</strong> contactos con autorización y correo registrado
+            </p>
+            {contacts.length > 0 && (
+              <span className="text-xs text-gray-400">({contacts.filter(c => c.customer_email).length} con email)</span>
+            )}
+          </div>
+        )}
+        {contacts.length > 0 && (
+          <div className="max-h-32 overflow-y-auto rounded-lg border border-gray-100 divide-y divide-gray-50">
+            {contacts.slice(0, 20).map(c => (
+              <div key={c.id} className="flex items-center gap-2 px-3 py-1.5 text-xs text-gray-600">
+                <span className="font-medium truncate flex-1">{c.customer_name}</span>
+                <span className="text-gray-400 truncate">{c.customer_email}</span>
+              </div>
+            ))}
+            {contacts.length > 20 && <p className="px-3 py-1.5 text-xs text-gray-400">+{contacts.length - 20} más...</p>}
+          </div>
+        )}
+      </div>
+
+      {/* Email builder */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold text-gray-800 flex items-center gap-2"><FileText size={15} /> Constructor de correo</h3>
+          <button
+            onClick={() => setPreview(p => !p)}
+            className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+          >
+            <Eye size={12} /> {preview ? 'Editar' : 'Vista previa'}
+          </button>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Asunto</label>
+          <input
+            className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+            placeholder="ej. Te tenemos novedades 🎉"
+            value={subject}
+            onChange={e => setSubject(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Cuerpo HTML <span className="text-gray-400 font-normal">— usa <code className="bg-gray-100 px-1 rounded">{'{{nombre}}'}</code> para personalizar</span>
+          </label>
+          {preview ? (
+            <div
+              className="min-h-[200px] rounded-lg border border-gray-200 p-4 prose prose-sm max-w-none text-gray-800 bg-gray-50"
+              dangerouslySetInnerHTML={{ __html: previewHtml }}
+            />
+          ) : (
+            <textarea
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:outline-none min-h-[200px]"
+              value={body}
+              onChange={e => setBody(e.target.value)}
+            />
+          )}
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+          <p className="font-semibold mb-1">⚙️ Servicio de envío requerido</p>
+          <p>Para enviar correos reales conecta <strong>Resend</strong> o <strong>SendGrid</strong> en la pestaña Integraciones del sistema. El envío usa el endpoint <code className="bg-amber-100 px-1 rounded">/api/superadmin/comms/send</code>.</p>
+        </div>
+
+        {sent && (
+          <div className={`rounded-lg p-3 text-sm font-medium ${sent.fail === 0 ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-amber-50 text-amber-700 border border-amber-200'}`}>
+            {sent.ok} correo(s) enviado(s) correctamente{sent.fail > 0 ? ` · ${sent.fail} fallido(s)` : ''}
+          </div>
+        )}
+
+        <button
+          onClick={handleSend}
+          disabled={sending || contacts.length === 0 || !subject.trim() || !body.trim()}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {sending ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+          {sending ? 'Enviando...' : `Enviar a ${contacts.length} contacto${contacts.length !== 1 ? 's' : ''}`}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ─── Integrations Tab ─────────────────────────────────────────────────────────
 
 type SettingEntry = { masked: string; source: 'env' | 'db'; editable: boolean; set: boolean }
 type SettingsData = Record<string, SettingEntry>
@@ -356,7 +597,7 @@ function MembershipModal({ brand, existing, onClose, onSave }: { brand: Brand; e
 }
 
 export function SuperadminSettings({ brands: initialBrands, memberships: initialMemberships }: Props) {
-  const [tab, setTab] = useState<'modules' | 'memberships' | 'comms' | 'integrations'>('modules')
+  const [tab, setTab] = useState<'modules' | 'comms' | 'apikeys' | 'integrations'>('modules')
   const [brands, setBrands] = useState(initialBrands)
   const [memberships, setMemberships] = useState(initialMemberships)
   const [saving, setSaving] = useState<string | null>(null)
@@ -382,9 +623,9 @@ export function SuperadminSettings({ brands: initialBrands, memberships: initial
 
   const TABS = [
     { key: 'modules', label: 'Módulos por marca', icon: Settings },
-    { key: 'memberships', label: 'Membresías', icon: CreditCard },
     { key: 'comms', label: 'Comunicaciones', icon: Mail },
-    { key: 'integrations', label: 'Integraciones', icon: Puzzle },
+    { key: 'apikeys', label: 'API Keys por marca', icon: Key },
+    { key: 'integrations', label: 'Integraciones del sistema', icon: Puzzle },
   ] as const
 
   return (
@@ -453,45 +694,11 @@ export function SuperadminSettings({ brands: initialBrands, memberships: initial
         </div>
       )}
 
-      {/* Membresías */}
-      {tab === 'memberships' && (
-        <div className="flex flex-col gap-3">
-          {brands.map(brand => {
-            const m = getBrandMembership(brand.id)
-            return (
-              <div key={brand.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: brand.primary_color ?? '#6366f1' }}>
-                  <Building2 size={14} className="text-white" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900">{brand.name}</p>
-                  {m ? (
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PLAN_COLORS[m.plan] || 'bg-gray-100 text-gray-700'}`}>{PLAN_LABELS[m.plan] || m.plan}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[m.status] || 'bg-gray-100'}`}>{m.status === 'active' ? 'Activa' : m.status === 'trial' ? 'Prueba' : m.status === 'expired' ? 'Vencida' : 'Cancelada'}</span>
-                      {m.expires_at && <span className="text-xs text-gray-400">Vence: {new Date(m.expires_at).toLocaleDateString('es')}</span>}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 mt-0.5">Sin membresía</p>
-                  )}
-                </div>
-                <Button size="sm" variant="ghost" onClick={() => setMembershipModal({ brand, existing: m })}>
-                  {m ? <Edit2 size={14} /> : <Plus size={14} />}
-                </Button>
-              </div>
-            )
-          })}
-        </div>
-      )}
-
       {/* Comunicaciones */}
-      {tab === 'comms' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">
-          <Mail size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="font-medium text-gray-700">Plantillas de comunicación</p>
-          <p className="text-sm mt-1">Configuración de correos automáticos — próximamente</p>
-        </div>
-      )}
+      {tab === 'comms' && <CommsTab brands={brands} />}
+
+      {/* API Keys por marca */}
+      {tab === 'apikeys' && <ApiKeysTab brands={brands} />}
 
       {/* Integraciones */}
       {tab === 'integrations' && <IntegrationsTab />}

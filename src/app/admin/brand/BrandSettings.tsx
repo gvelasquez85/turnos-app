@@ -483,8 +483,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </div>
           )}
 
-          {/* Add-ons */}
-          <div className="mb-8">
+          {/* Add-ons — only show if brand has active module subscriptions */}
+          {activeModuleSubs.length > 0 && <div className="mb-8">
             <h3 className="text-sm font-semibold text-gray-700 mb-3">Agregar capacidad</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Extra agents */}
@@ -544,6 +544,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               </div>
             </div>
           </div>
+          }
 
           {/* Plan comparison grid */}
           <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Planes disponibles</h2>
