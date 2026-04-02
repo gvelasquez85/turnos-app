@@ -15,10 +15,15 @@ CREATE TABLE IF NOT EXISTS customers (
   last_visit_at   timestamptz NOT NULL DEFAULT now(),
   total_visits    int NOT NULL DEFAULT 1,
   establishment_ids uuid[] NOT NULL DEFAULT '{}',  -- distinct establishments visited
-  created_at      timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (brand_id, phone),
-  UNIQUE (brand_id, document_id)
+  created_at      timestamptz NOT NULL DEFAULT now()
 );
+
+-- Partial unique indexes so ON CONFLICT works with nullable columns
+CREATE UNIQUE INDEX IF NOT EXISTS customers_brand_phone_idx
+  ON customers (brand_id, phone) WHERE phone IS NOT NULL;
+
+CREATE UNIQUE INDEX IF NOT EXISTS customers_brand_document_idx
+  ON customers (brand_id, document_id) WHERE document_id IS NOT NULL;
 
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
@@ -96,17 +101,6 @@ CREATE POLICY "superadmin only" ON comms_campaigns
   FOR ALL USING (
     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'superadmin')
   );
-
--- Add email/phone columns to consents if they don't exist
-ALTER TABLE consents ADD COLUMN IF NOT EXISTS brand_id uuid REFERENCES brands(id);
-ALTER TABLE consents ADD COLUMN IF NOT EXISTS customer_email text;
-ALTER TABLE consents ADD COLUMN IF NOT EXISTS customer_phone text;
-
--- Backfill brand_id from establishment
-UPDATE consents c
-SET brand_id = e.brand_id
-FROM establishments e
-WHERE e.id = c.establishment_id AND c.brand_id IS NULL;
 
 -- Add customer_phone to tickets if not present
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS customer_phone text;
