@@ -48,22 +48,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: createErr?.message || 'Error al crear usuario' }, { status: 400 })
     }
 
-    // Upsert instead of update: handles race condition where trigger hasn't fired yet
-    const { error: profileErr } = await admin
-      .from('profiles')
-      .upsert({
-        id: data.user.id,
-        email,
-        role,
-        full_name: full_name || null,
-        brand_id: brand_id || null,
-        establishment_id: establishment_id || null,
-      }, { onConflict: 'id' })
-
-    if (profileErr) {
-      return NextResponse.json({ error: `Perfil: ${profileErr.message}` }, { status: 400 })
+    // The handle_new_user trigger creates the profile row synchronously.
+    // We do a plain UPDATE to set brand_id, role, etc.
+    // Fall back to INSERT if somehow the trigger didn't run.
+    const userId = data.user.id
+    const profilePayload = {
+      role,
+      full_name: full_name || null,
+      brand_id: brand_id || null,
+      establishment_id: establishment_id || null,
     }
-    return NextResponse.json({ ok: true, userId: data.user.id })
+
+    const { data: updated, error: updateErr } = await admin
+      .from('profiles')
+      .update(profilePayload)
+      .eq('id', userId)
+      .select('id, brand_id')
+
+    if (updateErr) {
+      return NextResponse.json({ error: `Error al actualizar perfil: ${updateErr.message}` }, { status: 400 })
+    }
+
+    // If update matched 0 rows (trigger didn't run yet), do an insert
+    if (!updated || updated.length === 0) {
+      const { error: insertErr } = await admin
+        .from('profiles')
+        .insert({ id: userId, email, role, full_name: full_name || null, brand_id: brand_id || null, establishment_id: establishment_id || null })
+      if (insertErr) {
+        return NextResponse.json({ error: `Error al crear perfil: ${insertErr.message}` }, { status: 400 })
+      }
+    }
+
+    return NextResponse.json({ ok: true, userId })
   }
 
   // ── Actualizar usuario existente ────────────────────────────────────────────

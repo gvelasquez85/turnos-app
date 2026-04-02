@@ -1,5 +1,13 @@
 -- Phase 11: Brand update RLS + advisor_fields brand_id + promotions brand scope + handle_new_user fix
 
+-- ── CRÍTICO: Fix role check constraint (faltaba manager y reporting) ──────────
+ALTER TABLE public.profiles
+  DROP CONSTRAINT IF EXISTS profiles_role_check;
+
+ALTER TABLE public.profiles
+  ADD CONSTRAINT profiles_role_check
+  CHECK (role IN ('superadmin','brand_admin','manager','advisor','reporting'));
+
 -- ── Fix handle_new_user trigger to capture brand_id and establishment_id ──────
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger AS $$
@@ -54,3 +62,12 @@ UPDATE promotions p
 SET brand_id = e.brand_id
 FROM establishments e
 WHERE e.id = p.establishment_id AND p.brand_id IS NULL;
+
+-- ── NOTA: Para asociar manualmente usuarios huérfanos (sin brand_id) ──────────
+-- Ejecuta esto en el SQL Editor reemplazando el UUID de tu marca:
+-- UPDATE public.profiles
+--   SET brand_id = 'TU-BRAND-UUID-AQUI'
+-- WHERE brand_id IS NULL AND role NOT IN ('superadmin', 'brand_admin');
+--
+-- O para ver los usuarios sin marca:
+-- SELECT id, email, role, brand_id FROM public.profiles WHERE brand_id IS NULL;
