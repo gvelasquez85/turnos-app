@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       email,
       password,
       email_confirm: true,
-      user_metadata: { full_name, role },
+      user_metadata: { full_name, role, brand_id: brand_id || null, establishment_id: establishment_id || null },
     })
     if (createErr || !data.user) {
       return NextResponse.json({ error: createErr?.message || 'Error al crear usuario' }, { status: 400 })

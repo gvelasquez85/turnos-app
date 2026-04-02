@@ -1,4 +1,29 @@
--- Phase 11: Brand update RLS + advisor_fields brand_id + promotions brand scope
+-- Phase 11: Brand update RLS + advisor_fields brand_id + promotions brand scope + handle_new_user fix
+
+-- ── Fix handle_new_user trigger to capture brand_id and establishment_id ──────
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, full_name, role, brand_id, establishment_id)
+  VALUES (
+    new.id,
+    new.email,
+    COALESCE(new.raw_user_meta_data->>'full_name', ''),
+    COALESCE(new.raw_user_meta_data->>'role', 'advisor'),
+    NULLIF(new.raw_user_meta_data->>'brand_id', '')::uuid,
+    NULLIF(new.raw_user_meta_data->>'establishment_id', '')::uuid
+  )
+  ON CONFLICT (id) DO UPDATE SET
+    email = EXCLUDED.email,
+    full_name = COALESCE(EXCLUDED.full_name, profiles.full_name),
+    role = COALESCE(EXCLUDED.role, profiles.role),
+    brand_id = COALESCE(EXCLUDED.brand_id, profiles.brand_id),
+    establishment_id = COALESCE(EXCLUDED.establishment_id, profiles.establishment_id);
+  RETURN new;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
 
 -- ── Brand admin can update their own brand ─────────────────────────────────
 DO $$ BEGIN
