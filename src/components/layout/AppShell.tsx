@@ -204,8 +204,12 @@ export function AppShell({ children, role, fullName, email, brandName, establish
 
     const limits = getLimits(plan ?? 'free')
 
-    // Plan-level gates
-    if (href.startsWith('/reports') && !limits.hasReports) return false
+    // brand_admin and manager always have access to reports and core admin pages
+    const isAdmin = role === 'brand_admin' || role === 'manager'
+
+    // Plan-level gates (not applied to admins for reports/core features)
+    if (href.startsWith('/reports') && !limits.hasReports && !isAdmin) return false
+    if (href.startsWith('/admin/consents') && !isAdmin) return false
     if (href.startsWith('/admin/surveys') && !limits.hasSurveys) return false
     if (href.startsWith('/admin/appointments') && !limits.hasAppointments) return false
     if (href.startsWith('/admin/menu') && !limits.hasMenu) return false
