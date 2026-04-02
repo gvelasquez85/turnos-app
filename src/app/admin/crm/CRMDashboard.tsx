@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Users, UserCheck, UserPlus, RotateCcw, Search,
   Phone, Mail, Building2, Calendar, TrendingUp, Star,
-  ChevronDown, ChevronUp, Edit2, X, Check,
+  ChevronDown, ChevronUp, Edit2, X, Check, Plus,
 } from 'lucide-react'
 
 interface Customer {
@@ -116,6 +116,88 @@ function EditModal({ customer, onClose, onSave }: {
   )
 }
 
+function CreateModal({ brandId, onClose, onCreated }: {
+  brandId: string
+  onClose: () => void
+  onCreated: (c: Customer) => void
+}) {
+  const [form, setForm] = useState({ name: '', phone: '', email: '', document_id: '' })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  async function handleCreate() {
+    if (!form.name.trim()) return
+    setSaving(true); setError('')
+    const supabase = createClient()
+    const { data, error: err } = await supabase
+      .from('customers')
+      .insert({
+        name: form.name.trim(),
+        phone: form.phone || null,
+        email: form.email || null,
+        document_id: form.document_id || null,
+        brand_id: brandId,
+      })
+      .select()
+      .single()
+    setSaving(false)
+    if (err) { setError(err.message); return }
+    if (data) {
+      onCreated({
+        ...data,
+        first_visit_at: data.created_at || new Date().toISOString(),
+        last_visit_at: data.created_at || new Date().toISOString(),
+        total_visits: 0,
+        establishment_ids: [],
+      } as Customer)
+    }
+    onClose()
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-xl">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-gray-900">Nuevo cliente</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"><X size={16} /></button>
+        </div>
+        <div className="flex flex-col gap-3">
+          {[
+            { key: 'name', label: 'Nombre *', type: 'text' },
+            { key: 'phone', label: 'Teléfono', type: 'tel' },
+            { key: 'email', label: 'Correo', type: 'email' },
+            { key: 'document_id', label: 'Documento', type: 'text' },
+          ].map(({ key, label, type }) => (
+            <div key={key}>
+              <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+              <input
+                type={type}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                value={(form as any)[key]}
+                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+              />
+            </div>
+          ))}
+          {error && <p className="text-xs text-red-600">{error}</p>}
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={handleCreate}
+              disabled={saving || !form.name.trim()}
+              className="flex-1 py-2 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-40 transition-colors"
+            >
+              {saving ? 'Guardando...' : 'Crear cliente'}
+            </button>
+            <button onClick={onClose} className="flex-1 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function CRMDashboard({ customers: initialCustomers, establishments, brandId }: Props) {
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [search, setSearch] = useState('')
@@ -124,6 +206,7 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
   const [sortField, setSortField] = useState<'last_visit_at' | 'total_visits' | 'name'>('last_visit_at')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [editModal, setEditModal] = useState<Customer | null>(null)
+  const [createModal, setCreateModal] = useState(false)
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
@@ -185,9 +268,17 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-        <p className="text-gray-500 text-sm mt-1">Historial de visitas y perfil de cada cliente</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
+          <p className="text-gray-500 text-sm mt-1">Historial de visitas y perfil de cada cliente</p>
+        </div>
+        <button
+          onClick={() => setCreateModal(true)}
+          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+        >
+          <Plus size={15} /> Nuevo cliente
+        </button>
       </div>
 
       {/* KPIs */}
@@ -380,6 +471,16 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
           onSave={updated => {
             setCustomers(cs => cs.map(c => c.id === updated.id ? updated : c))
             setEditModal(null)
+          }}
+        />
+      )}
+
+      {createModal && (
+        <CreateModal
+          brandId={brandId}
+          onClose={() => setCreateModal(false)}
+          onCreated={newCustomer => {
+            setCustomers(cs => [newCustomer, ...cs])
           }}
         />
       )}

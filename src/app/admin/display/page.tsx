@@ -37,8 +37,8 @@ export default async function DisplayPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-gray-900">Pantalla de sala</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Configura la pantalla TV de cada establecimiento</p>
+        <h1 className="text-xl font-bold text-gray-900">Pantalla TV</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Configura la pantalla TV de cada sucursal</p>
       </div>
       <DisplayConfig
         brands={brands || []}

@@ -71,7 +71,7 @@ const PLANS = [
     badge: 'bg-blue-100 text-blue-700',
     maxEstablishments: 3,
     maxAdvisors: 10,
-    modules: ['Cola de espera', 'Pantalla sala (display)', 'Encuestas NPS/CSAT'],
+    modules: ['Cola de espera', 'Pantalla TV (display)', 'Encuestas NPS/CSAT'],
     cta: 'Contratar Básico',
   },
   {
@@ -124,7 +124,7 @@ const MODULE_LABELS: Record<string, string> = {
   minibar: 'Minibar',
   appointments: 'Citas programadas',
   surveys: 'Encuestas',
-  display: 'Pantalla sala',
+  display: 'Pantalla TV',
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -163,6 +163,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
   const [upgradeModal, setUpgradeModal] = useState<string | null>(null)
   const [moduleSubs, setModuleSubs] = useState<ModuleSub[]>(initialModuleSubs)
   const [cancellingModule, setCancellingModule] = useState<string | null>(null)
@@ -249,8 +250,9 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
 
   async function handleSave() {
     setSaving(true)
+    setSaveError('')
     const supabase = createClient()
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('brands')
       .update({
         name: form.name,
@@ -263,8 +265,12 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       .eq('id', brand.id)
       .select()
       .single()
-    if (data) setBrand(data as Brand)
     setSaving(false)
+    if (error) {
+      setSaveError(error.message)
+      return
+    }
+    if (data) setBrand(data as Brand)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -348,6 +354,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             <Input label="Dirección principal" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle 123, Ciudad" />
             <Input label="Correo de contacto" type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="contacto@marca.com" />
             <Input label="Sitio web" value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.marca.com" />
+            {saveError && (
+              <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {saveError.includes('policy') || saveError.includes('row-level')
+                  ? 'Sin permiso para actualizar. Ejecuta el SQL phase11_fixes.sql en Supabase primero.'
+                  : saveError}
+              </div>
+            )}
             <div className="pt-2">
               <Button onClick={handleSave} loading={saving}>
                 {saved ? <><Check size={15} className="mr-1" /> Guardado</> : 'Guardar cambios'}

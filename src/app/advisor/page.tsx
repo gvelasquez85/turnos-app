@@ -16,16 +16,23 @@ export default async function AdvisorPage() {
 
   // Cargar campos personalizados si hay establecimiento asignado fijo
   if (profile?.establishment_id) {
-    const { data: advisorFields } = await supabase
-      .from('advisor_fields')
-      .select('*')
-      .eq('establishment_id', profile.establishment_id)
-      .eq('active', true)
-      .order('sort_order')
+    const [{ data: advisorFields }, { data: establishment }] = await Promise.all([
+      supabase
+        .from('advisor_fields')
+        .select('*')
+        .eq('active', true)
+        .order('sort_order'),
+      supabase
+        .from('establishments')
+        .select('id, name, slug, brand_id')
+        .eq('id', profile.establishment_id)
+        .single(),
+    ])
 
     return (
       <QueueBoard
         establishmentId={profile.establishment_id}
+        establishmentSlug={establishment?.slug || ''}
         advisorId={user.id}
         advisorFields={advisorFields || []}
       />
@@ -37,7 +44,7 @@ export default async function AdvisorPage() {
     // Cargar establecimientos accesibles
     const estQuery = supabase
       .from('establishments')
-      .select('id, name, brand_id, brands(name)')
+      .select('id, name, slug, brand_id, brands(name)')
       .eq('active', true)
       .order('name')
 
@@ -47,14 +54,14 @@ export default async function AdvisorPage() {
 
     const { data: establishments } = await estQuery
 
-    // Cargar todos los campos de esos establecimientos
-    const estIds = (establishments || []).map((e: any) => e.id)
+    // Cargar todos los campos del brand
+    const brandIds = [...new Set((establishments || []).map((e: any) => e.brand_id))]
     let allFields: any[] = []
-    if (estIds.length > 0) {
+    if (brandIds.length > 0) {
       const { data } = await supabase
         .from('advisor_fields')
         .select('*')
-        .in('establishment_id', estIds)
+        .in('brand_id', brandIds)
         .eq('active', true)
         .order('sort_order')
       allFields = data || []

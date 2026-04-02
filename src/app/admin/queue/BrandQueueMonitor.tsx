@@ -143,7 +143,7 @@ export function BrandQueueMonitor({ brands, establishments, defaultBrandId }: Pr
       {!loading && stats.length === 0 && (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200 text-gray-400">
           <AlertCircle size={32} className="mx-auto mb-2 opacity-40" />
-          <p>No hay establecimientos activos para esta marca</p>
+          <p>No hay sucursales activas para esta marca</p>
         </div>
       )}
 

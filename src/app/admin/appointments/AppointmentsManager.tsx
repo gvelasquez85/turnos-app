@@ -104,7 +104,7 @@ export function AppointmentsManager({
   }
 
   async function handleSave() {
-    if (!form.establishment_id) { setError('Selecciona un establecimiento'); return }
+    if (!form.establishment_id) { setError('Selecciona una sucursal'); return }
     if (!form.customer_name.trim()) { setError('El nombre es requerido'); return }
     if (!form.scheduled_date || !form.scheduled_time) { setError('Fecha y hora son requeridas'); return }
     setError(''); setLoading(true)
@@ -199,7 +199,7 @@ export function AppointmentsManager({
           value={filterEst}
           onChange={e => setFilterEst(e.target.value)}
         >
-          <option value="">Todos los establecimientos</option>
+          <option value="">Todas las sucursales</option>
           {brandEstablishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
         </select>
         <select

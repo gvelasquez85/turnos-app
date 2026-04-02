@@ -23,7 +23,7 @@ interface Props {
 }
 
 type Period = 'day' | 'week' | 'month' | 'custom'
-type Tab = 'general' | 'establishment' | 'advisor' | 'reason' | 'surveys'
+type Tab = 'general' | 'establishment' | 'advisor' | 'reason' | 'surveys' | 'detail'
 
 interface TicketStat {
   date: string
@@ -580,6 +580,160 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
   )
 }
 
+// ─── TAB: Detalle de visitas ──────────────────────────────────────────────────
+function DetailTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+  const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
+  const [range, setRange] = useState<DateRange>({ period: 'day', customStart: '', customEnd: '' })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [rows, setRows] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  const load = useCallback(async () => {
+    if (!selectedEst) return
+    setLoading(true)
+    const supabase = createClient()
+    const startDate = getStartDate(range)
+    const endDate = getEndDate(range)
+
+    const { data: tickets } = await supabase
+      .from('tickets')
+      .select(`
+        id, queue_number, customer_name, customer_phone, customer_email,
+        status, created_at, attended_at, completed_at,
+        visit_reasons(name),
+        profiles(full_name),
+        establishments(name),
+        attentions(fields_data, notes)
+      `)
+      .eq('establishment_id', selectedEst)
+      .gte('created_at', startDate.toISOString())
+      .lte('created_at', endDate ? endDate.toISOString() : new Date().toISOString())
+      .order('created_at', { ascending: false })
+
+    setRows(tickets || [])
+    setLoading(false)
+  }, [selectedEst, range])
+
+  useEffect(() => { load() }, [load])
+
+  function waitMin(t: any): string {
+    if (!t.attended_at || !t.created_at) return '—'
+    return `${Math.round((new Date(t.attended_at).getTime() - new Date(t.created_at).getTime()) / 60000)} min`
+  }
+
+  function attentionMin(t: any): string {
+    if (!t.completed_at || !t.attended_at) return '—'
+    return `${Math.round((new Date(t.completed_at).getTime() - new Date(t.attended_at).getTime()) / 60000)} min`
+  }
+
+  function csvRows() {
+    return rows.map(t => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const fieldsData = (t.attentions?.[0]?.fields_data as Record<string, any>) || {}
+      const row: Record<string, unknown> = {
+        'Turno': t.queue_number,
+        'Fecha': new Date(t.created_at).toLocaleDateString('es'),
+        'Hora': new Date(t.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }),
+        'Sucursal': (t.establishments as any)?.name || '',
+        'Cliente': t.customer_name,
+        'Teléfono': t.customer_phone || '',
+        'Email': t.customer_email || '',
+        'Motivo': (t.visit_reasons as any)?.name || '',
+        'Estado': t.status,
+        'Agente': (t.profiles as any)?.full_name || '',
+        'T. espera': waitMin(t),
+        'T. atención': attentionMin(t),
+        'Notas': t.attentions?.[0]?.notes || '',
+      }
+      Object.entries(fieldsData).forEach(([k, v]) => { row[k] = String(v ?? '') })
+      return row
+    })
+  }
+
+  const estName = establishments.find(e => e.id === selectedEst)?.name || ''
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="flex flex-wrap gap-3">
+          {establishments.length > 1 && (
+            <select className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              value={selectedEst} onChange={e => setSelectedEst(e.target.value)}>
+              {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          )}
+          <PeriodSelector range={range} onChange={setRange} />
+        </div>
+        <button
+          onClick={() => downloadCSV(csvRows(), `detalle_visitas_${estName}.csv`)}
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+        >
+          <Download size={14} /> Exportar CSV
+        </button>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-10 text-gray-400">Cargando...</div>
+      ) : rows.length === 0 ? (
+        <div className="text-center py-10 text-gray-400">Sin visitas para el período seleccionado</div>
+      ) : (
+        <div className="bg-white rounded-xl border border-gray-200 overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 text-sm">
+            <thead className="bg-gray-50 text-xs font-semibold text-gray-600 uppercase tracking-wider">
+              <tr>
+                <th className="px-3 py-3 text-left">#</th>
+                <th className="px-3 py-3 text-left">Fecha / Hora</th>
+                <th className="px-3 py-3 text-left">Cliente</th>
+                <th className="px-3 py-3 text-left">Motivo</th>
+                <th className="px-3 py-3 text-left">Estado</th>
+                <th className="px-3 py-3 text-left">Agente</th>
+                <th className="px-3 py-3 text-right">T. espera</th>
+                <th className="px-3 py-3 text-right">T. atención</th>
+                <th className="px-3 py-3 text-left">Campos agente</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {rows.map((t: any) => {
+                const fieldsData = (t.attentions?.[0]?.fields_data as Record<string, string>) || {}
+                const fieldsSummary = Object.values(fieldsData).filter(Boolean).join(' · ')
+                return (
+                  <tr key={t.id} className="hover:bg-gray-50">
+                    <td className="px-3 py-2.5 font-mono font-bold text-indigo-700">{t.queue_number}</td>
+                    <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
+                      <div>{new Date(t.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</div>
+                      <div className="text-xs text-gray-400">{new Date(t.created_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <div className="font-medium text-gray-900">{t.customer_name}</div>
+                      {t.customer_phone && <div className="text-xs text-gray-400">{t.customer_phone}</div>}
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-700">{(t.visit_reasons as any)?.name || '—'}</td>
+                    <td className="px-3 py-2.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                        t.status === 'done' ? 'bg-green-100 text-green-700' :
+                        t.status === 'cancelled' ? 'bg-red-100 text-red-700' :
+                        t.status === 'in_progress' ? 'bg-blue-100 text-blue-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>{t.status}</span>
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-600">{(t.profiles as any)?.full_name || '—'}</td>
+                    <td className="px-3 py-2.5 text-right text-amber-700 font-mono">{waitMin(t)}</td>
+                    <td className="px-3 py-2.5 text-right text-green-700 font-mono">{attentionMin(t)}</td>
+                    <td className="px-3 py-2.5 text-xs text-gray-500 max-w-xs truncate">{fieldsSummary || '—'}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
+            {rows.length} visitas
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── TAB: Encuestas ───────────────────────────────────────────────────────────
 function SurveysTab({ establishments }: { establishments: { id: string; name: string }[] }) {
   const [range, setRange] = useState<DateRange>({ period: 'month', customStart: '', customEnd: '' })
@@ -761,6 +915,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'advisor', label: 'Por Agente' },
   { id: 'reason', label: 'Por Motivo' },
   { id: 'surveys', label: 'Encuestas' },
+  { id: 'detail', label: 'Detalle de visitas' },
 ]
 
 export function ReportsDashboard({ establishments }: Props) {
@@ -790,6 +945,7 @@ export function ReportsDashboard({ establishments }: Props) {
       {tab === 'advisor' && <AdvisorTab establishments={establishments} />}
       {tab === 'reason' && <ReasonTab establishments={establishments} />}
       {tab === 'surveys' && <SurveysTab establishments={establishments} />}
+      {tab === 'detail' && <DetailTab establishments={establishments} />}
     </div>
   )
 }

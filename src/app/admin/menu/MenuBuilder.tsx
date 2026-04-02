@@ -179,7 +179,7 @@ export function MenuBuilder({ establishments, menus: initialMenus, preOrders: in
       )}
 
       {!selectedEst && (
-        <div className="text-center py-16 text-gray-400">Selecciona un establecimiento</div>
+        <div className="text-center py-16 text-gray-400">Selecciona una sucursal</div>
       )}
 
       {selectedEst && (
@@ -304,7 +304,7 @@ export function MenuBuilder({ establishments, menus: initialMenus, preOrders: in
               {estMenus.length === 0 && !showMenuForm && (
                 <div className="text-center py-12 bg-white rounded-xl border border-gray-200 text-gray-400">
                   <UtensilsCrossed size={32} className="mx-auto mb-2 opacity-40" />
-                  <p>No hay menús para este establecimiento</p>
+                  <p>No hay menús para esta sucursal</p>
                 </div>
               )}
             </div>

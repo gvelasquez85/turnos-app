@@ -20,7 +20,7 @@ interface Props {
 export function CustomerFlow({ establishment, visitReasons, promotions }: Props) {
   const [step, setStep] = useState<Step>(promotions.length > 0 ? 'promo' : 'form')
   const [promoIndex, setPromoIndex] = useState(0)
-  const [form, setForm] = useState({ name: '', phone: '', email: '', marketing_opt_in: false, data_consent: false })
+  const [form, setForm] = useState({ name: '', phoneCode: '+57', phone: '', email: '', marketing_opt_in: false, data_consent: false })
   const [selectedReason, setSelectedReason] = useState<VisitReason | null>(null)
   const [ticket, setTicket] = useState<{ queue_number: string; id: string } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -30,6 +30,8 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
 
   const { permission, requestAndGetToken } = usePushNotifications()
   const brand = establishment.brands
+
+  function fullPhone() { return `${form.phoneCode}${form.phone.trim()}` }
 
   function validateForm() {
     const errs: Record<string, string> = {}
@@ -57,7 +59,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         visit_reason_id: selectedReason.id,
         queue_number: queueNum || '001',
         customer_name: form.name.trim(),
-        customer_phone: form.phone.trim() || null,
+        customer_phone: form.phone.trim() ? fullPhone() : null,
         customer_email: form.email.trim() || null,
         marketing_opt_in: form.marketing_opt_in,
         status: 'waiting',
@@ -72,7 +74,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         establishment_id: establishment.id,
         brand_id: establishment.brand_id,
         customer_name: form.name.trim(),
-        customer_phone: form.phone.trim() || null,
+        customer_phone: form.phone.trim() ? fullPhone() : null,
         customer_email: form.email.trim() || null,
         marketing_opt_in: form.marketing_opt_in,
         data_processing_consent: true,
@@ -166,15 +168,28 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               error={errors.name}
             />
-            <Input
-              id="phone"
-              label="Teléfono *"
-              type="tel"
-              placeholder="+1 234 567 8900"
-              value={form.phone}
-              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-              error={errors.phone}
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+              <div className="flex gap-2">
+                <select
+                  value={form.phoneCode}
+                  onChange={e => setForm(f => ({ ...f, phoneCode: e.target.value }))}
+                  className="h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 shrink-0"
+                >
+                  {['+57','+1','+52','+54','+56','+51','+58','+593','+595','+598','+502','+503','+504','+505','+506','+507','+509','+34','+44','+49','+33','+55'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  placeholder="300 123 4567"
+                  value={form.phone}
+                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  className="flex-1 h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                />
+              </div>
+              {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
+            </div>
             <Input
               id="email"
               label="Correo electrónico (opcional)"
@@ -319,18 +334,6 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             <p className="text-xs text-gray-500">Motivo: <span className="font-medium text-gray-700">{selectedReason?.name}</span></p>
             <p className="text-xs text-gray-500 mt-1">Nombre: <span className="font-medium text-gray-700">{form.name}</span></p>
           </div>
-          {ticket && (
-            <div className="mt-4 pt-4 border-t border-gray-100">
-              <a
-                href={`/api/consent/download?ticketId=${ticket.id}&name=${encodeURIComponent(form.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-indigo-600 hover:text-indigo-800 underline"
-              >
-                Descargar comprobante de autorización
-              </a>
-            </div>
-          )}
         </div>
 
         <p className="text-white/50 text-xs mt-6">{brand.name} · {establishment.name}</p>

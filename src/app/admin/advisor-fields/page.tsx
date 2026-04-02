@@ -22,27 +22,15 @@ export default async function AdvisorFieldsPage() {
   }
   const { data: brands } = await brandsQuery
 
-  // Cargar establecimientos accesibles (con brand_id para filtrar en cliente)
+  // Cargar campos por brand_id (brand-scoped)
   const brandIds = (brands || []).map(b => b.id)
-  let establishments: { id: string; name: string; brand_id: string }[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let fields: any[] = []
   if (brandIds.length > 0) {
     const { data } = await supabase
-      .from('establishments')
-      .select('id, name, brand_id')
-      .in('brand_id', brandIds)
-      .eq('active', true)
-      .order('name')
-    establishments = data || []
-  }
-
-  // Cargar campos
-  const estIds = establishments.map(e => e.id)
-  let fields: any[] = []
-  if (estIds.length > 0) {
-    const { data } = await supabase
       .from('advisor_fields')
-      .select('*, establishments(name)')
-      .in('establishment_id', estIds)
+      .select('*')
+      .in('brand_id', brandIds)
       .order('sort_order')
     fields = data || []
   }
@@ -51,7 +39,6 @@ export default async function AdvisorFieldsPage() {
     <AdvisorFieldsManager
       brands={brands || []}
       defaultBrandId={profile.brand_id || null}
-      establishments={establishments}
       fields={fields}
     />
   )

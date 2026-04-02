@@ -1,21 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useBrandStore } from '@/stores/brandStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit2, Trash2, Building2, ChevronDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, Building2, GripVertical } from 'lucide-react'
 import type { AdvisorField, FieldType, Brand } from '@/types/database'
 import { Select } from '@/components/ui/select'
 
-type FieldWithEst = AdvisorField & { establishments: { name: string } | null }
-type EstWithBrand = { id: string; name: string; brand_id: string }
+type FieldRow = AdvisorField & { brand_id?: string | null }
 
 interface Props {
   brands: Pick<Brand, 'id' | 'name' | 'slug'>[]
   defaultBrandId: string | null
-  establishments: EstWithBrand[]
-  fields: FieldWithEst[]
+  fields: FieldRow[]
 }
 
 const fieldTypes: { value: FieldType; label: string }[] = [
@@ -26,7 +24,7 @@ const fieldTypes: { value: FieldType; label: string }[] = [
   { value: 'date', label: 'Fecha' },
 ]
 
-export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, fields: initial }: Props) {
+export function AdvisorFieldsManager({ brands, defaultBrandId, fields: initial }: Props) {
   const autoBrandId = defaultBrandId || (brands.length === 1 ? brands[0].id : '')
   const { selectedBrandId: storeBrandId } = useBrandStore()
   const [selectedBrandId, setSelectedBrandId] = useState(() => storeBrandId || autoBrandId)
@@ -36,62 +34,48 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
     setShowForm(false)
     setEditing(null)
   }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [fields, setFields] = useState(initial)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<FieldWithEst | null>(null)
+  const [editing, setEditing] = useState<FieldRow | null>(null)
   const [loading, setLoading] = useState(false)
+
+  // Drag and drop
+  const dragItem = useRef<number | null>(null)
+  const dragOver = useRef<number | null>(null)
+  const [dragging, setDragging] = useState<number | null>(null)
 
   const showBrandSelector = brands.length > 1
   const selectedBrand = brands.find(b => b.id === selectedBrandId)
 
-  // Sucursales de la marca seleccionada
-  const brandEstablishments = selectedBrandId
-    ? establishments.filter(e => e.brand_id === selectedBrandId)
-    : establishments
-
-  // Campos de los establecimientos de la marca seleccionada
-  const brandEstIds = new Set(brandEstablishments.map(e => e.id))
-  const filteredFields = selectedBrandId
-    ? fields.filter(f => brandEstIds.has(f.establishment_id))
+  const brandFields = selectedBrandId
+    ? fields.filter(f => f.brand_id === selectedBrandId)
     : fields
+  const sortedFields = [...brandFields].sort((a, b) => a.sort_order - b.sort_order)
 
   const [form, setForm] = useState({
-    label: '', field_type: 'text' as FieldType, options: '',
-    establishment_id: brandEstablishments[0]?.id || '',
-    sort_order: '0', required: false,
+    label: '', field_type: 'text' as FieldType, options: '', required: false,
   })
-
-  function handleBrandChange(id: string) {
-    setSelectedBrandId(id)
-    setShowForm(false)
-    setEditing(null)
-  }
 
   function openNew() {
     setEditing(null)
-    setForm({
-      label: '', field_type: 'text', options: '',
-      establishment_id: brandEstablishments[0]?.id || '',
-      sort_order: '0', required: false,
-    })
+    setForm({ label: '', field_type: 'text', options: '', required: false })
     setShowForm(true)
   }
 
-  function openEdit(f: FieldWithEst) {
+  function openEdit(f: FieldRow) {
     setEditing(f)
     setForm({
       label: f.label,
       field_type: f.field_type,
       options: (f.options as string[] || []).join(', '),
-      establishment_id: f.establishment_id,
-      sort_order: String(f.sort_order),
       required: f.required,
     })
     setShowForm(true)
   }
 
   async function handleSave() {
-    if (!form.label || !form.establishment_id) return
+    if (!form.label || !selectedBrandId) return
     setLoading(true)
     const supabase = createClient()
     const options = form.field_type === 'select'
@@ -101,19 +85,20 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
       label: form.label,
       field_type: form.field_type,
       options,
-      establishment_id: form.establishment_id,
-      sort_order: parseInt(form.sort_order) || 0,
+      brand_id: selectedBrandId,
+      establishment_id: null,
+      sort_order: editing ? editing.sort_order : brandFields.length,
       required: form.required,
       active: true,
     }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const table = (supabase as any).from('advisor_fields')
     if (editing) {
-      const { data } = await table.update(payload).eq('id', editing.id).select('*, establishments(name)').single()
-      if (data) setFields(fs => fs.map((f: FieldWithEst) => f.id === editing.id ? data as FieldWithEst : f))
+      const { data } = await table.update(payload).eq('id', editing.id).select('*').single()
+      if (data) setFields(fs => fs.map((f: FieldRow) => f.id === editing.id ? data as FieldRow : f))
     } else {
-      const { data } = await table.insert(payload).select('*, establishments(name)').single()
-      if (data) setFields(fs => [...fs, data as FieldWithEst])
+      const { data } = await table.insert(payload).select('*').single()
+      if (data) setFields(fs => [...fs, data as FieldRow])
     }
     setShowForm(false)
     setLoading(false)
@@ -126,6 +111,30 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
     setFields(fs => fs.filter(f => f.id !== id))
   }
 
+  function handleDragStart(index: number) { dragItem.current = index; setDragging(index) }
+  function handleDragEnter(index: number) { dragOver.current = index }
+
+  async function handleDrop() {
+    if (dragItem.current === null || dragOver.current === null || dragItem.current === dragOver.current) {
+      setDragging(null); return
+    }
+    const reordered = [...sortedFields]
+    const dragged = reordered[dragItem.current]
+    reordered.splice(dragItem.current, 1)
+    reordered.splice(dragOver.current, 0, dragged)
+    const updates = reordered.map((f, i) => ({ id: f.id, sort_order: i }))
+    setFields(fs => {
+      const map = Object.fromEntries(updates.map(u => [u.id, u.sort_order]))
+      return fs.map(f => map[f.id] !== undefined ? { ...f, sort_order: map[f.id] } : f)
+    })
+    const supabase = createClient()
+    for (const u of updates) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from('advisor_fields').update({ sort_order: u.sort_order }).eq('id', u.id)
+    }
+    dragItem.current = null; dragOver.current = null; setDragging(null)
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -135,21 +144,14 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
             {selectedBrand ? `Marca: ${selectedBrand.name}` : 'Información que el asesor completa al atender al cliente'}
           </p>
         </div>
-        <Button onClick={openNew} disabled={!selectedBrandId || brandEstablishments.length === 0}>
+        <Button onClick={openNew} disabled={!selectedBrandId}>
           <Plus size={16} className="mr-1" /> Nuevo
         </Button>
       </div>
 
 
-      {/* Sin establecimientos en esta marca */}
-      {selectedBrandId && brandEstablishments.length === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-          Esta marca no tiene establecimientos activos. <a href="/admin" className="underline font-medium">Crea uno primero.</a>
-        </div>
-      )}
-
       {/* Formulario */}
-      {showForm && selectedBrandId && brandEstablishments.length > 0 && (
+      {showForm && selectedBrandId && (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
           <h2 className="font-semibold text-gray-900 mb-4">
             {editing ? 'Editar' : 'Nuevo'} campo
@@ -177,20 +179,6 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
                 placeholder="Opción 1, Opción 2, Opción 3"
               />
             )}
-            <Select
-              label="Sucursal *"
-              value={form.establishment_id}
-              onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
-            >
-              <option value="">— Seleccionar —</option>
-              {brandEstablishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </Select>
-            <Input
-              label="Orden"
-              type="number"
-              value={form.sort_order}
-              onChange={e => setForm(f => ({ ...f, sort_order: e.target.value }))}
-            />
             <label className="flex items-center gap-2 cursor-pointer">
               <input
                 type="checkbox"
@@ -218,23 +206,42 @@ export function AdvisorFieldsManager({ brands, defaultBrandId, establishments, f
 
       {/* Lista */}
       {selectedBrandId && (
-        <div className="flex flex-col gap-3">
-          {filteredFields.length === 0 && (
+        <div className="flex flex-col gap-2">
+          {sortedFields.length === 0 && (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-200 text-gray-500">
               No hay campos configurados para esta marca.
             </div>
           )}
-          {filteredFields.map(f => (
-            <div key={f.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-xs font-bold text-gray-500 shrink-0">
-                {f.sort_order}
+          {sortedFields.length > 0 && (
+            <p className="text-xs text-gray-400 mb-1 flex items-center gap-1">
+              <GripVertical size={12} /> Arrastra para reordenar
+            </p>
+          )}
+          {sortedFields.map((f, index) => (
+            <div
+              key={f.id}
+              draggable
+              onDragStart={() => handleDragStart(index)}
+              onDragEnter={() => handleDragEnter(index)}
+              onDragEnd={handleDrop}
+              onDragOver={e => e.preventDefault()}
+              className={`bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3 cursor-grab active:cursor-grabbing transition-all select-none ${
+                dragging === index ? 'opacity-50 ring-2 ring-indigo-300' : 'hover:shadow-sm'
+              }`}
+            >
+              <GripVertical size={16} className="text-gray-300 shrink-0" />
+              <div className="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center text-xs font-bold text-gray-400 shrink-0">
+                {index + 1}
               </div>
               <div className="flex-1">
                 <p className="font-medium text-gray-900">
                   {f.label} {f.required && <span className="text-xs text-red-500">*</span>}
                 </p>
                 <p className="text-xs text-gray-500">
-                  {f.establishments?.name} · {fieldTypes.find(t => t.value === f.field_type)?.label}
+                  {fieldTypes.find(t => t.value === f.field_type)?.label}
+                  {f.field_type === 'select' && Array.isArray(f.options) && f.options.length > 0 && (
+                    <span className="ml-1 text-gray-400">· {(f.options as string[]).join(', ')}</span>
+                  )}
                 </p>
               </div>
               <Button size="sm" variant="ghost" onClick={() => openEdit(f)}><Edit2 size={14} /></Button>

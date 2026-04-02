@@ -48,18 +48,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: createErr?.message || 'Error al crear usuario' }, { status: 400 })
     }
 
+    // Upsert instead of update: handles race condition where trigger hasn't fired yet
     const { error: profileErr } = await admin
       .from('profiles')
-      .update({
+      .upsert({
+        id: data.user.id,
+        email,
         role,
         full_name: full_name || null,
         brand_id: brand_id || null,
         establishment_id: establishment_id || null,
-      })
-      .eq('id', data.user.id)
+      }, { onConflict: 'id' })
 
     if (profileErr) {
-      return NextResponse.json({ error: profileErr.message }, { status: 400 })
+      return NextResponse.json({ error: `Perfil: ${profileErr.message}` }, { status: 400 })
     }
     return NextResponse.json({ ok: true, userId: data.user.id })
   }

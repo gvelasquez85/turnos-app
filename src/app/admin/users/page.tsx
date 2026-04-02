@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { BrandUsersManager } from './BrandUsersManager'
 import { getLimits } from '@/lib/planLimits'
@@ -22,24 +22,26 @@ export default async function BrandUsersPage() {
 
   const brandId = profile.brand_id!
 
-  // Cargar usuarios de la marca
-  const { data: users } = await supabase
+  // Usar admin client para bypass de RLS — la autorización ya fue verificada arriba
+  const admin = await createAdminClient()
+
+  // Cargar usuarios de la marca (sin filtrar brand_admin para mostrarlos todos)
+  const { data: users } = await admin
     .from('profiles')
     .select('*, establishments(name)')
     .eq('brand_id', brandId)
-    .neq('role', 'brand_admin')   // brand_admin lo gestiona el superadmin
     .neq('role', 'superadmin')
     .order('created_at')
 
   // Cargar establecimientos de la marca
-  const { data: establishments } = await supabase
+  const { data: establishments } = await admin
     .from('establishments')
     .select('id, name')
     .eq('brand_id', brandId)
     .eq('active', true)
     .order('name')
 
-  const { data: membership } = await supabase
+  const { data: membership } = await admin
     .from('memberships')
     .select('plan, max_advisors')
     .eq('brand_id', brandId)

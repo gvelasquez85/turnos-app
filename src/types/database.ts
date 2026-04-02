@@ -61,7 +61,8 @@ export interface Database {
       promotions: {
         Row: {
           id: string
-          establishment_id: string
+          brand_id: string | null
+          establishment_id: string | null
           title: string
           description: string | null
           image_url: string | null
@@ -76,7 +77,8 @@ export interface Database {
       advisor_fields: {
         Row: {
           id: string
-          establishment_id: string
+          brand_id: string | null
+          establishment_id: string | null
           label: string
           field_type: FieldType
           options: Json | null
@@ -87,7 +89,8 @@ export interface Database {
         }
         Insert: {
           id?: string
-          establishment_id: string
+          brand_id?: string | null
+          establishment_id?: string | null
           label: string
           field_type?: string
           options?: Json | null
@@ -97,7 +100,8 @@ export interface Database {
           created_at?: string
         }
         Update: {
-          establishment_id?: string
+          brand_id?: string | null
+          establishment_id?: string | null
           label?: string
           field_type?: string
           options?: Json | null

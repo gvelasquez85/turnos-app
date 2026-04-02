@@ -22,8 +22,9 @@ export default async function PromotionsPage() {
   }
   const { data: brands } = await brandsQuery
 
-  // Cargar establecimientos accesibles (con brand_id para filtrar en cliente)
   const brandIds = (brands || []).map(b => b.id)
+
+  // Cargar establecimientos
   let establishments: { id: string; name: string; brand_id: string }[] = []
   if (brandIds.length > 0) {
     const { data } = await supabase
@@ -35,14 +36,14 @@ export default async function PromotionsPage() {
     establishments = data || []
   }
 
-  // Cargar promociones
-  const estIds = establishments.map(e => e.id)
+  // Cargar promociones: brand-scoped + establishment-scoped
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let promotions: any[] = []
-  if (estIds.length > 0) {
+  if (brandIds.length > 0) {
     const { data } = await supabase
       .from('promotions')
       .select('*, establishments(name)')
-      .in('establishment_id', estIds)
+      .in('brand_id', brandIds)
       .order('created_at', { ascending: false })
     promotions = data || []
   }

@@ -154,7 +154,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
     if (!isSuperAdmin && maxEstablishments !== undefined) {
       const brandEsts = establishments.filter(e => e.brand_id === selectedBrandId)
       if (brandEsts.length >= maxEstablishments) {
-        setFormError(`Tu plan permite hasta ${maxEstablishments} establecimiento${maxEstablishments === 1 ? '' : 's'}. Actualiza tu membresía para agregar más.`)
+        setFormError(`Tu plan permite hasta ${maxEstablishments} sucursal${maxEstablishments === 1 ? '' : 'es'}. Actualiza tu membresía para agregar más.`)
         setShowForm(true)
         setEditing(null)
         return
@@ -242,7 +242,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
           <h2 className="font-semibold text-gray-900 mb-4">
-            {editing ? 'Editar' : 'Nuevo'} establecimiento
+            {editing ? 'Editar' : 'Nueva'} sucursal
             {selectedBrand && (
               <span className="ml-2 text-xs font-normal text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">
                 {selectedBrand.name}
@@ -291,7 +291,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
       {showBrandSelector && !selectedBrandId && (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200 text-gray-400">
           <Building2 size={32} className="mx-auto mb-3 opacity-40" />
-          <p className="text-sm">Selecciona una marca para ver sus establecimientos</p>
+          <p className="text-sm">Selecciona una marca para ver sus sucursales</p>
         </div>
       )}
 
@@ -300,7 +300,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
         <div className="flex flex-col gap-3">
           {filteredEstablishments.length === 0 && (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-200 text-gray-500">
-              No hay establecimientos para esta marca aún.
+              No hay sucursales para esta marca aún.
             </div>
           )}
           {filteredEstablishments.map(est => {
@@ -368,7 +368,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
       {qrModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl p-6 max-w-xs w-full text-center">
-            <h3 className="font-bold text-gray-900 mb-4">QR del establecimiento</h3>
+            <h3 className="font-bold text-gray-900 mb-4">QR de la sucursal</h3>
             <img src={qrModal.dataUrl} alt="QR" className="mx-auto rounded-lg" />
             <p className="text-xs text-gray-500 mt-3 break-all font-mono">
               {typeof window !== 'undefined' ? `${window.location.origin}/t/${qrModal.slug}` : ''}

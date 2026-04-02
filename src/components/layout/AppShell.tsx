@@ -38,7 +38,7 @@ const BRAND_MGMT_ITEMS: NavItem[] = [
 
 const OPERATION_ITEMS: NavItem[] = [
   { href: '/admin/queue', label: 'Monitor de colas', icon: MonitorPlay },
-  { href: '/admin/display', label: 'Pantalla sala', icon: Monitor },
+  { href: '/admin/display', label: 'Pantalla TV', icon: Monitor },
   { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
 ]
 
@@ -343,20 +343,20 @@ export function AppShell({ children, role, fullName, email, brandName, establish
               </div>
             )}
           </Link>
-          {/* Pantalla sala (advisor with establishment) */}
+          {/* Pantalla TV (advisor with establishment) */}
           {activeRole === 'advisor' && establishmentSlug && (
             <a
               href={`/display/${establishmentSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              title={collapsed ? 'Pantalla sala' : undefined}
+              title={collapsed ? 'Pantalla TV' : undefined}
               className={cn(
                 'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 w-full transition-colors mb-1',
                 collapsed && 'justify-center',
               )}
             >
               <Monitor size={15} />
-              {!collapsed && <span>Pantalla sala</span>}
+              {!collapsed && <span>Pantalla TV</span>}
             </a>
           )}
           {/* Botón ver como agente */}

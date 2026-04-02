@@ -4,19 +4,22 @@ import { createClient } from '@/lib/supabase/client'
 import { useBrandStore } from '@/stores/brandStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Building2, ChevronDown } from 'lucide-react'
+import { Plus, Edit2, Trash2, ToggleLeft, ToggleRight, Building2 } from 'lucide-react'
 import type { Promotion, Brand } from '@/types/database'
 import { Select } from '@/components/ui/select'
 import { formatDate } from '@/lib/utils'
 
-type PromoWithEst = Promotion & { establishments: { name: string } | null }
+type PromoRow = Promotion & {
+  brand_id?: string | null
+  establishments: { name: string } | null
+}
 type EstWithBrand = { id: string; name: string; brand_id: string }
 
 interface Props {
   brands: Pick<Brand, 'id' | 'name' | 'slug'>[]
   defaultBrandId: string | null
   establishments: EstWithBrand[]
-  promotions: PromoWithEst[]
+  promotions: PromoRow[]
 }
 
 export function PromotionsManager({ brands, defaultBrandId, establishments, promotions: initial }: Props) {
@@ -29,9 +32,10 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
     setShowForm(false)
     setEditing(null)
   }, [storeBrandId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   const [promotions, setPromotions] = useState(initial)
   const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<PromoWithEst | null>(null)
+  const [editing, setEditing] = useState<PromoRow | null>(null)
   const [loading, setLoading] = useState(false)
 
   const showBrandSelector = brands.length > 1
@@ -42,38 +46,36 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
     ? establishments.filter(e => e.brand_id === selectedBrandId)
     : establishments
 
-  // Promociones de los establecimientos de la marca seleccionada
+  // Promociones de la marca: brand-scoped (establishment_id null, brand_id set) o de sus sucursales
   const brandEstIds = new Set(brandEstablishments.map(e => e.id))
   const filteredPromotions = selectedBrandId
-    ? promotions.filter(p => brandEstIds.has(p.establishment_id))
+    ? promotions.filter(p =>
+        (p.brand_id === selectedBrandId && !p.establishment_id) ||
+        (p.establishment_id && brandEstIds.has(p.establishment_id))
+      )
     : promotions
 
   const emptyForm = {
     title: '', description: '', image_url: '',
-    establishment_id: brandEstablishments[0]?.id || '',
+    // 'all' = toda la marca, otherwise establishment id
+    scope: 'all' as string,
     starts_at: '', ends_at: '',
   }
   const [form, setForm] = useState(emptyForm)
 
-  function handleBrandChange(id: string) {
-    setSelectedBrandId(id)
-    setShowForm(false)
-    setEditing(null)
-  }
-
   function openNew() {
     setEditing(null)
-    setForm({ ...emptyForm, establishment_id: brandEstablishments[0]?.id || '' })
+    setForm({ ...emptyForm, scope: 'all' })
     setShowForm(true)
   }
 
-  function openEdit(p: PromoWithEst) {
+  function openEdit(p: PromoRow) {
     setEditing(p)
     setForm({
       title: p.title,
       description: p.description || '',
       image_url: p.image_url || '',
-      establishment_id: p.establishment_id,
+      scope: p.establishment_id || 'all',
       starts_at: p.starts_at ? p.starts_at.slice(0, 10) : '',
       ends_at: p.ends_at ? p.ends_at.slice(0, 10) : '',
     })
@@ -81,33 +83,35 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
   }
 
   async function handleSave() {
-    if (!form.title || !form.establishment_id) return
+    if (!form.title || !selectedBrandId) return
     setLoading(true)
     const supabase = createClient()
+    const isBrandScope = form.scope === 'all'
     const payload = {
       title: form.title,
       description: form.description || null,
       image_url: form.image_url || null,
-      establishment_id: form.establishment_id,
+      brand_id: selectedBrandId,
+      establishment_id: isBrandScope ? null : form.scope,
       starts_at: form.starts_at ? new Date(form.starts_at).toISOString() : null,
       ends_at: form.ends_at ? new Date(form.ends_at).toISOString() : null,
       active: true,
     }
     if (editing) {
       const { data } = await supabase.from('promotions').update(payload).eq('id', editing.id).select('*, establishments(name)').single()
-      if (data) setPromotions(ps => ps.map(p => p.id === editing.id ? data as PromoWithEst : p))
+      if (data) setPromotions(ps => ps.map(p => p.id === editing.id ? data as PromoRow : p))
     } else {
       const { data } = await supabase.from('promotions').insert(payload).select('*, establishments(name)').single()
-      if (data) setPromotions(ps => [data as PromoWithEst, ...ps])
+      if (data) setPromotions(ps => [data as PromoRow, ...ps])
     }
     setShowForm(false)
     setLoading(false)
   }
 
-  async function toggleActive(promo: PromoWithEst) {
+  async function toggleActive(promo: PromoRow) {
     const supabase = createClient()
     const { data } = await supabase.from('promotions').update({ active: !promo.active }).eq('id', promo.id).select('*, establishments(name)').single()
-    if (data) setPromotions(ps => ps.map(p => p.id === promo.id ? data as PromoWithEst : p))
+    if (data) setPromotions(ps => ps.map(p => p.id === promo.id ? data as PromoRow : p))
   }
 
   async function handleDelete(id: string) {
@@ -116,30 +120,27 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
     setPromotions(ps => ps.filter(p => p.id !== id))
   }
 
+  function scopeLabel(p: PromoRow) {
+    if (!p.establishment_id) return 'Toda la marca'
+    return p.establishments?.name || '—'
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Promociones <span className="ml-1 text-sm font-normal text-gray-400">({promotions.length})</span></h1>
+          <h1 className="text-xl font-bold text-gray-900">Promociones <span className="ml-1 text-sm font-normal text-gray-400">({filteredPromotions.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">
             {selectedBrand ? `Marca: ${selectedBrand.name}` : 'Se muestran al cliente al escanear el QR'}
           </p>
         </div>
-        <Button onClick={openNew} disabled={!selectedBrandId || brandEstablishments.length === 0}>
+        <Button onClick={openNew} disabled={!selectedBrandId}>
           <Plus size={16} className="mr-1" /> Nueva
         </Button>
       </div>
 
-
-      {/* Sin establecimientos en esta marca */}
-      {selectedBrandId && brandEstablishments.length === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 text-sm text-amber-800">
-          Esta marca no tiene establecimientos activos. <a href="/admin" className="underline font-medium">Crea uno primero.</a>
-        </div>
-      )}
-
       {/* Formulario */}
-      {showForm && selectedBrandId && brandEstablishments.length > 0 && (
+      {showForm && selectedBrandId && (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">
           <h2 className="font-semibold text-gray-900 mb-4">
             {editing ? 'Editar' : 'Nueva'} promoción
@@ -152,11 +153,11 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input label="Título *" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <Select
-              label="Sucursal *"
-              value={form.establishment_id}
-              onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
+              label="Alcance"
+              value={form.scope}
+              onChange={e => setForm(f => ({ ...f, scope: e.target.value }))}
             >
-              <option value="">— Seleccionar —</option>
+              <option value="all">Toda la marca</option>
               {brandEstablishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
             </Select>
             <div className="flex flex-col gap-1 md:col-span-2">
@@ -203,7 +204,7 @@ export function PromotionsManager({ brands, defaultBrandId, establishments, prom
               )}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{p.title}</p>
-                <p className="text-xs text-gray-500">{p.establishments?.name}</p>
+                <p className="text-xs text-gray-500">{scopeLabel(p)}</p>
                 {(p.starts_at || p.ends_at) && (
                   <p className="text-xs text-gray-400 mt-0.5">
                     {p.starts_at ? formatDate(p.starts_at) : '∞'} → {p.ends_at ? formatDate(p.ends_at) : '∞'}

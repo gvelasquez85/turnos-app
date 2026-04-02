@@ -19,7 +19,7 @@ type ProfileRow = {
 // Roles que brand_admin puede crear dentro de su marca
 const BRAND_ROLES: { value: UserRole; label: string; description: string }[] = [
   { value: 'advisor', label: 'Agente', description: 'Atiende la cola de espera' },
-  { value: 'manager', label: 'Manager', description: 'Configura establecimientos, motivos y promociones' },
+  { value: 'manager', label: 'Manager', description: 'Configura sucursales, motivos y promociones' },
   { value: 'reporting', label: 'Reporting', description: 'Solo accede a reportes' },
 ]
 
@@ -27,6 +27,7 @@ const roleColors: Partial<Record<UserRole, string>> = {
   advisor: 'bg-green-100 text-green-700',
   manager: 'bg-blue-100 text-blue-700',
   reporting: 'bg-amber-100 text-amber-700',
+  brand_admin: 'bg-indigo-100 text-indigo-700',
 }
 
 export function BrandUsersManager({
@@ -196,7 +197,7 @@ export function BrandUsersManager({
                 value={form.establishment_id}
                 onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
               >
-                <option value="">Sin establecimiento asignado</option>
+                <option value="">Sin sucursal asignada</option>
                 {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
               </Select>
             )}
@@ -228,24 +229,26 @@ export function BrandUsersManager({
               )}
             </div>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium shrink-0 ${roleColors[u.role] ?? 'bg-gray-100 text-gray-600'}`}>
-              {BRAND_ROLES.find(r => r.value === u.role)?.label ?? u.role}
+              {BRAND_ROLES.find(r => r.value === u.role)?.label ?? (u.role === 'brand_admin' ? 'Administrador' : u.role)}
             </span>
-            <div className="flex items-center gap-1 shrink-0">
-              <Button size="sm" variant="ghost" title="Cambiar contraseña"
-                onClick={() => { setPwModal({ userId: u.id, email: u.email }); setNewPassword(''); setPwError(''); setPwSuccess(false) }}>
-                <KeyRound size={14} />
-              </Button>
-              <Button size="sm" variant="ghost"
-                title={verifySuccess === u.id ? '¡Enviado!' : 'Reenviar verificación'}
-                onClick={() => handleResendVerification(u.id, u.email)}>
-                {verifySuccess === u.id
-                  ? <MailCheck size={14} className="text-green-600" />
-                  : verifyLoadingId === u.id
-                    ? <span className="text-xs text-gray-400">...</span>
-                    : <MailCheck size={14} />}
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => openEdit(u)}><Edit2 size={14} /></Button>
-            </div>
+            {u.role !== 'brand_admin' && (
+              <div className="flex items-center gap-1 shrink-0">
+                <Button size="sm" variant="ghost" title="Cambiar contraseña"
+                  onClick={() => { setPwModal({ userId: u.id, email: u.email }); setNewPassword(''); setPwError(''); setPwSuccess(false) }}>
+                  <KeyRound size={14} />
+                </Button>
+                <Button size="sm" variant="ghost"
+                  title={verifySuccess === u.id ? '¡Enviado!' : 'Reenviar verificación'}
+                  onClick={() => handleResendVerification(u.id, u.email)}>
+                  {verifySuccess === u.id
+                    ? <MailCheck size={14} className="text-green-600" />
+                    : verifyLoadingId === u.id
+                      ? <span className="text-xs text-gray-400">...</span>
+                      : <MailCheck size={14} />}
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => openEdit(u)}><Edit2 size={14} /></Button>
+              </div>
+            )}
           </div>
         ))}
       </div>

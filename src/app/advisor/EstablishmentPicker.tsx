@@ -7,6 +7,7 @@ import type { AdvisorField } from '@/types/database'
 type EstWithBrand = {
   id: string
   name: string
+  slug: string
   brand_id: string
   brands: { name: string } | null
 }
@@ -22,7 +23,7 @@ export function EstablishmentPicker({ establishments, allFields, advisorId }: Pr
   const [selectedId, setSelectedId] = useState(autoId)
 
   const selectedEst = establishments.find(e => e.id === selectedId)
-  const fields = allFields.filter(f => f.establishment_id === selectedId)
+  const fields = allFields.filter(f => f.brand_id === selectedEst?.brand_id)
 
   if (selectedId && selectedEst) {
     return (
@@ -49,6 +50,7 @@ export function EstablishmentPicker({ establishments, allFields, advisorId }: Pr
         )}
         <QueueBoard
           establishmentId={selectedId}
+          establishmentSlug={selectedEst.slug}
           advisorId={advisorId}
           advisorFields={fields}
         />
