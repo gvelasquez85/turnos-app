@@ -9,7 +9,7 @@ export default async function DisplayPage({ params }: { params: Promise<{ slug: 
   // Query establishment separately from display_configs to avoid 404 if table doesn't exist yet
   const { data: est } = await supabase
     .from('establishments')
-    .select('id, name, slug, brands(name, logo_url, primary_color)')
+    .select('id, name, slug, brands(name, logo_url)')
     .eq('slug', slug)
     .single()
 

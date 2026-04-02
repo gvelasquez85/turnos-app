@@ -63,6 +63,35 @@ SET brand_id = e.brand_id
 FROM establishments e
 WHERE e.id = p.establishment_id AND p.brand_id IS NULL;
 
+-- ── display_configs: add widgets column if not present ──────────────────────
+ALTER TABLE public.display_configs
+  ADD COLUMN IF NOT EXISTS widgets jsonb DEFAULT '[]'::jsonb;
+
+-- RLS for display_configs: brand users can manage their own establishment configs
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='display_configs' AND policyname='display_configs: brand read') THEN
+    EXECUTE $p$CREATE POLICY "display_configs: brand read" ON public.display_configs
+      FOR SELECT USING (
+        establishment_id IN (
+          SELECT id FROM public.establishments
+          WHERE brand_id = get_my_brand_id()
+        )
+      )$p$;
+  END IF;
+END $$;
+
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='display_configs' AND policyname='display_configs: brand write') THEN
+    EXECUTE $p$CREATE POLICY "display_configs: brand write" ON public.display_configs
+      FOR ALL USING (
+        establishment_id IN (
+          SELECT id FROM public.establishments
+          WHERE brand_id = get_my_brand_id()
+        )
+      )$p$;
+  END IF;
+END $$;
+
 -- ── NOTA: Para asociar manualmente usuarios huérfanos (sin brand_id) ──────────
 -- Ejecuta esto en el SQL Editor reemplazando el UUID de tu marca:
 -- UPDATE public.profiles

@@ -178,6 +178,16 @@ export function EstablishmentsManager({ establishments: initial, brands, default
     if (!form.name.trim()) { setFormError('El nombre es requerido'); return }
     if (!form.slug.trim()) { setFormError('El slug es requerido'); return }
     if (!form.brand_id) { setFormError('Debes seleccionar una marca'); return }
+
+    // Re-check the limit on save (guards against bypassing openNew)
+    if (!isSuperAdmin && !editing && maxEstablishments !== undefined) {
+      const brandEsts = establishments.filter(e => e.brand_id === selectedBrandId)
+      if (brandEsts.length >= maxEstablishments) {
+        setFormError(`Tu plan permite hasta ${maxEstablishments} sucursal${maxEstablishments === 1 ? '' : 'es'}. Actualiza tu membresía para agregar más.`)
+        return
+      }
+    }
+
     setLoading(true)
     const supabase = createClient()
     if (editing) {
@@ -232,7 +242,16 @@ export function EstablishmentsManager({ establishments: initial, brands, default
               : 'Selecciona una marca para comenzar'}
           </p>
         </div>
-        <Button onClick={openNew} disabled={!selectedBrandId}>
+        <Button
+          onClick={openNew}
+          disabled={!selectedBrandId}
+          title={
+            !isSuperAdmin && maxEstablishments !== undefined &&
+            establishments.filter(e => e.brand_id === selectedBrandId).length >= maxEstablishments
+              ? `Límite de ${maxEstablishments} sucursal${maxEstablishments === 1 ? '' : 'es'} alcanzado`
+              : undefined
+          }
+        >
           <Plus size={16} className="mr-1" /> Nuevo
         </Button>
       </div>
