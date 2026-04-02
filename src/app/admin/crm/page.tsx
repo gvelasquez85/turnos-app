@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { AppShell } from '@/components/layout/AppShell'
 import { CRMDashboard } from './CRMDashboard'
 
 export default async function CRMPage() {
@@ -10,7 +9,7 @@ export default async function CRMPage() {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, brand_id, full_name, establishments(name, slug)')
+    .select('role, brand_id')
     .eq('id', user.id)
     .single()
 
@@ -19,13 +18,6 @@ export default async function CRMPage() {
   }
 
   const brandId = profile.brand_id
-
-  // Load brand membership for plan gating
-  const { data: membership } = await supabase
-    .from('memberships')
-    .select('plan, status')
-    .eq('brand_id', brandId)
-    .maybeSingle()
 
   // Load customers
   const { data: customers } = await supabase
@@ -42,33 +34,11 @@ export default async function CRMPage() {
     .eq('active', true)
     .order('name')
 
-  // Load brand for AppShell
-  const { data: brand } = await supabase
-    .from('brands')
-    .select('id, name, active_modules')
-    .eq('id', brandId)
-    .single()
-
-  const establishmentInfo = Array.isArray(profile.establishments)
-    ? profile.establishments[0]
-    : (profile.establishments as any)
-
   return (
-    <AppShell
-      role={profile.role as any}
-      fullName={profile.full_name}
-      email={user.email ?? ''}
-      brandName={brand?.name}
-      establishmentName={establishmentInfo?.name}
-      establishmentSlug={establishmentInfo?.slug}
-      activeModules={brand?.active_modules ?? {}}
-      plan={membership?.plan ?? 'free'}
-    >
-      <CRMDashboard
-        customers={customers ?? []}
-        establishments={establishments ?? []}
-        brandId={brandId}
-      />
-    </AppShell>
+    <CRMDashboard
+      customers={customers ?? []}
+      establishments={establishments ?? []}
+      brandId={brandId}
+    />
   )
 }
