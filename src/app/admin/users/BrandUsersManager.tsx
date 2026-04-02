@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Plus, Edit2, KeyRound, MailCheck, User } from 'lucide-react'
+import { Plus, Edit2, KeyRound, MailCheck, User, UserPlus } from 'lucide-react'
 import type { UserRole } from '@/types/database'
 
 type ProfileRow = {
@@ -62,6 +62,14 @@ export function BrandUsersManager({
   // Verificación
   const [verifyLoadingId, setVerifyLoadingId] = useState<string | null>(null)
   const [verifySuccess, setVerifySuccess] = useState<string | null>(null)
+
+  // Reclamar usuario huérfano
+  const [claimModal, setClaimModal] = useState(false)
+  const [claimEmail, setClaimEmail] = useState('')
+  const [claimRole, setClaimRole] = useState<UserRole>('advisor')
+  const [claimEstId, setClaimEstId] = useState('')
+  const [claimLoading, setClaimLoading] = useState(false)
+  const [claimError, setClaimError] = useState('')
 
   function openNew() {
     if (maxAdvisors !== undefined && users.length >= maxAdvisors) {
@@ -146,6 +154,27 @@ export function BrandUsersManager({
     setTimeout(() => { setPwModal(null); setNewPassword(''); setPwSuccess(false) }, 1500)
   }
 
+  async function handleClaim() {
+    setClaimError(''); setClaimLoading(true)
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'claim_user',
+        email: claimEmail.trim(),
+        brand_id: brandId,
+        role: claimRole,
+        establishment_id: claimEstId || null,
+      }),
+    })
+    const json = await res.json()
+    setClaimLoading(false)
+    if (!res.ok) { setClaimError(json.error); return }
+    setClaimModal(false)
+    setClaimEmail(''); setClaimRole('advisor'); setClaimEstId('')
+    window.location.reload()
+  }
+
   async function handleResendVerification(userId: string, email: string) {
     setVerifyLoadingId(userId); setVerifySuccess(null)
     const res = await fetch('/api/admin/users', {
@@ -164,7 +193,12 @@ export function BrandUsersManager({
           <h1 className="text-xl font-bold text-gray-900">Equipo <span className="ml-1 text-sm font-normal text-gray-400">({users.length})</span></h1>
           <p className="text-sm text-gray-500 mt-0.5">Asesores, managers y usuarios de reportes</p>
         </div>
-        <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nuevo usuario</Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => { setClaimModal(true); setClaimError(''); setClaimEmail(''); setClaimRole('advisor'); setClaimEstId('') }}>
+            <UserPlus size={16} className="mr-1" /> Reclamar existente
+          </Button>
+          <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nuevo usuario</Button>
+        </div>
       </div>
 
       {/* Leyenda de roles */}
@@ -252,6 +286,40 @@ export function BrandUsersManager({
           </div>
         ))}
       </div>
+
+      {/* Modal reclamar usuario huérfano */}
+      {claimModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <h3 className="font-bold text-gray-900 mb-1">Reclamar usuario existente</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Asocia a tu marca un usuario que ya existe en el sistema pero no está asignado.
+            </p>
+            <Input label="Email del usuario *" type="email" value={claimEmail}
+              onChange={e => setClaimEmail(e.target.value)} placeholder="usuario@ejemplo.com" />
+            <div className="mt-3">
+              <Select label="Rol *" value={claimRole}
+                onChange={e => setClaimRole(e.target.value as UserRole)}>
+                {BRAND_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+              </Select>
+            </div>
+            {claimRole === 'advisor' && establishments.length > 0 && (
+              <div className="mt-3">
+                <Select label="Sucursal" value={claimEstId}
+                  onChange={e => setClaimEstId(e.target.value)}>
+                  <option value="">Sin sucursal asignada</option>
+                  {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </Select>
+              </div>
+            )}
+            {claimError && <p className="text-sm text-red-600 mt-3">{claimError}</p>}
+            <div className="flex gap-3 mt-4">
+              <Button loading={claimLoading} onClick={handleClaim}>Asociar a mi marca</Button>
+              <Button variant="secondary" onClick={() => setClaimModal(false)}>Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal contraseña */}
       {pwModal && (
