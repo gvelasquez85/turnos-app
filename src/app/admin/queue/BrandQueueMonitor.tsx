@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useBrandStore } from '@/stores/brandStore'
-import { Building2, ChevronDown, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react'
+import { Building2, Clock, Users, CheckCircle, AlertCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { formatTime } from '@/lib/utils'
 import type { TicketStatus } from '@/types/database'
@@ -32,13 +32,10 @@ interface Props {
 }
 
 export function BrandQueueMonitor({ brands, establishments, defaultBrandId }: Props) {
-  const autoBrand = defaultBrandId || (brands.length === 1 ? brands[0].id : '')
   const { selectedBrandId: storeBrandId } = useBrandStore()
-  const [selectedBrand, setSelectedBrand] = useState(() => storeBrandId || autoBrand)
+  // '' = todas las marcas (respeta la selección global), nunca override con autoBrand
+  const selectedBrand = storeBrandId
 
-  useEffect(() => {
-    setSelectedBrand(storeBrandId || autoBrand)
-  }, [storeBrandId])
   const [stats, setStats] = useState<EstablishmentStats[]>([])
   const [loading, setLoading] = useState(true)
   const [lastUpdate, setLastUpdate] = useState(new Date())
