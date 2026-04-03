@@ -297,7 +297,14 @@ export function QueueBoard({ establishmentId, establishmentSlug, advisorId, advi
         loadDailyStats()
       })
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    // Polling fallback every 5s in case realtime replication is not enabled on tickets table
+    const poll = setInterval(() => {
+      loadTickets()
+    }, 5000)
+    return () => {
+      supabase.removeChannel(channel)
+      clearInterval(poll)
+    }
   }, [establishmentId, loadTickets, loadDailyStats])
 
   function dispatchEvent(event: string, ticketId: string) {

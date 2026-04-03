@@ -10,7 +10,7 @@ export default async function TicketPage({ params }: { params: Promise<{ slug: s
   // Buscar establecimiento por slug
   const { data: establishment } = await supabase
     .from('establishments')
-    .select('*, brands(name, logo_url)')
+    .select('*, brands(name, logo_url, data_policy_text, form_fields)')
     .eq('slug', slug)
     .eq('active', true)
     .single()

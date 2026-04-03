@@ -347,9 +347,7 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
           <p className="text-sm text-gray-400 max-w-xs mx-auto">
             Los clientes se registran automáticamente cada vez que se atiende un turno en la cola de espera.
           </p>
-          <div className="mt-5 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-xs text-amber-700">
-            <span className="font-semibold">Paso pendiente:</span> ejecutar <code className="bg-amber-100 px-1 rounded font-mono">phase10_crm_comms.sql</code> en Supabase
-          </div>
+
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">

@@ -7,7 +7,9 @@ export default async function ReportsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase.from('profiles').select('role, brand_id, establishment_id').eq('id', user.id).single()
+  const { data: profile } = await supabase.from('profiles').select('role, brand_id, establishment_id, brands(active_modules)').eq('id', user.id).single()
+
+  const activeModules = (profile?.brands as any)?.active_modules || []
 
   // Load establishments the user can see
   const estQuery = supabase.from('establishments').select('id, name').eq('active', true)
@@ -24,7 +26,7 @@ export default async function ReportsPage() {
         <h1 className="text-xl font-bold text-gray-900">Reportes</h1>
         <p className="text-sm text-gray-500 mt-0.5">Estadísticas de atención al cliente</p>
       </div>
-      <ReportsDashboard establishments={establishments || []} />
+      <ReportsDashboard establishments={establishments || []} activeModules={activeModules} />
     </div>
   )
 }

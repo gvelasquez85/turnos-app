@@ -7,12 +7,12 @@ import type { Establishment, VisitReason, Promotion } from '@/types/database'
 import { ChevronRight, CheckCircle, Clock, Tag, ChevronDown, Bell } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
 
-const CONSENT_TEXT = `Al proporcionar sus datos personales, usted autoriza el tratamiento de los mismos conforme a nuestra Política de Privacidad y Tratamiento de Datos Personales. Sus datos serán utilizados para: (1) gestionar su turno de atención, (2) brindarle el servicio solicitado, y (3) enviarle información comercial si usted así lo autoriza. Tiene derecho a conocer, actualizar, rectificar y suprimir sus datos. Puede ejercer estos derechos contactándonos. Esta autorización es válida indefinidamente hasta que usted solicite su revocación.`
+const CONSENT_TEXT_DEFAULT = `Al proporcionar sus datos personales, usted autoriza el tratamiento de los mismos conforme a nuestra Política de Privacidad y Tratamiento de Datos Personales. Sus datos serán utilizados para: (1) gestionar su turno de atención, (2) brindarle el servicio solicitado, y (3) enviarle información comercial si usted así lo autoriza. Tiene derecho a conocer, actualizar, rectificar y suprimir sus datos. Puede ejercer estos derechos contactándonos. Esta autorización es válida indefinidamente hasta que usted solicite su revocación.`
 
 type Step = 'promo' | 'form' | 'reason' | 'confirm'
 
 interface Props {
-  establishment: Establishment & { brands: { name: string; logo_url: string | null } }
+  establishment: Establishment & { brands: { name: string; logo_url: string | null; data_policy_text: string | null; form_fields: any[] | null } }
   visitReasons: VisitReason[]
   promotions: Promotion[]
 }
@@ -30,6 +30,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
 
   const { permission, requestAndGetToken } = usePushNotifications()
   const brand = establishment.brands
+  const consentText = brand.data_policy_text || CONSENT_TEXT_DEFAULT
 
   function fullPhone() { return `${form.phoneCode}${form.phone.trim()}` }
 
@@ -37,7 +38,14 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     const errs: Record<string, string> = {}
     if (!form.name.trim()) errs.name = 'El nombre es requerido'
     if (!form.phone.trim()) errs.phone = 'El teléfono es requerido'
+    if (!form.email.trim()) errs.email = 'El correo electrónico es requerido'
     if (!form.data_consent) errs.data_consent = 'Debes autorizar el tratamiento de datos para continuar'
+    const customFields = (establishment.brands as any).form_fields || []
+    customFields.forEach((field: any) => {
+      if (field.required && !(form as any)[`custom_${field.id}`]?.trim()) {
+        errs[`custom_${field.id}`] = `${field.label} es requerido`
+      }
+    })
     return errs
   }
 
@@ -60,7 +68,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         queue_number: queueNum || '001',
         customer_name: form.name.trim(),
         customer_phone: form.phone.trim() ? fullPhone() : null,
-        customer_email: form.email.trim() || null,
+        customer_email: form.email.trim(),
         marketing_opt_in: form.marketing_opt_in,
         status: 'waiting',
       })
@@ -75,10 +83,10 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         brand_id: establishment.brand_id,
         customer_name: form.name.trim(),
         customer_phone: form.phone.trim() ? fullPhone() : null,
-        customer_email: form.email.trim() || null,
+        customer_email: form.email.trim(),
         marketing_opt_in: form.marketing_opt_in,
         data_processing_consent: true,
-        consent_text: CONSENT_TEXT,
+        consent_text: consentText,
       })
 
       // Request push notification permission and save FCM token
@@ -192,11 +200,12 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             </div>
             <Input
               id="email"
-              label="Correo electrónico (opcional)"
+              label="Correo electrónico *"
               type="email"
               placeholder="tu@email.com"
               value={form.email}
               onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              error={errors.email}
             />
             <label className="flex items-start gap-3 cursor-pointer mt-1">
               <input
@@ -210,6 +219,48 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               </span>
             </label>
 
+            {/* Brand custom fields */}
+            {(establishment.brands as any).form_fields?.map((field: any) => {
+              const value = (form as any)[`custom_${field.id}`] || ''
+              const onChange = (val: string) => setForm(f => ({ ...f, [`custom_${field.id}`]: val } as any))
+              if (field.field_type === 'select' && field.options) {
+                return (
+                  <div key={field.id}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}{field.required ? ' *' : ''}</label>
+                    <select
+                      value={value}
+                      onChange={e => onChange(e.target.value)}
+                      className="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    >
+                      <option value="">Seleccionar...</option>
+                      {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                    </select>
+                    {(errors as any)[`custom_${field.id}`] && <p className="text-xs text-red-600 mt-1">{(errors as any)[`custom_${field.id}`]}</p>}
+                  </div>
+                )
+              }
+              if (field.field_type === 'textarea') {
+                return (
+                  <div key={field.id}>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}{field.required ? ' *' : ''}</label>
+                    <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                    {(errors as any)[`custom_${field.id}`] && <p className="text-xs text-red-600 mt-1">{(errors as any)[`custom_${field.id}`]}</p>}
+                  </div>
+                )
+              }
+              return (
+                <Input
+                  key={field.id}
+                  label={`${field.label}${field.required ? ' *' : ''}`}
+                  type={field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}
+                  value={value}
+                  onChange={e => onChange(e.target.value)}
+                  error={(errors as any)[`custom_${field.id}`]}
+                />
+              )
+            })}
+
             {/* Expandable consent section */}
             <div className="border border-gray-200 rounded-xl overflow-hidden">
               <button
@@ -222,7 +273,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               </button>
               {showConsentText && (
                 <div className="px-4 py-3 text-xs text-gray-600 leading-relaxed bg-white border-t border-gray-200">
-                  {CONSENT_TEXT}
+                  {consentText}
                 </div>
               )}
             </div>

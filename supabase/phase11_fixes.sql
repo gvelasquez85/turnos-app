@@ -92,6 +92,11 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- ── brands: custom form fields + data policy text ─────────────────────────────
+ALTER TABLE public.brands
+  ADD COLUMN IF NOT EXISTS data_policy_text text,
+  ADD COLUMN IF NOT EXISTS form_fields jsonb DEFAULT '[]'::jsonb;
+
 -- ── NOTA: Para asociar manualmente usuarios huérfanos (sin brand_id) ──────────
 -- Ejecuta esto en el SQL Editor reemplazando el UUID de tu marca:
 -- UPDATE public.profiles

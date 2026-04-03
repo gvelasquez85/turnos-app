@@ -33,6 +33,7 @@ const BRAND_MGMT_ITEMS: NavItem[] = [
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/advisor-fields', label: 'Campos asesor', icon: FileText },
+  { href: '/admin/brand/form-config', label: 'Formulario cliente', icon: ClipboardList },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },
 ]
 

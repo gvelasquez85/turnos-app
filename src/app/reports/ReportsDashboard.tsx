@@ -20,6 +20,7 @@ function downloadCSV(rows: Record<string, unknown>[], filename: string) {
 
 interface Props {
   establishments: { id: string; name: string }[]
+  activeModules?: string[]
 }
 
 type Period = 'day' | 'week' | 'month' | 'custom'
@@ -909,23 +910,27 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'general', label: 'General' },
-  { id: 'establishment', label: 'Por Sucursal' },
-  { id: 'advisor', label: 'Por Agente' },
-  { id: 'reason', label: 'Por Motivo' },
-  { id: 'surveys', label: 'Encuestas' },
-  { id: 'detail', label: 'Detalle de visitas' },
-]
-
-export function ReportsDashboard({ establishments }: Props) {
+export function ReportsDashboard({ establishments, activeModules = [] }: Props) {
   const [tab, setTab] = useState<Tab>('general')
+
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'general' as Tab, label: 'General' },
+    { id: 'establishment' as Tab, label: 'Por sucursal' },
+    { id: 'advisor' as Tab, label: 'Por asesor' },
+    { id: 'reason' as Tab, label: 'Por motivo' },
+    ...(activeModules.includes('surveys') ? [{ id: 'surveys' as Tab, label: 'Encuestas' }] : []),
+    { id: 'detail' as Tab, label: 'Detalle de visitas' },
+  ]
+
+  useEffect(() => {
+    if (tab === 'surveys' && !activeModules.includes('surveys')) setTab('general')
+  }, [activeModules, tab])
 
   return (
     <div>
       {/* Tab nav */}
       <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
-        {TABS.map(t => (
+        {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}

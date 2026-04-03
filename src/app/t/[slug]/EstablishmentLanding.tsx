@@ -12,7 +12,7 @@ interface Props {
     slug: string
     brand_id: string
     features: { queue?: boolean; appointments?: boolean; surveys?: boolean; menu?: boolean } | null
-    brands: { name: string; logo_url: string | null }
+    brands: { name: string; logo_url: string | null; data_policy_text: string | null; form_fields: any[] | null }
   }
   visitReasons: any[]
   promotions: any[]
