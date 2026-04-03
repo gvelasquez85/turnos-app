@@ -19,7 +19,7 @@ export default async function ValidarPage({ params }: { params: Promise<{ id: st
     : null
 
   const maskedEmail = consent.customer_email
-    ? consent.customer_email.replace(/^(..)(.*?)(@.*)$/, (_, a, b, c) => a + b.replace(/./g, '•') + c)
+    ? consent.customer_email.replace(/^(..)(.*?)(@.*)$/, (_: string, a: string, b: string, c: string) => a + b.replace(/./g, '•') + c)
     : null
 
   return (
