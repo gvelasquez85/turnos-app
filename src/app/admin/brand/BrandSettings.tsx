@@ -7,10 +7,11 @@ import {
   Building2, CreditCard, Check, CheckCircle, ArrowRight,
   Zap, Star, Crown, Rocket, Sparkles, X, AlertTriangle,
   Plus, Minus, Users, Store, Key, Webhook, Copy, Trash2,
-  RefreshCw, ExternalLink, Eye, EyeOff,
+  RefreshCw, ExternalLink, Eye, EyeOff, Globe,
 } from 'lucide-react'
 import { useEffect, useCallback } from 'react'
 import { ADDON_PRICES } from '@/lib/planLimits'
+import { SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
 
 interface Brand {
   id: string
@@ -21,6 +22,7 @@ interface Brand {
   address: string | null
   contact_email: string | null
   website: string | null
+  language: string | null
 }
 
 interface Membership {
@@ -160,6 +162,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     address: initialBrand.address || '',
     contact_email: initialBrand.contact_email || '',
     website: initialBrand.website || '',
+    language: initialBrand.language || 'es',
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -261,6 +264,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
         address: form.address || null,
         contact_email: form.contact_email || null,
         website: form.website || null,
+        language: form.language,
       })
       .eq('id', brand.id)
       .select()
@@ -354,6 +358,30 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             <Input label="Dirección principal" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle 123, Ciudad" />
             <Input label="Correo de contacto" type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="contacto@marca.com" />
             <Input label="Sitio web" value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.marca.com" />
+            {/* Language selector */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5 flex items-center gap-1.5">
+                <Globe size={14} className="text-gray-400" />
+                Idioma de la plataforma
+              </label>
+              <p className="text-xs text-gray-500 mb-2">El idioma seleccionado se aplicará para todos los usuarios de esta marca.</p>
+              <div className="flex gap-2 flex-wrap">
+                {SUPPORTED_LANGUAGES.map(lang => (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, language: lang.code }))}
+                    className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                      form.language === lang.code
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50'
+                    }`}
+                  >
+                    {lang.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             {saveError && (
               <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
                 {saveError.includes('policy') || saveError.includes('row-level')

@@ -9,7 +9,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, brands(name, active_modules), establishments(name, slug)')
+    .select('*, brands(name, active_modules, language), establishments(name, slug)')
     .eq('id', user.id)
     .single()
 
@@ -36,6 +36,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       establishmentSlug={(profile.establishments as any)?.slug ?? null}
       activeModules={(profile.brands as any)?.active_modules ?? undefined}
       plan={plan}
+      lang={(profile.brands as any)?.language ?? 'es'}
     >
       {children}
     </AppShell>
