@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { Plus, Edit2, KeyRound, MailCheck, User } from 'lucide-react'
+import { Plus, Edit2, KeyRound, MailCheck, User, Trash2, AlertTriangle } from 'lucide-react'
 import type { UserRole } from '@/types/database'
 
 type ProfileRow = {
@@ -63,8 +63,35 @@ export function BrandUsersManager({
   const [verifyLoadingId, setVerifyLoadingId] = useState<string | null>(null)
   const [verifySuccess, setVerifySuccess] = useState<string | null>(null)
 
+  // Eliminar
+  const [deleteConfirm, setDeleteConfirm] = useState<ProfileRow | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
+
+  // Selección masiva
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
+
   // brand_admin no cuenta para el límite del plan
   const teamCount = users.filter(u => u.role !== 'brand_admin').length
+  // Solo los no-brand_admin son seleccionables
+  const selectableUsers = users.filter(u => u.role !== 'brand_admin')
+
+  function toggleSelect(id: string) {
+    setSelected(s => {
+      const n = new Set(s)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+  function toggleSelectAll() {
+    if (selected.size === selectableUsers.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(selectableUsers.map(u => u.id)))
+    }
+  }
 
   function openNew() {
     if (maxAdvisors !== undefined && teamCount >= maxAdvisors) {
@@ -89,7 +116,6 @@ export function BrandUsersManager({
   async function handleSave() {
     setError(''); setLoading(true)
 
-    // Re-verificar límite al guardar (previene bypass de openNew)
     if (!editing && maxAdvisors !== undefined && teamCount >= maxAdvisors) {
       setError(`Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu membresía en Mi marca → Membresía.`)
       setLoading(false)
@@ -139,6 +165,37 @@ export function BrandUsersManager({
       return
     }
     setLoading(false)
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirm) return
+    setDeleteLoading(true); setDeleteError('')
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_user', userId: deleteConfirm.id }),
+    })
+    const json = await res.json()
+    setDeleteLoading(false)
+    if (!res.ok) { setDeleteError(json.error); return }
+    setUsers(us => us.filter(u => u.id !== deleteConfirm.id))
+    setSelected(s => { const n = new Set(s); n.delete(deleteConfirm.id); return n })
+    setDeleteConfirm(null)
+  }
+
+  async function handleBulkDelete() {
+    setBulkLoading(true)
+    const res = await fetch('/api/admin/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'delete_users_bulk', userIds: Array.from(selected) }),
+    })
+    const json = await res.json()
+    setBulkLoading(false)
+    if (!res.ok) { setDeleteError(json.error); setBulkDeleteConfirm(false); return }
+    setUsers(us => us.filter(u => !selected.has(u.id)))
+    setSelected(new Set())
+    setBulkDeleteConfirm(false)
   }
 
   async function handleSetPassword() {
@@ -225,14 +282,63 @@ export function BrandUsersManager({
         </div>
       )}
 
+      {/* Bulk actions bar */}
+      {selected.size > 0 && (
+        <div className="bg-indigo-50 border border-indigo-200 rounded-xl px-4 py-3 mb-4 flex items-center justify-between">
+          <span className="text-sm font-medium text-indigo-700">
+            {selected.size} usuario{selected.size === 1 ? '' : 's'} seleccionado{selected.size === 1 ? '' : 's'}
+          </span>
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setSelected(new Set())}>Cancelar</Button>
+            <Button size="sm" onClick={() => { setBulkDeleteConfirm(true); setDeleteError('') }}
+              className="bg-red-600 hover:bg-red-700 text-white border-red-600">
+              <Trash2 size={13} className="mr-1" /> Eliminar seleccionados
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {deleteError && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-2 mb-4">
+          {deleteError}
+        </div>
+      )}
+
       <div className="flex flex-col gap-3">
+        {/* Select-all row */}
+        {selectableUsers.length > 0 && (
+          <div className="flex items-center gap-3 px-1 mb-1">
+            <input
+              type="checkbox"
+              checked={selected.size === selectableUsers.length && selectableUsers.length > 0}
+              onChange={toggleSelectAll}
+              className="h-4 w-4 rounded border-gray-300 text-indigo-600 cursor-pointer"
+            />
+            <span className="text-xs text-gray-400">
+              {selected.size === selectableUsers.length ? 'Deseleccionar todos' : 'Seleccionar todos'}
+            </span>
+          </div>
+        )}
+
         {users.length === 0 && (
           <div className="text-center py-12 bg-white rounded-xl border border-gray-200 text-gray-500">
             No hay usuarios en esta marca todavía.
           </div>
         )}
         {users.map(u => (
-          <div key={u.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+          <div key={u.id} className={`bg-white rounded-xl border p-4 flex items-center gap-3 transition-colors ${selected.has(u.id) ? 'border-indigo-300 bg-indigo-50/40' : 'border-gray-200'}`}>
+            {/* Checkbox (only for non-admin) */}
+            {u.role !== 'brand_admin' ? (
+              <input
+                type="checkbox"
+                checked={selected.has(u.id)}
+                onChange={() => toggleSelect(u.id)}
+                className="h-4 w-4 rounded border-gray-300 text-indigo-600 cursor-pointer shrink-0"
+              />
+            ) : (
+              <div className="w-4 shrink-0" />
+            )}
+
             <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
               <User size={16} className="text-gray-400" />
             </div>
@@ -262,6 +368,11 @@ export function BrandUsersManager({
                       : <MailCheck size={14} />}
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => openEdit(u)}><Edit2 size={14} /></Button>
+                <Button size="sm" variant="ghost" title="Eliminar usuario"
+                  onClick={() => { setDeleteConfirm(u); setDeleteError('') }}
+                  className="text-gray-300 hover:text-red-500">
+                  <Trash2 size={14} />
+                </Button>
               </div>
             )}
           </div>
@@ -281,6 +392,65 @@ export function BrandUsersManager({
             <div className="flex gap-3 mt-4">
               <Button loading={pwLoading} onClick={handleSetPassword}>Guardar</Button>
               <Button variant="secondary" onClick={() => setPwModal(null)}>Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal eliminar individual */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Eliminar usuario</h3>
+                <p className="text-sm text-gray-500">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 mb-4">
+              <p className="font-medium text-gray-900 text-sm">{deleteConfirm.full_name || 'Sin nombre'}</p>
+              <p className="text-xs text-gray-500">{deleteConfirm.email}</p>
+            </div>
+            {deleteError && <p className="text-sm text-red-600 mb-3">{deleteError}</p>}
+            <div className="flex gap-3">
+              <Button loading={deleteLoading} onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600 flex-1">
+                Eliminar
+              </Button>
+              <Button variant="secondary" onClick={() => setDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal eliminar masivo */}
+      {bulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Eliminar {selected.size} usuario{selected.size === 1 ? '' : 's'}</h3>
+                <p className="text-sm text-gray-500">Esta acción no se puede deshacer</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 mb-4 max-h-32 overflow-y-auto">
+              {users.filter(u => selected.has(u.id)).map(u => (
+                <p key={u.id} className="text-xs text-gray-600 py-0.5">{u.full_name || u.email}</p>
+              ))}
+            </div>
+            {deleteError && <p className="text-sm text-red-600 mb-3">{deleteError}</p>}
+            <div className="flex gap-3">
+              <Button loading={bulkLoading} onClick={handleBulkDelete}
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600 flex-1">
+                Eliminar todos
+              </Button>
+              <Button variant="secondary" onClick={() => setBulkDeleteConfirm(false)} className="flex-1">Cancelar</Button>
             </div>
           </div>
         </div>

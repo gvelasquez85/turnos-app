@@ -14,6 +14,8 @@ import {
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
 import { getLimits } from '@/lib/planLimits'
+import { I18nProvider, useT } from '@/lib/i18n/context'
+import { SUPPORTED_LANGUAGES, type LangCode } from '@/lib/i18n/translations'
 
 export type AppRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 'reporting'
 
@@ -124,11 +126,13 @@ export interface AppShellProps {
   brands?: { id: string; name: string }[]
   activeModules?: Record<string, boolean>
   plan?: string
+  lang?: LangCode
 }
 
 const CAN_IMPERSONATE: AppRole[] = ['superadmin', 'brand_admin']
 
-export function AppShell({ children, role, fullName, email, brandName, establishmentName, establishmentSlug, brands: initialBrands, activeModules, plan }: AppShellProps) {
+function AppShellInner({ children, role, fullName, email, brandName, establishmentName, establishmentSlug, brands: initialBrands, activeModules, plan }: AppShellProps) {
+  const { t, lang, setLang } = useT()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
@@ -147,11 +151,11 @@ export function AppShell({ children, role, fullName, email, brandName, establish
   }, [role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Only auto-select the first brand on initial mount if nothing is stored yet.
-    // Once the user explicitly selects "Todas las marcas" (empty string), never override.
+    // Superadmin defaults to "Todas las marcas" (empty string = all brands).
+    // Other roles with exactly one brand auto-select it on first load.
     if (!brandInitialized.current && brands.length > 0 && !selectedBrandId) {
       brandInitialized.current = true
-      setSelectedBrandId(brands[0].id)
+      if (role !== 'superadmin') setSelectedBrandId(brands[0].id)
     }
     if (brands.length > 0) brandInitialized.current = true
   }, [brands]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -388,6 +392,21 @@ export function AppShell({ children, role, fullName, email, brandName, establish
               {!collapsed && <span>Salir de vista asesor</span>}
             </button>
           )}
+          {/* Language selector */}
+          {!collapsed && (
+            <div className="px-2 py-1">
+              <select
+                value={lang}
+                onChange={e => setLang(e.target.value as LangCode)}
+                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-500 focus:border-indigo-400 focus:outline-none cursor-pointer"
+                title="Idioma / Language"
+              >
+                {SUPPORTED_LANGUAGES.map(l => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <button
             onClick={handleLogout}
             title={collapsed ? 'Cerrar sesión' : undefined}
@@ -397,7 +416,7 @@ export function AppShell({ children, role, fullName, email, brandName, establish
             )}
           >
             <LogOut size={15} />
-            {!collapsed && <span>Cerrar sesión</span>}
+            {!collapsed && <span>{t('action.signOut')}</span>}
           </button>
         </div>
       </>
@@ -469,5 +488,13 @@ export function AppShell({ children, role, fullName, email, brandName, establish
         </div>
       </main>
     </div>
+  )
+}
+
+export function AppShell(props: AppShellProps) {
+  return (
+    <I18nProvider initialLang={props.lang ?? 'es'}>
+      <AppShellInner {...props} />
+    </I18nProvider>
   )
 }

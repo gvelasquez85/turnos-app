@@ -5,7 +5,7 @@ import { useBrandStore } from '@/stores/brandStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import type { Establishment, Brand } from '@/types/database'
-import { Plus, Store, Edit2, ToggleLeft, ToggleRight, QrCode, Building2, ChevronDown, Clock, CheckCircle, Settings2 } from 'lucide-react'
+import { Plus, Store, Edit2, ToggleLeft, ToggleRight, QrCode, Building2, ChevronDown, Clock, CheckCircle, Settings2, Trash2, AlertTriangle } from 'lucide-react'
 import QRCode from 'qrcode'
 
 interface EstStat { waiting: number; today: number }
@@ -92,6 +92,9 @@ export function EstablishmentsManager({ establishments: initial, brands, default
   const [qrModal, setQrModal] = useState<{ slug: string; dataUrl: string } | null>(null)
   const [featuresModal, setFeaturesModal] = useState<Establishment | null>(null)
   const [featuresLoading, setFeaturesLoading] = useState(false)
+  const [deleteConfirm, setDeleteConfirm] = useState<Establishment | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
+  const [deleteError, setDeleteError] = useState('')
 
   const FEATURE_LIST = [
     { key: 'queue',        label: 'Cola de turnos',          desc: 'Página /t/[slug] para tomar turnos' },
@@ -221,6 +224,17 @@ export function EstablishmentsManager({ establishments: initial, brands, default
       .select()
       .single()
     if (data) setEstablishments(es => es.map(e => e.id === est.id ? data : e))
+  }
+
+  async function handleDelete() {
+    if (!deleteConfirm) return
+    setDeleteLoading(true); setDeleteError('')
+    const supabase = createClient()
+    const { error } = await supabase.from('establishments').delete().eq('id', deleteConfirm.id)
+    setDeleteLoading(false)
+    if (error) { setDeleteError(error.message); return }
+    setEstablishments(es => es.filter(e => e.id !== deleteConfirm.id))
+    setDeleteConfirm(null)
   }
 
   async function showQR(slug: string) {
@@ -364,10 +378,44 @@ export function EstablishmentsManager({ establishments: initial, brands, default
                     : <ToggleLeft size={15} />
                   }
                 </Button>
+                <Button size="sm" variant="ghost" title="Eliminar sucursal"
+                  onClick={() => { setDeleteConfirm(est); setDeleteError('') }}
+                  className="text-gray-300 hover:text-red-500">
+                  <Trash2 size={15} />
+                </Button>
               </div>
             </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Delete Establishment Modal */}
+      {deleteConfirm && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                <AlertTriangle size={18} className="text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-gray-900">Eliminar sucursal</h3>
+                <p className="text-sm text-gray-500">Esta acción eliminará todos los datos asociados</p>
+              </div>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3 mb-4">
+              <p className="font-medium text-gray-900 text-sm">{deleteConfirm.name}</p>
+              <p className="text-xs text-gray-500 font-mono">/t/{deleteConfirm.slug}</p>
+            </div>
+            {deleteError && <p className="text-sm text-red-600 mb-3">{deleteError}</p>}
+            <div className="flex gap-3">
+              <Button loading={deleteLoading} onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700 text-white border-red-600 flex-1">
+                Eliminar
+              </Button>
+              <Button variant="secondary" onClick={() => setDeleteConfirm(null)} className="flex-1">Cancelar</Button>
+            </div>
+          </div>
         </div>
       )}
 

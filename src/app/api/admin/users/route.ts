@@ -187,6 +187,67 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, userId: authUser.id })
   }
 
+  // ── Eliminar usuario ───────────────────────────────────────────────────────
+  if (action === 'delete_user') {
+    const { userId, brand_id } = body
+    if (!userId) return NextResponse.json({ error: 'Falta userId' }, { status: 400 })
+
+    // brand_admin solo puede eliminar usuarios de su propia marca
+    if (!isSuperAdmin) {
+      const { data: profile } = await admin.from('profiles').select('brand_id, role').eq('id', userId).single()
+      if (!profile || profile.brand_id !== caller.brandId) {
+        return NextResponse.json({ error: 'No autorizado para eliminar este usuario' }, { status: 403 })
+      }
+      if (profile.role === 'brand_admin') {
+        return NextResponse.json({ error: 'No puedes eliminar al administrador de marca' }, { status: 403 })
+      }
+    }
+
+    // Delete auth user (cascades to profile via trigger or FK)
+    const { error: authErr } = await admin.auth.admin.deleteUser(userId)
+    if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 })
+
+    // Also delete profile row explicitly (in case no cascade)
+    await admin.from('profiles').delete().eq('id', userId)
+
+    return NextResponse.json({ ok: true })
+  }
+
+  // ── Eliminar varios usuarios ────────────────────────────────────────────────
+  if (action === 'delete_users_bulk') {
+    const { userIds, brand_id } = body
+    if (!Array.isArray(userIds) || userIds.length === 0) {
+      return NextResponse.json({ error: 'Falta userIds' }, { status: 400 })
+    }
+
+    // Verify all belong to caller's brand and none are brand_admin
+    if (!isSuperAdmin) {
+      const { data: profiles } = await admin
+        .from('profiles')
+        .select('id, brand_id, role')
+        .in('id', userIds)
+      if (!profiles) return NextResponse.json({ error: 'No se encontraron los perfiles' }, { status: 400 })
+      for (const p of profiles) {
+        if (p.brand_id !== caller.brandId) {
+          return NextResponse.json({ error: 'No autorizado para eliminar uno o más usuarios' }, { status: 403 })
+        }
+        if (p.role === 'brand_admin') {
+          return NextResponse.json({ error: 'No puedes eliminar al administrador de marca' }, { status: 403 })
+        }
+      }
+    }
+
+    const errors: string[] = []
+    for (const uid of userIds) {
+      const { error } = await admin.auth.admin.deleteUser(uid)
+      if (error) errors.push(`${uid}: ${error.message}`)
+    }
+    await admin.from('profiles').delete().in('id', userIds)
+
+    if (errors.length > 0) return NextResponse.json({ error: errors.join('; ') }, { status: 207 })
+    return NextResponse.json({ ok: true, deleted: userIds.length })
+  }
+
   // ── Cambiar contraseña ──────────────────────────────────────────────────────
   if (action === 'set_password') {
     const { userId, password } = body
