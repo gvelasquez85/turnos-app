@@ -13,7 +13,7 @@ export default async function AdvisorFieldsPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['brand_admin', 'superadmin'].includes(profile.role)) redirect('/')
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role)) redirect('/')
 
   // Cargar marcas accesibles
   const brandsQuery = supabase.from('brands').select('id, name, slug').eq('active', true).order('name')

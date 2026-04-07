@@ -7,11 +7,25 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*, brands(name, active_modules), establishments(name, slug)')
-    .eq('id', user.id)
-    .single()
+  let profile: any = null
+  {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*, brands(name, active_modules), establishments(name, slug)')
+      .eq('id', user.id)
+      .single()
+    if (!error && data) {
+      profile = data
+    } else {
+      // Fallback si el join de brands falla (columna faltante, RLS, etc.)
+      const { data: fallback } = await supabase
+        .from('profiles')
+        .select('*, establishments(name, slug)')
+        .eq('id', user.id)
+        .single()
+      profile = fallback
+    }
+  }
 
   if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role)) redirect('/')
 
