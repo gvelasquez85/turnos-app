@@ -4,9 +4,35 @@ import { createClient } from '@/lib/supabase/client'
 import {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, CheckCircle, Clock, AlertTriangle,
-  Zap, Star, ArrowRight
+  Zap, Star, ArrowRight, UserCheck, Lock, Building2, Users,
+  type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { calcMonthlyBase, calcModuleAddon, PRICING } from '@/lib/planLimits'
+
+// Map icon name strings from DB to Lucide components
+const ICON_MAP: Record<string, LucideIcon> = {
+  CalendarClock, ClipboardList, UtensilsCrossed,
+  LogIn, LogOut, Coffee, UserCheck, Zap,
+}
+function getIcon(name: string): LucideIcon {
+  return ICON_MAP[name] ?? Zap
+}
+
+export interface MarketplaceModule {
+  id: string
+  module_key: string
+  label: string
+  description: string | null
+  icon: string | null
+  color: string | null
+  features: string[] | null
+  price_per_establishment: number
+  price_per_advisor: number
+  is_visible_to_brands: boolean
+  is_coming_soon: boolean
+  sort_order: number
+}
 
 interface Subscription {
   id: string
@@ -24,64 +50,11 @@ interface Props {
   brandId: string
   brandModules: Record<string, boolean>
   subscriptions: Subscription[]
+  modules: MarketplaceModule[]
+  isSuperadmin: boolean
+  maxEstablishments: number
+  maxAdvisors: number
 }
-
-const MODULES = [
-  {
-    key: 'appointments',
-    label: 'Citas programadas',
-    desc: 'Permite a tus clientes reservar citas online. Reduce tiempos de espera y mejora la planificación.',
-    price: 29,
-    icon: CalendarClock,
-    color: 'bg-blue-500',
-    features: ['Reserva online 24/7', 'Confirmación automática', 'Gestión de agenda', 'Check-in en app'],
-  },
-  {
-    key: 'surveys',
-    label: 'Encuestas NPS / CSAT / CES',
-    desc: 'Mide la satisfacción de tus clientes automáticamente al terminar cada atención.',
-    price: 19,
-    icon: ClipboardList,
-    color: 'bg-purple-500',
-    features: ['NPS, CSAT y CES', 'Pregunta abierta', 'Dashboard de resultados', 'Tendencias en el tiempo'],
-  },
-  {
-    key: 'menu',
-    label: 'Menú y Preorden',
-    desc: 'Tus clientes pueden ver el menú y hacer pedidos mientras esperan su turno.',
-    price: 39,
-    icon: UtensilsCrossed,
-    color: 'bg-orange-500',
-    features: ['Catálogo de productos', 'Carrito digital', 'Pedidos en espera', 'Gestión de estados'],
-  },
-  {
-    key: 'precheckin',
-    label: 'Pre check-in',
-    desc: 'El cliente completa su información antes de llegar. Agiliza la atención desde el primer minuto.',
-    price: 29,
-    icon: LogIn,
-    color: 'bg-teal-500',
-    features: ['Formulario personalizable', 'Validación de datos', 'Integración con cola', 'Historial del cliente'],
-  },
-  {
-    key: 'precheckout',
-    label: 'Pre check-out',
-    desc: 'Digitaliza el proceso de salida. El cliente revisa y aprueba cargos antes de salir.',
-    price: 29,
-    icon: LogOut,
-    color: 'bg-indigo-500',
-    features: ['Resumen de consumos', 'Firma digital', 'Envío por email', 'Registro de cierre'],
-  },
-  {
-    key: 'minibar',
-    label: 'Consumo en habitación',
-    desc: 'Registro de consumos en habitación o sala VIP en tiempo real. Ideal para hoteles y lounges.',
-    price: 49,
-    icon: Coffee,
-    color: 'bg-amber-600',
-    features: ['Catálogo por habitación', 'Registro en tiempo real', 'Cierre automático', 'Reporte de consumos'],
-  },
-]
 
 function daysLeft(dateStr: string | null): number {
   if (!dateStr) return 0
@@ -93,15 +66,8 @@ type ModuleStatus = 'available' | 'trial' | 'active' | 'expired' | 'cancelled'
 
 function getStatus(sub: Subscription | undefined): ModuleStatus {
   if (!sub) return 'available'
-  if (sub.status === 'trial') {
-    const left = daysLeft(sub.trial_expires_at)
-    if (left === 0) return 'expired'
-    return 'trial'
-  }
-  if (sub.status === 'active') {
-    if (sub.expires_at && daysLeft(sub.expires_at) === 0) return 'expired'
-    return 'active'
-  }
+  if (sub.status === 'trial') return daysLeft(sub.trial_expires_at) === 0 ? 'expired' : 'trial'
+  if (sub.status === 'active') return sub.expires_at && daysLeft(sub.expires_at) === 0 ? 'expired' : 'active'
   return sub.status as ModuleStatus
 }
 
@@ -115,7 +81,7 @@ function StatusBadge({ status, sub }: { status: ModuleStatus; sub?: Subscription
     const left = daysLeft(sub?.trial_expires_at ?? null)
     return (
       <span className="flex items-center gap-1 text-xs font-medium text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
-        <Clock size={11} /> Trial — {left}d restantes
+        <Clock size={11} /> Trial — {left}d
       </span>
     )
   }
@@ -127,14 +93,25 @@ function StatusBadge({ status, sub }: { status: ModuleStatus; sub?: Subscription
   return null
 }
 
-export function MarketplaceClient({ brandId, brandModules: initialModules, subscriptions: initialSubs }: Props) {
+export function MarketplaceClient({
+  brandId,
+  brandModules: initialModules,
+  subscriptions: initialSubs,
+  modules,
+  maxEstablishments,
+  maxAdvisors,
+}: Props) {
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
   const [brandModules, setBrandModules] = useState(initialModules)
   const [loading, setLoading] = useState<string | null>(null)
   const [contractModal, setContractModal] = useState<string | null>(null)
 
-  function getSub(key: string) {
-    return subs.find(s => s.module_key === key)
+  const additionalAdvisors = Math.max(0, maxAdvisors - maxEstablishments)
+
+  function getSub(key: string) { return subs.find(s => s.module_key === key) }
+  function modulePrice(mod: MarketplaceModule) {
+    return mod.price_per_establishment * maxEstablishments +
+      mod.price_per_advisor * additionalAdvisors
   }
 
   async function startTrial(moduleKey: string) {
@@ -150,8 +127,7 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
         trial_started_at: new Date().toISOString(),
         trial_expires_at: trialExpires,
       }, { onConflict: 'brand_id,module_key' })
-      .select()
-      .single()
+      .select().single()
 
     if (!error && data) {
       setSubs(s => {
@@ -159,7 +135,6 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
         if (idx >= 0) { const n = [...s]; n[idx] = data as Subscription; return n }
         return [...s, data as Subscription]
       })
-      // Activate in brand modules
       const updated = { ...brandModules, [moduleKey]: true }
       await supabase.from('brands').update({ active_modules: updated }).eq('id', brandId)
       setBrandModules(updated)
@@ -168,10 +143,11 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
   }
 
   async function cancelModule(moduleKey: string) {
-    if (!confirm('¿Cancelar este módulo? Se desactivará al final del período.')) return
+    if (!confirm('¿Cancelar este módulo? Se desactivará de inmediato.')) return
     setLoading(moduleKey)
     const supabase = createClient()
-    await supabase.from('module_subscriptions').update({ status: 'cancelled' }).eq('brand_id', brandId).eq('module_key', moduleKey)
+    await supabase.from('module_subscriptions').update({ status: 'cancelled' })
+      .eq('brand_id', brandId).eq('module_key', moduleKey)
     const updated = { ...brandModules, [moduleKey]: false }
     await supabase.from('brands').update({ active_modules: updated }).eq('id', brandId)
     setSubs(s => s.map(x => x.module_key === moduleKey ? { ...x, status: 'cancelled' } : x))
@@ -179,35 +155,79 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
     setLoading(null)
   }
 
+  const activeSubs = subs.filter(s => ['trial', 'active'].includes(s.status))
+  const baseMonthly = calcMonthlyBase(maxEstablishments, maxAdvisors)
+  const addonMonthly = calcModuleAddon(maxEstablishments, maxAdvisors, activeSubs.length)
+
+  if (modules.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center">
+        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
+          <Lock size={28} className="text-indigo-400" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-900 mb-2">Marketplace no disponible aún</h2>
+        <p className="text-sm text-gray-500 max-w-xs">
+          Pronto habrá módulos disponibles para ampliar tu TurnApp. Contacta a soporte para más información.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div>
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <Zap size={22} className="text-indigo-600" />
           <h1 className="text-2xl font-bold text-gray-900">Marketplace de módulos</h1>
         </div>
-        <p className="text-gray-500 text-sm">Expande tu TurnApp con módulos adicionales. Prueba gratis 7 días, sin tarjeta de crédito.</p>
+        <p className="text-gray-500 text-sm">
+          Expande TurnApp con funcionalidades adicionales. Prueba gratis 7 días, sin tarjeta de crédito.
+        </p>
       </div>
 
-      {/* Módulos activos (si hay alguno) */}
-      {subs.filter(s => ['trial','active'].includes(s.status)).length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos activos</h2>
+      {/* Pricing summary */}
+      <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-5 py-4 mb-7 flex flex-wrap items-center gap-4 justify-between">
+        <div className="flex items-center gap-6 text-sm">
+          <div className="flex items-center gap-2 text-indigo-700">
+            <Building2 size={15} />
+            <span><strong>{maxEstablishments}</strong> sucursal{maxEstablishments !== 1 ? 'es' : ''}</span>
+          </div>
+          <div className="flex items-center gap-2 text-indigo-700">
+            <Users size={15} />
+            <span><strong>{maxAdvisors}</strong> usuario{maxAdvisors !== 1 ? 's' : ''}</span>
+          </div>
+        </div>
+        <div className="text-sm text-right">
+          <p className="text-gray-600">
+            Base <strong className="text-gray-900">${baseMonthly}/mes</strong>
+            {addonMonthly > 0 && (
+              <> + módulos <strong className="text-indigo-700">+${addonMonthly}/mes</strong></>
+            )}
+          </p>
+          <p className="text-xs text-gray-400 mt-0.5">
+            ${PRICING.perEstablishment}/sucursal · ${PRICING.perAdditionalAdvisor}/usuario adicional
+          </p>
+        </div>
+      </div>
+
+      {/* Active modules */}
+      {activeSubs.length > 0 && (
+        <div className="mb-7">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos activos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-            {subs.filter(s => ['trial','active'].includes(s.status)).map(sub => {
-              const mod = MODULES.find(m => m.key === sub.module_key)
+            {activeSubs.map(sub => {
+              const mod = modules.find(m => m.module_key === sub.module_key)
               if (!mod) return null
-              const status = getStatus(sub)
-              const Icon = mod.icon
+              const Icon = getIcon(mod.icon ?? '')
               return (
                 <div key={sub.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-                  <div className={`w-9 h-9 ${mod.color} rounded-lg flex items-center justify-center shrink-0`}>
+                  <div className={`w-9 h-9 ${mod.color ?? 'bg-indigo-500'} rounded-lg flex items-center justify-center shrink-0`}>
                     <Icon size={16} className="text-white" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{mod.label}</p>
-                    <StatusBadge status={status} sub={sub} />
+                    <p className="font-medium text-gray-900 text-sm truncate">{mod.label}</p>
+                    <StatusBadge status={getStatus(sub)} sub={sub} />
                   </div>
                 </div>
               )
@@ -216,73 +236,98 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
         </div>
       )}
 
-      {/* Catálogo */}
-      <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-3">Catálogo de módulos</h2>
+      {/* Catalogue */}
+      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Catálogo</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {MODULES.map(mod => {
-          const sub = getSub(mod.key)
+        {modules.map(mod => {
+          const sub = getSub(mod.module_key)
           const status = getStatus(sub)
-          const Icon = mod.icon
-          const isLoading = loading === mod.key
+          const Icon = getIcon(mod.icon ?? '')
+          const isLoading = loading === mod.module_key
+          const price = modulePrice(mod)
+          const comingSoon = mod.is_coming_soon
 
           return (
-            <div key={mod.key} className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${status === 'active' || status === 'trial' ? 'border-indigo-200' : 'border-gray-100 hover:border-gray-200'}`}>
-              {/* Card header */}
+            <div
+              key={mod.module_key}
+              className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
+                status === 'active' || status === 'trial' ? 'border-indigo-200'
+                : comingSoon ? 'border-dashed border-gray-200 opacity-70'
+                : 'border-gray-100 hover:border-gray-200'
+              }`}
+            >
               <div className="p-5 flex-1">
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`w-11 h-11 ${mod.color} rounded-xl flex items-center justify-center`}>
+                  <div className={`w-11 h-11 ${mod.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center`}>
                     <Icon size={20} className="text-white" />
                   </div>
-                  {status !== 'available' && <StatusBadge status={status} sub={sub} />}
+                  <div className="flex items-center gap-2">
+                    {comingSoon && (
+                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+                        Próximamente
+                      </span>
+                    )}
+                    {!comingSoon && status !== 'available' && <StatusBadge status={status} sub={sub} />}
+                  </div>
                 </div>
                 <h3 className="font-bold text-gray-900 mb-1">{mod.label}</h3>
-                <p className="text-sm text-gray-500 mb-4 leading-relaxed">{mod.desc}</p>
-                <ul className="space-y-1.5">
-                  {mod.features.map(f => (
-                    <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                      <CheckCircle size={12} className="text-green-500 shrink-0" />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+                <p className="text-sm text-gray-500 mb-4 leading-relaxed">{mod.description}</p>
+                {(mod.features ?? []).length > 0 && (
+                  <ul className="space-y-1.5">
+                    {(mod.features ?? []).map(f => (
+                      <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
+                        <CheckCircle size={12} className="text-green-500 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
 
-              {/* Card footer */}
               <div className="px-5 pb-5">
-                <div className="flex items-center justify-between mb-3 pt-4 border-t border-gray-100">
+                <div className="flex items-end justify-between mb-3 pt-4 border-t border-gray-100">
                   <div>
-                    <span className="text-2xl font-black text-gray-900">${mod.price}</span>
-                    <span className="text-gray-400 text-sm">/mes</span>
+                    {price > 0 ? (
+                      <>
+                        <div>
+                          <span className="text-2xl font-black text-gray-900">${price}</span>
+                          <span className="text-gray-400 text-sm">/mes</span>
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          ${mod.price_per_establishment}/sucursal
+                          {additionalAdvisors > 0 && ` + $${mod.price_per_advisor}/usuario adic.`}
+                        </p>
+                      </>
+                    ) : (
+                      <span className="text-sm text-gray-400">Precio personalizado</span>
+                    )}
                   </div>
-                  {status === 'available' && (
-                    <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-lg">
+                  {!comingSoon && status === 'available' && (
+                    <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-lg whitespace-nowrap">
                       <Star size={10} className="inline mr-1" />7 días gratis
                     </span>
                   )}
                 </div>
 
-                {status === 'available' && (
-                  <Button onClick={() => startTrial(mod.key)} loading={isLoading} className="w-full">
+                {comingSoon ? (
+                  <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2">
+                    <Lock size={14} /> Próximamente
+                  </button>
+                ) : status === 'available' ? (
+                  <Button onClick={() => startTrial(mod.module_key)} disabled={isLoading} className="w-full">
                     Probar gratis 7 días <ArrowRight size={14} className="ml-1" />
                   </Button>
-                )}
-                {status === 'trial' && (
+                ) : status === 'trial' ? (
                   <div className="flex gap-2">
-                    <Button onClick={() => setContractModal(mod.key)} className="flex-1">
-                      Contratar ahora
-                    </Button>
-                    <Button variant="secondary" onClick={() => cancelModule(mod.key)} loading={isLoading} className="flex-1">
-                      Cancelar
-                    </Button>
+                    <Button onClick={() => setContractModal(mod.module_key)} className="flex-1 text-sm">Contratar</Button>
+                    <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="flex-1 text-sm">Cancelar</Button>
                   </div>
-                )}
-                {status === 'active' && (
-                  <Button variant="secondary" onClick={() => cancelModule(mod.key)} loading={isLoading} className="w-full">
+                ) : status === 'active' ? (
+                  <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="w-full">
                     Cancelar módulo
                   </Button>
-                )}
-                {(status === 'expired' || status === 'cancelled') && (
-                  <Button onClick={() => setContractModal(mod.key)} className="w-full">
+                ) : (
+                  <Button onClick={() => setContractModal(mod.module_key)} className="w-full">
                     Contratar módulo
                   </Button>
                 )}
@@ -292,7 +337,7 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
         })}
       </div>
 
-      {/* Contract modal (placeholder - Stripe coming soon) */}
+      {/* Contract modal */}
       {contractModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
@@ -301,10 +346,10 @@ export function MarketplaceClient({ brandId, brandModules: initialModules, subsc
             </div>
             <h2 className="text-lg font-bold text-gray-900 mb-2">Pago en línea próximamente</h2>
             <p className="text-sm text-gray-500 mb-4">
-              Estamos integrando el proceso de pago. Por ahora, contacta a nuestro equipo para activar el módulo:
+              Estamos integrando el proceso de pago. Por ahora contacta a nuestro equipo para activar el módulo:
             </p>
             <a
-              href="mailto:soporte@turnapp.co?subject=Contratar módulo"
+              href={`mailto:soporte@turnapp.co?subject=Contratar módulo: ${contractModal}`}
               className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
             >
               Contactar soporte

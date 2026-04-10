@@ -9,7 +9,7 @@ import {
   Users, Store, Menu, ChevronLeft, ChevronRight,
   LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
-  Settings, Shield, UserCircle, CreditCard, UserCheck,
+  Settings, Shield, UserCircle, CreditCard, UserCheck, Zap,
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -48,6 +48,7 @@ const OPERATION_ITEMS: NavItem[] = [
 const MODULE_ITEMS: NavItem[] = [
   { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
   { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
+  { href: '/admin/crm', label: 'Clientes CRM', icon: UserCheck },
   { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
 ]
 
@@ -55,6 +56,8 @@ const REPORT_ITEMS: NavItem[] = [
   { href: '/reports', label: 'Reportes', icon: BarChart2 },
   { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
 ]
+
+const MARKETPLACE_ITEM: NavItem = { href: '/admin/marketplace', label: 'Marketplace', icon: Zap }
 
 const navByRole: Record<AppRole, NavSection[]> = {
   superadmin: [
@@ -70,7 +73,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
+    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
   ],
   brand_admin: [
     {
@@ -79,15 +82,12 @@ const navByRole: Record<AppRole, NavSection[]> = {
     },
     {
       section: 'Administración',
-      items: [
-        { href: '/admin/users', label: 'Equipo', icon: Users },
-        { href: '/admin/crm', label: 'Clientes', icon: UserCheck },
-      ],
+      items: [{ href: '/admin/users', label: 'Equipo', icon: Users }],
     },
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
+    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
   ],
   manager: [
     {
@@ -97,7 +97,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
+    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
   ],
   advisor: [
     { section: 'Operación', items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }] },
@@ -209,25 +209,16 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     // superadmin always sees everything
     if (role === 'superadmin') return true
 
-    const limits = getLimits(plan ?? 'free')
+    // Marketplace is always visible for all brand roles
+    if (href.startsWith('/admin/marketplace')) return true
 
-    // brand_admin and manager always have access to reports and core admin pages
-    const isAdmin = role === 'brand_admin' || role === 'manager'
-
-    // Plan-level gates (not applied to admins for reports/core features)
-    if (href.startsWith('/reports') && !limits.hasReports && !isAdmin) return false
-    if (href.startsWith('/admin/consents') && !isAdmin) return false
-    if (href.startsWith('/admin/surveys') && !limits.hasSurveys) return false
-    if (href.startsWith('/admin/appointments') && !limits.hasAppointments) return false
-    if (href.startsWith('/admin/menu') && !limits.hasMenu) return false
-
-    // Brand-level active_modules toggle (overrides plan for specific modules)
-    if (activeModules) {
-      if (href.startsWith('/admin/appointments') && activeModules.appointments === false) return false
-      if (href.startsWith('/admin/surveys') && activeModules.surveys === false) return false
-      if (href.startsWith('/admin/menu') && activeModules.menu === false) return false
-      if (href.startsWith('/admin/display') && activeModules.display === false) return false
-    }
+    // Module-gating: purely based on active_modules flag on the brand.
+    // If active_modules is undefined (no modules set), hide optional modules by default.
+    if (href.startsWith('/admin/appointments')) return activeModules?.appointments === true
+    if (href.startsWith('/admin/surveys')) return activeModules?.surveys === true
+    if (href.startsWith('/admin/crm')) return activeModules?.crm === true
+    if (href.startsWith('/admin/menu')) return activeModules?.menu === true
+    if (href.startsWith('/admin/display') && activeModules?.display === false) return false
 
     return true
   }

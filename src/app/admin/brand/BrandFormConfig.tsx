@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,7 +55,23 @@ export function BrandFormConfig({
   })
   const [showNewField, setShowNewField] = useState(false)
 
-  const dragIdx = { current: -1 }
+  const dragIdx = useRef<number>(-1)
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null)
+
+  function handleDragStart(i: number) { dragIdx.current = i }
+  function handleDragEnter(i: number) { setDragOverIdx(i) }
+  function handleDragEnd() { dragIdx.current = -1; setDragOverIdx(null) }
+  function handleDrop(dropIdx: number) {
+    const from = dragIdx.current
+    if (from === -1 || from === dropIdx) { handleDragEnd(); return }
+    setFields(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(dropIdx, 0, moved)
+      return next
+    })
+    handleDragEnd()
+  }
 
   function addField() {
     if (!newField.label.trim()) return
@@ -84,12 +100,17 @@ export function BrandFormConfig({
     }
     setSaving(true)
     const supabase = createClient()
-    const { error: err } = await supabase
+    const { data: updated, error: err } = await supabase
       .from('brands')
       .update({ form_fields: fields, data_policy_text: policy || null })
       .eq('id', brandId)
+      .select('id')
     setSaving(false)
     if (err) { setError(err.message); return }
+    if (!updated || updated.length === 0) {
+      setError('No se pudo guardar. Verifica que tienes permisos para editar esta marca.')
+      return
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
@@ -183,9 +204,20 @@ export function BrandFormConfig({
           </p>
         ) : (
           <div className="flex flex-col gap-2">
-            {fields.map((field) => (
-              <div key={field.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
-                <GripVertical size={14} className="text-gray-300" />
+            {fields.map((field, i) => (
+              <div
+                key={field.id}
+                draggable
+                onDragStart={() => handleDragStart(i)}
+                onDragEnter={() => handleDragEnter(i)}
+                onDragEnd={handleDragEnd}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => handleDrop(i)}
+                className={`flex items-center gap-3 bg-white border rounded-xl px-4 py-3 transition-all select-none ${
+                  dragOverIdx === i ? 'border-indigo-400 shadow-md scale-[1.01]' : 'border-gray-200'
+                }`}
+              >
+                <GripVertical size={14} className="cursor-grab text-gray-300 hover:text-gray-500 active:cursor-grabbing shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-sm font-medium text-gray-800">{field.label}</span>
                   <span className="ml-2 text-xs text-gray-400">{FIELD_TYPE_LABELS[field.field_type]}</span>
