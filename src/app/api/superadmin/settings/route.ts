@@ -5,7 +5,13 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 // Keys that are overridable at runtime via system_settings table.
 // NEXT_PUBLIC_* vars are baked at build time — shown read-only from process.env.
 const RUNTIME_KEYS = [
+  // Email — Brevo
+  'BREVO_API_KEY',
+  'COMMS_FROM_EMAIL',
+  'COMMS_FROM_NAME',
+  // Push notifications
   'FIREBASE_SERVER_KEY',
+  // Infrastructure
   'VERCEL_TOKEN',
   'SUPABASE_SERVICE_ROLE_KEY',
 ]

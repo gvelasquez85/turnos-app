@@ -17,10 +17,72 @@ async function requireSuperadmin() {
   return user
 }
 
+async function sendViaBrevo(
+  apiKey: string,
+  from: string,
+  fromName: string,
+  to: string,
+  toName: string,
+  subject: string,
+  html: string,
+): Promise<boolean> {
+  const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+    method: 'POST',
+    headers: {
+      'api-key': apiKey,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    },
+    body: JSON.stringify({
+      sender: { name: fromName, email: from },
+      to: [{ email: to, name: toName }],
+      subject,
+      htmlContent: html,
+    }),
+  })
+  return res.ok
+}
+
+async function sendViaResend(
+  apiKey: string,
+  from: string,
+  to: string,
+  subject: string,
+  html: string,
+): Promise<boolean> {
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to, subject, html }),
+  })
+  return res.ok
+}
+
+async function sendViaSendGrid(
+  apiKey: string,
+  from: string,
+  to: string,
+  toName: string,
+  subject: string,
+  html: string,
+): Promise<boolean> {
+  const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: to, name: toName }] }],
+      from: { email: from },
+      subject,
+      content: [{ type: 'text/html', value: html }],
+    }),
+  })
+  return res.status < 300
+}
+
 /**
  * POST /api/superadmin/comms/send
  * Sends a bulk email campaign to a list of consented contacts.
- * Requires RESEND_API_KEY or SENDGRID_API_KEY in system_settings or env.
+ * Priority: Brevo → Resend → SendGrid → demo mode
  *
  * Body: { brand_id, subject, body (HTML), contacts: ContactItem[] }
  */
@@ -33,7 +95,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Parámetros incompletos' }, { status: 400 })
   }
 
-  // Get email service config from system_settings or env
+  // Load email service config from system_settings (DB override) or env vars
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -41,69 +103,49 @@ export async function POST(req: NextRequest) {
   const { data: settingsRows } = await service
     .from('system_settings')
     .select('key, value')
-    .in('key', ['RESEND_API_KEY', 'SENDGRID_API_KEY', 'COMMS_FROM_EMAIL'])
+    .in('key', ['BREVO_API_KEY', 'RESEND_API_KEY', 'SENDGRID_API_KEY', 'COMMS_FROM_EMAIL', 'COMMS_FROM_NAME'])
 
-  const dbSettings: Record<string, string> = Object.fromEntries(
+  const db: Record<string, string> = Object.fromEntries(
     (settingsRows ?? []).map((r: any) => [r.key, r.value])
   )
 
-  const resendKey = dbSettings['RESEND_API_KEY'] || process.env.RESEND_API_KEY
-  const sendgridKey = dbSettings['SENDGRID_API_KEY'] || process.env.SENDGRID_API_KEY
-  const fromEmail = dbSettings['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL || 'noreply@turnapp.com'
+  const brevoKey    = db['BREVO_API_KEY']    || process.env.BREVO_API_KEY
+  const resendKey   = db['RESEND_API_KEY']   || process.env.RESEND_API_KEY
+  const sendgridKey = db['SENDGRID_API_KEY'] || process.env.SENDGRID_API_KEY
+  const fromEmail   = db['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL || 'noreply@turnapp.co'
+  const fromName    = db['COMMS_FROM_NAME']  || process.env.COMMS_FROM_NAME  || 'TurnApp'
 
-  if (!resendKey && !sendgridKey) {
-    // Simulate send for demo (no real email service configured)
-    const validContacts = (contacts as ContactItem[]).filter(c => c.customer_email)
+  const validContacts = (contacts as ContactItem[]).filter(c => c.customer_email)
+
+  if (!brevoKey && !resendKey && !sendgridKey) {
     return NextResponse.json({
       sent: validContacts.length,
       failed: 0,
       demo: true,
-      note: 'No se configuró RESEND_API_KEY ni SENDGRID_API_KEY. Configúralos en Integraciones para enviar correos reales.',
+      note: 'No hay proveedor de email configurado. Agrega BREVO_API_KEY en Configuración → Integraciones.',
     })
   }
 
-  const validContacts = (contacts as ContactItem[]).filter(c => c.customer_email)
   let sent = 0
   let failed = 0
 
   for (const contact of validContacts) {
-    const personalizedBody = body.replace(/\{\{nombre\}\}/g, contact.customer_name)
+    const personalizedHtml = body.replace(/\{\{nombre\}\}/g, contact.customer_name)
+    let ok = false
 
     try {
-      if (resendKey) {
-        const res = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: fromEmail,
-            to: contact.customer_email,
-            subject,
-            html: personalizedBody,
-          }),
-        })
-        if (res.ok) sent++; else failed++
+      if (brevoKey) {
+        ok = await sendViaBrevo(brevoKey, fromEmail, fromName, contact.customer_email!, contact.customer_name, subject, personalizedHtml)
+      } else if (resendKey) {
+        ok = await sendViaResend(resendKey, fromEmail, contact.customer_email!, subject, personalizedHtml)
       } else if (sendgridKey) {
-        const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${sendgridKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            personalizations: [{ to: [{ email: contact.customer_email, name: contact.customer_name }] }],
-            from: { email: fromEmail },
-            subject,
-            content: [{ type: 'text/html', value: personalizedBody }],
-          }),
-        })
-        if (res.status < 300) sent++; else failed++
+        ok = await sendViaSendGrid(sendgridKey, fromEmail, contact.customer_email!, contact.customer_name, subject, personalizedHtml)
       }
     } catch {
-      failed++
+      ok = false
     }
+
+    if (ok) sent++; else failed++
   }
 
   // Log the campaign
@@ -116,7 +158,7 @@ export async function POST(req: NextRequest) {
       sent_by: user.id,
       sent_at: new Date().toISOString(),
     })
-  } catch {} // ignore if table doesn't exist yet
+  } catch {} // ignore if table doesn't exist
 
   return NextResponse.json({ sent, failed })
 }

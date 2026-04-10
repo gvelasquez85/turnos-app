@@ -23,6 +23,46 @@ const STATUS_COLORS: Record<string, string> = { active: 'bg-green-100 text-green
 
 const INTEGRATIONS = [
   {
+    key: 'brevo',
+    label: 'Brevo (Email)',
+    icon: '📧',
+    color: 'bg-blue-50 border-blue-200',
+    vars: [
+      {
+        env: 'BREVO_API_KEY',
+        label: 'API Key',
+        hint: 'Brevo → SMTP & API → API Keys → Crear clave. Úsala para envío de campañas.',
+        required: true,
+      },
+      {
+        env: 'COMMS_FROM_EMAIL',
+        label: 'Email remitente',
+        hint: 'Dirección verificada en Brevo (ej: noreply@turnapp.co). Debe estar autorizada como sender.',
+      },
+      {
+        env: 'COMMS_FROM_NAME',
+        label: 'Nombre remitente',
+        hint: 'Nombre que verán los destinatarios (ej: TurnApp)',
+      },
+    ],
+    docs: 'https://developers.brevo.com/docs/send-a-transactional-email',
+    status: 'info' as const,
+    statusNote: 'Configura la API Key de Brevo para habilitar campañas de email y correos transaccionales.',
+    extra: (
+      <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-900 space-y-1">
+        <p className="font-semibold">🔑 SMTP para Supabase Auth (reset de contraseña, invitaciones)</p>
+        <p>Configura en <strong>Supabase Dashboard → Authentication → SMTP Settings</strong>:</p>
+        <ul className="ml-3 space-y-0.5 text-blue-800">
+          <li><strong>Host:</strong> smtp-relay.brevo.com</li>
+          <li><strong>Port:</strong> 587</li>
+          <li><strong>Username:</strong> tu correo de login en Brevo</li>
+          <li><strong>Password:</strong> Brevo → SMTP & API → SMTP → clave SMTP (¡no la contraseña de tu cuenta!)</li>
+          <li><strong>Sender email:</strong> el mismo que COMMS_FROM_EMAIL</li>
+        </ul>
+      </div>
+    ),
+  },
+  {
     key: 'firebase',
     label: 'Firebase / FCM',
     icon: '🔥',
@@ -37,19 +77,7 @@ const INTEGRATIONS = [
     ],
     docs: 'https://firebase.google.com/docs/web/setup',
     status: 'partial' as const,
-    statusNote: 'Server Key pendiente de agregar en Vercel. Sin ella las notificaciones push no se envían.',
-  },
-  {
-    key: 'vercel',
-    label: 'Vercel',
-    icon: '▲',
-    color: 'bg-gray-50 border-gray-200',
-    vars: [
-      { env: 'VERCEL_TOKEN', label: 'Token API', hint: 'vercel.com → Account Settings → Tokens' },
-    ],
-    docs: 'https://vercel.com/docs/rest-api',
-    status: 'info' as const,
-    statusNote: 'El deploy actual se realiza via CLI. Para auto-deploy reconectar el repo en Vercel Dashboard → Settings → Git.',
+    statusNote: 'Server Key pendiente. Sin ella las notificaciones push no se envían.',
   },
   {
     key: 'supabase',
@@ -349,6 +377,13 @@ function IntegrationsTab() {
   }
 
   const statusForIntegration = (key: string): 'ok' | 'partial' | 'info' => {
+    if (key === 'brevo') {
+      const hasKey = settings['BREVO_API_KEY']?.set
+      const hasFrom = settings['COMMS_FROM_EMAIL']?.set
+      if (hasKey && hasFrom) return 'ok'
+      if (hasKey) return 'partial'
+      return 'info'
+    }
     if (key === 'firebase') {
       const serverKey = settings['FIREBASE_SERVER_KEY']
       const hasAll = ['NEXT_PUBLIC_FIREBASE_API_KEY','NEXT_PUBLIC_FIREBASE_PROJECT_ID','NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID','NEXT_PUBLIC_FIREBASE_APP_ID','NEXT_PUBLIC_FIREBASE_VAPID_KEY'].every(k => settings[k]?.set)
@@ -398,6 +433,12 @@ function IntegrationsTab() {
                   className="text-xs text-indigo-600 hover:underline flex items-center gap-0.5">Docs <ExternalLink size={10} /></a>
               </div>
             </div>
+
+            {'extra' in integration && integration.extra && (
+              <div className="px-5 py-3 border-b border-inherit">
+                {integration.extra}
+              </div>
+            )}
 
             <div className="divide-y divide-gray-100">
               {integration.vars.map(v => {
