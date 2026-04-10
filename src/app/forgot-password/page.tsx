@@ -36,15 +36,30 @@ export default function ForgotPasswordPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-100 mb-4">
             <Mail size={32} className="text-green-600" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900 mb-2">Correo enviado</h1>
-          <p className="text-gray-500 text-sm mb-6">
-            Enviamos las instrucciones a <strong>{email}</strong>. Revisa tu bandeja de entrada y también la carpeta de spam.
+          <h1 className="text-xl font-bold text-gray-900 mb-2">Revisa tu correo</h1>
+          <p className="text-gray-500 text-sm mb-3">
+            Si <strong>{email}</strong> está registrado, recibirás un enlace en los próximos minutos.
           </p>
-          <Link href="/login">
-            <Button variant="secondary" className="w-full">
-              <ArrowLeft size={16} className="mr-2" /> Volver al login
-            </Button>
-          </Link>
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800 text-left mb-6 space-y-1">
+            <p className="font-semibold">¿No llega el correo?</p>
+            <p>• Revisa la carpeta de <strong>spam / correo no deseado</strong></p>
+            <p>• Espera hasta 5 minutos antes de intentar de nuevo</p>
+            <p>• Asegúrate de que el correo esté escrito correctamente</p>
+            <p>• Si el problema persiste, contacta al administrador</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => { setSent(false); setEmail('') }}
+              className="text-sm text-indigo-600 hover:underline"
+            >
+              Intentar con otro correo
+            </button>
+            <Link href="/login">
+              <Button variant="secondary" className="w-full">
+                <ArrowLeft size={16} className="mr-2" /> Volver al login
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     )
