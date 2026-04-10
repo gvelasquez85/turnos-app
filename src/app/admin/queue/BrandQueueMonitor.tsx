@@ -102,7 +102,19 @@ export function BrandQueueMonitor({ brands, establishments, defaultBrandId }: Pr
             Actualizado {lastUpdate.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
           </p>
         </div>
-
+        {selectedBrand ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 border border-indigo-200 rounded-lg">
+            <Building2 size={13} className="text-indigo-500" />
+            <span className="text-xs font-semibold text-indigo-700">
+              {brands.find(b => b.id === selectedBrand)?.name || 'Marca seleccionada'}
+            </span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg">
+            <Building2 size={13} className="text-gray-400" />
+            <span className="text-xs text-gray-500">Todas las marcas</span>
+          </div>
+        )}
       </div>
 
       {/* KPIs globales */}

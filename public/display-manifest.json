@@ -1,0 +1,19 @@
+{
+  "name": "TurnApp – Pantalla TV",
+  "short_name": "TurnApp TV",
+  "description": "Pantalla de cola de espera para sala de clientes",
+  "start_url": "/display",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#1e1b4b",
+  "theme_color": "#1e1b4b",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["business", "productivity"]
+}

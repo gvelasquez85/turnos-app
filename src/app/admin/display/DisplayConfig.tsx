@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Monitor, GripVertical, Trash2, ChevronDown, ChevronUp,
-  Play, Image, Type, List, Clock, Plus, ExternalLink, Copy, Check,
+  Play, Image, Type, List, Clock, Plus, ExternalLink, Copy, Check, LayoutTemplate,
 } from 'lucide-react'
 
 interface Brand { id: string; name: string }
@@ -33,9 +33,44 @@ interface DisplayConfigRow {
   establishment_id: string
   bg_color: string
   accent_color: string
+  font_color: string
   show_clock: boolean
   widgets: Widget[]
 }
+
+// ── Layout presets ──────────────────────────────────────────────────────────────
+const LAYOUT_PRESETS = [
+  {
+    id: 'simple',
+    label: 'Cola simple',
+    description: 'Turno actual + lista de espera',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
+      { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos en cola', maxItems: 6 } },
+    ],
+  },
+  {
+    id: 'with_side',
+    label: 'Cola + lateral',
+    description: 'Cola principal con reloj y texto lateral',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
+      { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos en cola', maxItems: 5 } },
+      { id: 'w3', type: 'clock' as WidgetType, col: 'side' as const, config: {} },
+    ],
+  },
+  {
+    id: 'with_video',
+    label: 'Cola + contenido',
+    description: 'Cola principal con video/imagen lateral',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
+      { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos en cola', maxItems: 4 } },
+      { id: 'w3', type: 'clock' as WidgetType, col: 'side' as const, config: {} },
+      { id: 'w4', type: 'youtube' as WidgetType, col: 'side' as const, config: { title: '' } },
+    ],
+  },
+]
 
 interface Props {
   brands: Brand[]
@@ -53,6 +88,7 @@ const DEFAULT_WIDGETS: Widget[] = [
 const DEFAULT_CONFIG = {
   bg_color: '#1e1b4b',
   accent_color: '#6366f1',
+  font_color: '#ffffff',
   show_clock: true,
   widgets: DEFAULT_WIDGETS,
 }
@@ -199,7 +235,7 @@ function WidgetRow({ widget, isDragOver, onDragStart, onDragEnter, onDragEnd, on
 }
 
 // ── TV preview (mini 16:9) ──────────────────────────────────────────────────────
-function TvPreview({ widgets, bgColor, accentColor }: { widgets: Widget[]; bgColor: string; accentColor: string }) {
+function TvPreview({ widgets, bgColor, accentColor, fontColor }: { widgets: Widget[]; bgColor: string; accentColor: string; fontColor: string }) {
   const mainWidgets = widgets.filter(w => w.col === 'main')
   const sideWidgets = widgets.filter(w => w.col === 'side')
 
@@ -223,7 +259,7 @@ function TvPreview({ widgets, bgColor, accentColor }: { widgets: Widget[]; bgCol
 
       {/* The TV screen */}
       <div className="rounded-xl overflow-hidden border-2 border-gray-300 shadow-lg" style={{ aspectRatio: '16/9' }}>
-        <div className="h-full flex flex-col text-white text-[8px]" style={{ backgroundColor: bgColor }}>
+        <div className="h-full flex flex-col text-[8px]" style={{ backgroundColor: bgColor, color: fontColor }}>
           {/* Header */}
           <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/10" style={{ minHeight: '14%' }}>
             <div>
@@ -325,6 +361,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
   const [selectedEstId, setSelectedEstId] = useState('')
   const [bgColor, setBgColor] = useState(DEFAULT_CONFIG.bg_color)
   const [accentColor, setAccentColor] = useState(DEFAULT_CONFIG.accent_color)
+  const [fontColor, setFontColor] = useState(DEFAULT_CONFIG.font_color)
   const [widgets, setWidgets] = useState<Widget[]>(DEFAULT_CONFIG.widgets)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -350,10 +387,12 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
     if (existing) {
       setBgColor(existing.bg_color)
       setAccentColor(existing.accent_color)
+      setFontColor((existing as any).font_color || DEFAULT_CONFIG.font_color)
       setWidgets(Array.isArray(existing.widgets) && existing.widgets.length > 0 ? existing.widgets : DEFAULT_WIDGETS)
     } else {
       setBgColor(DEFAULT_CONFIG.bg_color)
       setAccentColor(DEFAULT_CONFIG.accent_color)
+      setFontColor(DEFAULT_CONFIG.font_color)
       setWidgets(DEFAULT_CONFIG.widgets)
     }
   }, [selectedEstId, displayConfigs])
@@ -389,7 +428,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
     if (!selectedEstId) return
     setSaving(true)
     const supabase = createClient()
-    const payload = { bg_color: bgColor, accent_color: accentColor, show_clock: true, widgets, updated_at: new Date().toISOString() }
+    const payload = { bg_color: bgColor, accent_color: accentColor, font_color: fontColor, show_clock: true, widgets, updated_at: new Date().toISOString() }
 
     // Save to selected establishment
     const estIds = applyScope === 'all'
@@ -420,9 +459,15 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
 
         {/* Establishment selector */}
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
+          {selectedBrand && brands.find(b => b.id === selectedBrand) && (
+            <div className="mb-3 px-2.5 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg flex items-center gap-2">
+              <Monitor size={12} className="text-indigo-500 shrink-0" />
+              <span className="text-xs font-semibold text-indigo-700 truncate">{brands.find(b => b.id === selectedBrand)?.name}</span>
+            </div>
+          )}
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide block mb-2">Sucursal</label>
           <select
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none"
+            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
             value={selectedEstId}
             onChange={e => setSelectedEstId(e.target.value)}
           >
@@ -457,7 +502,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
                 <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)}
                   className="h-8 w-10 rounded border border-gray-300 cursor-pointer p-0.5 shrink-0" />
                 <input type="text" value={bgColor} onChange={e => setBgColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-mono focus:border-indigo-500 focus:outline-none" />
+                  className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-mono text-gray-900 focus:border-indigo-500 focus:outline-none" />
               </div>
             </div>
             <div>
@@ -466,7 +511,16 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
                 <input type="color" value={accentColor} onChange={e => setAccentColor(e.target.value)}
                   className="h-8 w-10 rounded border border-gray-300 cursor-pointer p-0.5 shrink-0" />
                 <input type="text" value={accentColor} onChange={e => setAccentColor(e.target.value)}
-                  className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-mono focus:border-indigo-500 focus:outline-none" />
+                  className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-mono text-gray-900 focus:border-indigo-500 focus:outline-none" />
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-gray-600 block mb-1.5">Fuente / texto</label>
+              <div className="flex items-center gap-2">
+                <input type="color" value={fontColor} onChange={e => setFontColor(e.target.value)}
+                  className="h-8 w-10 rounded border border-gray-300 cursor-pointer p-0.5 shrink-0" />
+                <input type="text" value={fontColor} onChange={e => setFontColor(e.target.value)}
+                  className="flex-1 rounded-lg border border-gray-300 px-2 py-1.5 text-xs font-mono text-gray-900 focus:border-indigo-500 focus:outline-none" />
               </div>
             </div>
           </div>
@@ -497,7 +551,29 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
 
         {/* TV Preview — prominente en la parte superior */}
         <div className="bg-white rounded-2xl border border-gray-200 p-5">
-          <TvPreview widgets={widgets} bgColor={bgColor} accentColor={accentColor} />
+          <TvPreview widgets={widgets} bgColor={bgColor} accentColor={accentColor} fontColor={fontColor} />
+        </div>
+
+        {/* Layout presets */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="flex items-center gap-2 mb-1">
+            <LayoutTemplate size={16} className="text-indigo-500" />
+            <h2 className="font-semibold text-gray-900">Distribuciones predefinidas</h2>
+          </div>
+          <p className="text-xs text-gray-400 mb-4">Aplica una distribución de pantalla con un clic. Reemplaza los widgets actuales.</p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {LAYOUT_PRESETS.map(preset => (
+              <button
+                key={preset.id}
+                onClick={() => setWidgets(preset.widgets.map(w => ({ ...w, id: genId() })))}
+                className="text-left rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 p-3 transition-all active:scale-95"
+              >
+                <p className="text-sm font-semibold text-gray-800">{preset.label}</p>
+                <p className="text-xs text-gray-400 mt-0.5">{preset.description}</p>
+                <p className="text-xs text-indigo-500 mt-1.5 font-medium">{preset.widgets.length} widget{preset.widgets.length !== 1 ? 's' : ''}</p>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Widget palette */}

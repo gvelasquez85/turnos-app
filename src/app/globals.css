@@ -24,3 +24,10 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Ensure all form inputs display black text regardless of parent color */
+input:not([type="color"]):not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea {
+  color: #111827;
+}

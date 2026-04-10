@@ -11,8 +11,8 @@ export default async function ReportsPage() {
 
   const activeModules = (profile?.brands as any)?.active_modules || []
 
-  // Load establishments the user can see
-  const estQuery = supabase.from('establishments').select('id, name').eq('active', true)
+  // Load establishments the user can see (include brand_id for client-side filtering)
+  const estQuery = supabase.from('establishments').select('id, name, brand_id').eq('active', true)
   if (profile?.role === 'advisor' && profile.establishment_id) {
     estQuery.eq('id', profile.establishment_id)
   } else if (profile?.role === 'brand_admin' && profile.brand_id) {

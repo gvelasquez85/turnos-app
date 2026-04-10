@@ -27,7 +27,7 @@ interface Widget {
 
 interface Props {
   establishment: { id: string; name: string; brands: { name: string; logo_url: string | null } }
-  config: { bg_color: string; accent_color: string; widgets: Widget[] } | null
+  config: { bg_color: string; accent_color: string; font_color?: string; widgets: Widget[] } | null
 }
 
 const DEFAULT_WIDGETS: Widget[] = [
@@ -223,6 +223,7 @@ export function DisplayScreen({ establishment, config }: Props) {
 
   const bgColor = config?.bg_color ?? '#1e1b4b'
   const accentColor = config?.accent_color ?? '#6366f1'
+  const fontColor = config?.font_color ?? '#ffffff'
 
   const rawWidgets = config?.widgets && config.widgets.length > 0 ? config.widgets : DEFAULT_WIDGETS
   const mainWidgets = rawWidgets.filter(w => w.col === 'main')
@@ -271,7 +272,7 @@ export function DisplayScreen({ establishment, config }: Props) {
   return (
     <div
       className="min-h-screen flex flex-col"
-      style={{ backgroundColor: bgColor, color: 'white', fontFamily: 'system-ui, sans-serif' }}
+      style={{ backgroundColor: bgColor, color: fontColor, fontFamily: 'system-ui, sans-serif' }}
     >
       {/* Header */}
       <div className="flex items-center justify-between px-8 py-4 border-b border-white/10">

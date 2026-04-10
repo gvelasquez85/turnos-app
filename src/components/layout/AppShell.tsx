@@ -223,9 +223,10 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
 
     // Brand-level active_modules toggle (overrides plan for specific modules)
     if (activeModules) {
-      if (href.startsWith('/admin/appointments') && !activeModules.appointments) return false
-      if (href.startsWith('/admin/surveys') && !activeModules.surveys) return false
-      if (href.startsWith('/admin/menu') && !activeModules.menu) return false
+      if (href.startsWith('/admin/appointments') && activeModules.appointments === false) return false
+      if (href.startsWith('/admin/surveys') && activeModules.surveys === false) return false
+      if (href.startsWith('/admin/menu') && activeModules.menu === false) return false
+      if (href.startsWith('/admin/display') && activeModules.display === false) return false
     }
 
     return true

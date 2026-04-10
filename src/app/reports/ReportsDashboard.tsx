@@ -1,6 +1,34 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useBrandStore } from '@/stores/brandStore'
+
+function printReport(title: string) {
+  const printContent = document.getElementById('report-print-area')
+  if (!printContent) { window.print(); return }
+  const w = window.open('', '_blank', 'width=900,height=700')
+  if (!w) { window.print(); return }
+  w.document.write(`<!DOCTYPE html><html><head>
+    <title>${title}</title>
+    <style>
+      body { font-family: system-ui, sans-serif; padding: 24px; color: #111; }
+      table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+      th { background: #f3f4f6; padding: 8px 12px; text-align: left; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; }
+      h1 { font-size: 20px; margin-bottom: 4px; }
+      p { color: #6b7280; font-size: 13px; margin: 0 0 16px; }
+      .kpi { display: inline-block; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 12px 20px; margin: 0 8px 12px 0; }
+      .kpi-val { font-size: 24px; font-weight: 900; }
+      .kpi-lbl { font-size: 11px; color: #6b7280; }
+      @media print { body { padding: 0; } }
+    </style>
+  </head><body>`)
+  w.document.write(printContent.innerHTML)
+  w.document.write('</body></html>')
+  w.document.close()
+  w.focus()
+  setTimeout(() => { w.print(); w.close() }, 300)
+}
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts'
 import { formatDate } from '@/lib/utils'
 import { Users, Clock, CheckCircle, TrendingUp, Star, BarChart2, Download } from 'lucide-react'
@@ -19,7 +47,7 @@ function downloadCSV(rows: Record<string, unknown>[], filename: string) {
 }
 
 interface Props {
-  establishments: { id: string; name: string }[]
+  establishments: { id: string; name: string; brand_id: string }[]
   activeModules?: string[]
 }
 
@@ -94,7 +122,7 @@ function PeriodSelector({ range, onChange }: { range: DateRange; onChange: (r: D
 }
 
 // ─── TAB: General ─────────────────────────────────────────────────────────────
-function GeneralTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+function GeneralTab({ establishments }: { establishments: { id: string; name: string; brand_id: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
   const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [stats, setStats] = useState<TicketStat[]>([])
@@ -165,13 +193,22 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
           )}
           <PeriodSelector range={range} onChange={setRange} />
         </div>
-        <button
-          onClick={() => downloadCSV(stats.map(s => ({ Fecha: s.date, Total: s.total, Atendidos: s.done, Cancelados: s.cancelled })), `reporte_general.csv`)}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-        >
-          <Download size={14} /> Exportar CSV
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => downloadCSV(stats.map(s => ({ Fecha: s.date, Total: s.total, Atendidos: s.done, Cancelados: s.cancelled })), `reporte_general.csv`)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <Download size={14} /> CSV
+          </button>
+          <button
+            onClick={() => printReport('Reporte General – TurnApp')}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            <Download size={14} /> PDF
+          </button>
+        </div>
       </div>
+      <div id="report-print-area">
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
@@ -241,12 +278,13 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
           )}
         </div>
       </div>
+      </div>{/* /report-print-area */}
     </div>
   )
 }
 
 // ─── TAB: Por Sucursal ─────────────────────────────────────────────────
-function EstablishmentTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+function EstablishmentTab({ establishments }: { establishments: { id: string; name: string; brand_id: string }[] }) {
   const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [data, setData] = useState<{ name: string; total: number; done: number; avg_wait: number }[]>([])
   const [loading, setLoading] = useState(false)
@@ -351,7 +389,7 @@ function EstablishmentTab({ establishments }: { establishments: { id: string; na
 }
 
 // ─── TAB: Por Agente ──────────────────────────────────────────────────────────
-function AdvisorTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+function AdvisorTab({ establishments }: { establishments: { id: string; name: string; brand_id: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
   const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [data, setData] = useState<{ name: string; done: number; avg_wait: number }[]>([])
@@ -460,7 +498,7 @@ function AdvisorTab({ establishments }: { establishments: { id: string; name: st
 }
 
 // ─── TAB: Por Motivo ──────────────────────────────────────────────────────────
-function ReasonTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+function ReasonTab({ establishments }: { establishments: { id: string; name: string; brand_id: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
   const [range, setRange] = useState<DateRange>({ period: 'week', customStart: '', customEnd: '' })
   const [data, setData] = useState<{ name: string; count: number; done: number }[]>([])
@@ -582,7 +620,7 @@ function ReasonTab({ establishments }: { establishments: { id: string; name: str
 }
 
 // ─── TAB: Detalle de visitas ──────────────────────────────────────────────────
-function DetailTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+function DetailTab({ establishments }: { establishments: { id: string; name: string; brand_id: string }[] }) {
   const [selectedEst, setSelectedEst] = useState(establishments[0]?.id || '')
   const [range, setRange] = useState<DateRange>({ period: 'day', customStart: '', customEnd: '' })
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -736,7 +774,7 @@ function DetailTab({ establishments }: { establishments: { id: string; name: str
 }
 
 // ─── TAB: Encuestas ───────────────────────────────────────────────────────────
-function SurveysTab({ establishments }: { establishments: { id: string; name: string }[] }) {
+function SurveysTab({ establishments }: { establishments: { id: string; name: string; brand_id: string }[] }) {
   const [range, setRange] = useState<DateRange>({ period: 'month', customStart: '', customEnd: '' })
   const [responses, setResponses] = useState<any[]>([])
   const [npsData, setNpsData] = useState<{ label: string; count: number }[]>([])
@@ -912,6 +950,12 @@ function SurveysTab({ establishments }: { establishments: { id: string; name: st
 // ─── Main component ───────────────────────────────────────────────────────────
 export function ReportsDashboard({ establishments, activeModules = [] }: Props) {
   const [tab, setTab] = useState<Tab>('general')
+  const { selectedBrandId: storeBrandId } = useBrandStore()
+
+  // Filter establishments by selected brand
+  const visibleEstablishments = storeBrandId
+    ? establishments.filter(e => e.brand_id === storeBrandId)
+    : establishments
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'general' as Tab, label: 'General' },
@@ -945,12 +989,12 @@ export function ReportsDashboard({ establishments, activeModules = [] }: Props) 
         ))}
       </div>
 
-      {tab === 'general' && <GeneralTab establishments={establishments} />}
-      {tab === 'establishment' && <EstablishmentTab establishments={establishments} />}
-      {tab === 'advisor' && <AdvisorTab establishments={establishments} />}
-      {tab === 'reason' && <ReasonTab establishments={establishments} />}
-      {tab === 'surveys' && <SurveysTab establishments={establishments} />}
-      {tab === 'detail' && <DetailTab establishments={establishments} />}
+      {tab === 'general' && <GeneralTab establishments={visibleEstablishments} />}
+      {tab === 'establishment' && <EstablishmentTab establishments={visibleEstablishments} />}
+      {tab === 'advisor' && <AdvisorTab establishments={visibleEstablishments} />}
+      {tab === 'reason' && <ReasonTab establishments={visibleEstablishments} />}
+      {tab === 'surveys' && <SurveysTab establishments={visibleEstablishments} />}
+      {tab === 'detail' && <DetailTab establishments={visibleEstablishments} />}
     </div>
   )
 }

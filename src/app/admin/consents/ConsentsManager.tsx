@@ -26,8 +26,11 @@ interface Props {
 
 export function ConsentsManager({ consents, brands, defaultBrandId }: Props) {
   const { selectedBrandId: storeBrandId } = useBrandStore()
-  const effectiveBrandId = storeBrandId || defaultBrandId || brands[0]?.id || ''
+  // For superadmin with no brand selected: show ALL (no fallback to first brand)
+  const effectiveBrandId = storeBrandId || defaultBrandId || ''
   const [search, setSearch] = useState('')
+
+  const brandMap = Object.fromEntries(brands.map(b => [b.id, b.name]))
 
   const filtered = consents
     .filter(c => !effectiveBrandId || c.brand_id === effectiveBrandId)
@@ -76,17 +79,18 @@ export function ConsentsManager({ consents, brands, defaultBrandId }: Props) {
           <div className="divide-y divide-gray-50">
             {/* Header */}
             <div className="grid grid-cols-12 gap-3 px-4 py-2 bg-gray-50 text-xs font-semibold uppercase tracking-wide text-gray-400">
-              <div className="col-span-3">Cliente</div>
+              <div className="col-span-2">Cliente</div>
               <div className="col-span-2">Contacto</div>
+              <div className="col-span-2">Marca</div>
               <div className="col-span-2">Sucursal</div>
               <div className="col-span-1 text-center">Turno</div>
-              <div className="col-span-2 text-center">Autorizaciones</div>
+              <div className="col-span-1 text-center">Autor.</div>
               <div className="col-span-1">Fecha</div>
               <div className="col-span-1 text-center">PDF</div>
             </div>
             {filtered.map(c => (
               <div key={c.id} className="grid grid-cols-12 gap-3 px-4 py-3 items-center hover:bg-gray-50 text-sm">
-                <div className="col-span-3">
+                <div className="col-span-2">
                   <p className="font-medium text-gray-900 truncate">{c.customer_name}</p>
                 </div>
                 <div className="col-span-2 text-gray-500 text-xs">
@@ -94,12 +98,15 @@ export function ConsentsManager({ consents, brands, defaultBrandId }: Props) {
                   {c.customer_email && <p className="truncate">{c.customer_email}</p>}
                 </div>
                 <div className="col-span-2 text-gray-600 truncate text-xs">
+                  {brandMap[c.brand_id] || '—'}
+                </div>
+                <div className="col-span-2 text-gray-600 truncate text-xs">
                   {(c.establishments as any)?.name || '—'}
                 </div>
                 <div className="col-span-1 text-center text-xs text-gray-500">
                   #{(c.tickets as any)?.queue_number || '—'}
                 </div>
-                <div className="col-span-2 flex items-center justify-center gap-2">
+                <div className="col-span-1 flex items-center justify-center gap-1">
                   <span title="Tratamiento de datos" className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${c.data_processing_consent ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                     {c.data_processing_consent && <Check size={10} />} Datos
                   </span>

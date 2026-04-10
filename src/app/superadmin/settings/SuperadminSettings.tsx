@@ -3,7 +3,9 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save, Key, Trash2, Send, FileText } from 'lucide-react'
+import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save, Key, Trash2, Send, FileText, Languages } from 'lucide-react'
+import { TranslationsManager } from '@/app/superadmin/translations/TranslationsManager'
+import { getTranslations, SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
 
 const MODULE_LIST = [
   { key: 'queue', label: 'Cola de turnos', desc: 'Sistema de turnos en espera' },
@@ -597,7 +599,7 @@ function MembershipModal({ brand, existing, onClose, onSave }: { brand: Brand; e
 }
 
 export function SuperadminSettings({ brands: initialBrands, memberships: initialMemberships }: Props) {
-  const [tab, setTab] = useState<'modules' | 'comms' | 'apikeys' | 'integrations'>('modules')
+  const [tab, setTab] = useState<'modules' | 'comms' | 'apikeys' | 'integrations' | 'translations'>('modules')
   const [brands, setBrands] = useState(initialBrands)
   const [memberships, setMemberships] = useState(initialMemberships)
   const [saving, setSaving] = useState<string | null>(null)
@@ -623,6 +625,7 @@ export function SuperadminSettings({ brands: initialBrands, memberships: initial
 
   const TABS = [
     { key: 'modules', label: 'Módulos por marca', icon: Settings },
+    { key: 'translations', label: 'Traducciones', icon: Languages },
     { key: 'comms', label: 'Comunicaciones', icon: Mail },
     { key: 'apikeys', label: 'API Keys por marca', icon: Key },
     { key: 'integrations', label: 'Integraciones del sistema', icon: Puzzle },
@@ -702,6 +705,15 @@ export function SuperadminSettings({ brands: initialBrands, memberships: initial
 
       {/* Integraciones */}
       {tab === 'integrations' && <IntegrationsTab />}
+
+      {/* Traducciones */}
+      {tab === 'translations' && (
+        <TranslationsManager
+          staticByLang={Object.fromEntries(SUPPORTED_LANGUAGES.map(l => [l.code, getTranslations(l.code) as Record<string, string>]))}
+          dbOverrides={[]}
+          supportedLangs={SUPPORTED_LANGUAGES.map(l => ({ code: l.code, label: l.label }))}
+        />
+      )}
 
       {membershipModal && (
         <MembershipModal

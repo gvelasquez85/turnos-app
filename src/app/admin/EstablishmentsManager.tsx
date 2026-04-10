@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import type { Establishment, Brand } from '@/types/database'
 import { Plus, Store, Edit2, ToggleLeft, ToggleRight, QrCode, Building2, ChevronDown, Clock, CheckCircle, Settings2, Trash2, AlertTriangle } from 'lucide-react'
 import QRCode from 'qrcode'
+import { useT } from '@/lib/i18n/context'
 
 interface EstStat { waiting: number; today: number }
 
@@ -69,6 +70,7 @@ function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading
 }
 
 export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {}, isSuperAdmin, maxEstablishments }: Props) {
+  const { t } = useT()
   const [establishments, setEstablishments] = useState(initial)
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Establishment | null>(null)
@@ -266,7 +268,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
               : undefined
           }
         >
-          <Plus size={16} className="mr-1" /> Nuevo
+          <Plus size={16} className="mr-1" /> {t('est.new')}
         </Button>
       </div>
 
@@ -284,7 +286,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
-              label="Nombre *"
+              label={`${t('est.name')} *`}
               value={form.name}
               onChange={e => {
                 const name = e.target.value
@@ -302,7 +304,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
               }
             />
             <Input
-              label="Dirección"
+              label={t('est.address')}
               value={form.address}
               onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
               className="md:col-span-2"
@@ -359,7 +361,7 @@ export function EstablishmentsManager({ establishments: initial, brands, default
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`text-xs px-2 py-0.5 rounded-full ${est.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {est.active ? 'Activo' : 'Inactivo'}
+                  {est.active ? t('est.active') : t('est.inactive')}
                 </span>
                 {isSuperAdmin && (
                   <Button size="sm" variant="ghost" title="Módulos" onClick={() => setFeaturesModal(est)}>

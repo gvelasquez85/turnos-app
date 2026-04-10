@@ -9,6 +9,7 @@ import { formatTime } from '@/lib/utils'
 import type { Ticket, AdvisorField, TicketStatus } from '@/types/database'
 import { Users, Clock, CheckCircle, TrendingUp, QrCode, BarChart2, ChevronDown } from 'lucide-react'
 import QRCode from 'qrcode'
+import { useT } from '@/lib/i18n/context'
 
 interface TicketRow extends Ticket {
   visit_reasons: { name: string } | null
@@ -34,6 +35,7 @@ function AttentionPanel({ ticket, advisorId, advisorFields, onComplete }: {
   advisorFields: AdvisorField[]
   onComplete: () => void
 }) {
+  const { t } = useT()
   const [fieldsData, setFieldsData] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
@@ -148,7 +150,7 @@ function AttentionPanel({ ticket, advisorId, advisorFields, onComplete }: {
       </div>
 
       <Button size="lg" className="w-full" loading={loading} onClick={handleComplete}>
-        <CheckCircle size={16} className="mr-2" /> Marcar como atendido
+        <CheckCircle size={16} className="mr-2" /> {t('queue.markDone')}
       </Button>
     </div>
   )
@@ -226,6 +228,7 @@ function MiniStats({ stats }: { stats: DailyStat }) {
 
 // ─── Main QueueBoard ───────────────────────────────────────────────────────────
 export function QueueBoard({ establishmentId, establishmentSlug, advisorId, advisorFields }: Props) {
+  const { t } = useT()
   const [tickets, setTickets] = useState<TicketRow[]>([])
   const [activeTicket, setActiveTicket] = useState<TicketRow | null>(null)
   const [loading, setLoading] = useState(true)
@@ -328,7 +331,7 @@ export function QueueBoard({ establishmentId, establishmentSlug, advisorId, advi
   const inProgress = tickets.filter(t => t.status === 'in_progress')
 
   if (loading) {
-    return <div className="flex items-center justify-center py-20 text-gray-400">Cargando cola...</div>
+    return <div className="flex items-center justify-center py-20 text-gray-400">{t('misc.loading')}</div>
   }
 
   return (
@@ -338,9 +341,9 @@ export function QueueBoard({ establishmentId, establishmentSlug, advisorId, advi
         {/* Stats bar */}
         <div className="grid grid-cols-3 gap-3 mb-5">
           {[
-            { label: 'En espera', value: waiting.length, color: 'bg-yellow-100 text-yellow-600', icon: Clock },
-            { label: 'En atención', value: inProgress.length, color: 'bg-blue-100 text-blue-600', icon: Users },
-            { label: 'Atendidos hoy', value: doneToday, color: 'bg-green-100 text-green-600', icon: TrendingUp },
+            { label: t('queue.waiting'), value: waiting.length, color: 'bg-yellow-100 text-yellow-600', icon: Clock },
+            { label: t('queue.inProgress'), value: inProgress.length, color: 'bg-blue-100 text-blue-600', icon: Users },
+            { label: t('queue.done'), value: doneToday, color: 'bg-green-100 text-green-600', icon: TrendingUp },
           ].map(({ label, value, color, icon: Icon }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-200 p-3 flex items-center gap-2.5">
               <div className={`w-9 h-9 ${color} rounded-lg flex items-center justify-center shrink-0`}>
@@ -387,7 +390,7 @@ export function QueueBoard({ establishmentId, establishmentSlug, advisorId, advi
           {waiting.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
               <CheckCircle size={36} className="text-green-400 mx-auto mb-2" />
-              <p className="text-gray-500 font-medium">Sin clientes en espera</p>
+              <p className="text-gray-500 font-medium">{t('queue.noTickets')}</p>
             </div>
           ) : (
             <div className="flex flex-col gap-2">
@@ -413,6 +416,7 @@ function TicketCard({ ticket, onAttend, inProgress = false }: {
   onAttend: () => void
   inProgress?: boolean
 }) {
+  const { t } = useT()
   return (
     <div className={`bg-white rounded-xl border-2 p-4 flex items-center gap-3 ${inProgress ? 'border-blue-300' : 'border-gray-200'}`}>
       <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-base font-black shrink-0 ${inProgress ? 'bg-blue-100 text-blue-700' : 'bg-indigo-100 text-indigo-700'}`}>
@@ -427,7 +431,7 @@ function TicketCard({ ticket, onAttend, inProgress = false }: {
         </div>
       </div>
       <Button size="sm" onClick={onAttend}>
-        {inProgress ? 'Ver' : 'Atender'}
+        {inProgress ? 'Ver' : t('queue.attend')}
       </Button>
     </div>
   )

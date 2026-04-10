@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import type { Establishment, VisitReason, Promotion } from '@/types/database'
 import { ChevronRight, CheckCircle, Clock, Tag, ChevronDown, Bell } from 'lucide-react'
 import { usePushNotifications } from '@/hooks/usePushNotifications'
+import { useT } from '@/lib/i18n/context'
 
 const CONSENT_TEXT_DEFAULT = `Al proporcionar sus datos personales, usted autoriza el tratamiento de los mismos conforme a nuestra Política de Privacidad y Tratamiento de Datos Personales. Sus datos serán utilizados para: (1) gestionar su turno de atención, (2) brindarle el servicio solicitado, y (3) enviarle información comercial si usted así lo autoriza. Tiene derecho a conocer, actualizar, rectificar y suprimir sus datos. Puede ejercer estos derechos contactándonos. Esta autorización es válida indefinidamente hasta que usted solicite su revocación.`
 
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function CustomerFlow({ establishment, visitReasons, promotions }: Props) {
+  const { t } = useT()
   const [step, setStep] = useState<Step>(promotions.length > 0 ? 'promo' : 'form')
   const [promoIndex, setPromoIndex] = useState(0)
   const [form, setForm] = useState({ name: '', phoneCode: '+57', phone: '', email: '', marketing_opt_in: false, data_consent: false })
@@ -146,7 +148,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 className="flex-1 bg-white text-indigo-700 hover:bg-white/90"
                 onClick={() => setStep('form')}
               >
-                Tomar turno
+                {t('form.takeTurn')}
               </Button>
             </div>
           </div>
@@ -164,20 +166,20 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
           <p className="text-indigo-200 text-sm">{establishment.name}</p>
         </div>
         <div className="flex-1 p-6 max-w-sm mx-auto w-full">
-          <h2 className="text-lg font-semibold text-gray-900 mb-1">Tus datos</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('form.yourData')}</h2>
           <p className="text-sm text-gray-500 mb-6">Completa el formulario para tomar tu turno</p>
 
           <div className="flex flex-col gap-4">
             <Input
               id="name"
-              label="Nombre completo *"
+              label={`${t('form.name')} *`}
               placeholder="Juan Pérez"
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               error={errors.name}
             />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('form.phone')} *</label>
               <div className="flex gap-2">
                 <select
                   value={form.phoneCode}
@@ -200,7 +202,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             </div>
             <Input
               id="email"
-              label="Correo electrónico *"
+              label={`${t('form.email')} *`}
               type="email"
               placeholder="tu@email.com"
               value={form.email}
@@ -215,7 +217,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
               />
               <span className="text-sm text-gray-600">
-                Acepto recibir promociones y novedades de {brand.name}
+                {t('form.marketing')} {brand.name}
               </span>
             </label>
 
@@ -268,7 +270,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 onClick={() => setShowConsentText(v => !v)}
                 className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-700 font-medium bg-indigo-50 hover:bg-indigo-100 transition-colors"
               >
-                <span>Ver política de tratamiento de datos</span>
+                <span>{t('form.policyTitle')}</span>
                 <ChevronDown size={16} className={`transition-transform ${showConsentText ? 'rotate-180' : ''}`} />
               </button>
               {showConsentText && (
@@ -288,7 +290,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                   className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
                 />
                 <span className="text-sm text-gray-700 font-medium">
-                  Autorizo el tratamiento de mis datos personales según la política de privacidad *
+                  {t('form.dataConsent')} *
                 </span>
               </label>
               {errors.data_consent && (
@@ -305,7 +307,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 setStep('reason')
               }}
             >
-              Continuar <ChevronRight size={16} className="ml-1" />
+              {t('form.continue')} <ChevronRight size={16} className="ml-1" />
             </Button>
           </div>
         </div>

@@ -1,7 +1,8 @@
 'use client'
 import { useState } from 'react'
 import { QueueBoard } from './QueueBoard'
-import { Store, ChevronDown } from 'lucide-react'
+import { Store, ChevronDown, Monitor, ExternalLink } from 'lucide-react'
+import { useBrandStore } from '@/stores/brandStore'
 import type { AdvisorField } from '@/types/database'
 
 type EstWithBrand = {
@@ -19,26 +20,38 @@ interface Props {
 }
 
 export function EstablishmentPicker({ establishments, allFields, advisorId }: Props) {
-  const autoId = establishments.length === 1 ? establishments[0].id : ''
+  const { selectedBrandId: storeBrandId } = useBrandStore()
+
+  // Filter by brand store first (respects global brand selector)
+  const brandFiltered = storeBrandId
+    ? establishments.filter(e => e.brand_id === storeBrandId)
+    : establishments
+
+  const autoId = brandFiltered.length === 1 ? brandFiltered[0].id : ''
   const [selectedId, setSelectedId] = useState(autoId)
 
   const selectedEst = establishments.find(e => e.id === selectedId)
   const fields = allFields.filter(f => f.brand_id === selectedEst?.brand_id)
 
+  // Dropdown only shows establishments from the same brand as the selected one
+  const dropdownOptions = selectedEst
+    ? establishments.filter(e => e.brand_id === selectedEst.brand_id)
+    : brandFiltered
+
   if (selectedId && selectedEst) {
     return (
       <div>
-        {/* Selector en la parte superior si hay más de uno */}
-        {establishments.length > 1 && (
-          <div className="bg-white border border-gray-200 rounded-xl p-3 mb-5 flex items-center gap-3">
-            <Store size={16} className="text-indigo-500 shrink-0" />
+        {/* Top bar: selector (only if multiple options) + TV screen link */}
+        <div className="bg-white border border-gray-200 rounded-xl p-3 mb-5 flex items-center gap-3">
+          <Store size={16} className="text-indigo-500 shrink-0" />
+          {dropdownOptions.length > 1 ? (
             <div className="relative flex-1 max-w-xs">
               <select
                 className="w-full appearance-none rounded-lg border border-gray-300 bg-white px-3 py-2 pr-8 text-sm font-medium text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 value={selectedId}
                 onChange={e => setSelectedId(e.target.value)}
               >
-                {establishments.map(e => (
+                {dropdownOptions.map(e => (
                   <option key={e.id} value={e.id}>
                     {e.brands?.name ? `${e.brands.name} — ` : ''}{e.name}
                   </option>
@@ -46,8 +59,24 @@ export function EstablishmentPicker({ establishments, allFields, advisorId }: Pr
               </select>
               <ChevronDown size={14} className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
             </div>
-          </div>
-        )}
+          ) : (
+            <span className="flex-1 text-sm font-medium text-gray-900">
+              {selectedEst.brands?.name ? `${selectedEst.brands.name} — ` : ''}{selectedEst.name}
+            </span>
+          )}
+          {/* TV Screen link */}
+          <a
+            href={`/display/${selectedEst.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 text-sm text-indigo-600 hover:bg-indigo-50 hover:border-indigo-300 font-medium transition-colors shrink-0"
+            title="Ver pantalla TV de esta sucursal"
+          >
+            <Monitor size={14} />
+            <span className="hidden sm:inline">Ver pantalla</span>
+            <ExternalLink size={11} className="opacity-60" />
+          </a>
+        </div>
         <QueueBoard
           establishmentId={selectedId}
           establishmentSlug={selectedEst.slug}
@@ -67,7 +96,7 @@ export function EstablishmentPicker({ establishments, allFields, advisorId }: Pr
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {establishments.map(est => (
+        {brandFiltered.map(est => (
           <button
             key={est.id}
             onClick={() => setSelectedId(est.id)}
@@ -84,7 +113,7 @@ export function EstablishmentPicker({ establishments, allFields, advisorId }: Pr
         ))}
       </div>
 
-      {establishments.length === 0 && (
+      {brandFiltered.length === 0 && (
         <div className="text-center py-16 bg-white rounded-xl border border-gray-200 text-gray-400">
           <Store size={32} className="mx-auto mb-3 opacity-40" />
           <p className="text-sm">No hay establecimientos activos disponibles.</p>

@@ -70,6 +70,15 @@ function EditModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
+  const planLimits = getLimits(form.plan)
+  const baseMaxEst = planLimits.maxEstablishments >= 9999 ? null : planLimits.maxEstablishments
+  const baseMaxAdv = planLimits.maxAdvisors >= 9999 ? null : planLimits.maxAdvisors
+  const extraEst = baseMaxEst != null ? Math.max(0, form.max_establishments - baseMaxEst) : 0
+  const extraAdv = baseMaxAdv != null ? Math.max(0, form.max_advisors - baseMaxAdv) : 0
+  const basePriceMonthly = planLimits.priceMonthly ?? 0
+  const addonCost = (extraEst * ADDON_PRICES.extraEstablishment) + (extraAdv * ADDON_PRICES.extraAdvisor)
+  const totalMonthly = basePriceMonthly + addonCost
+
   function onPlanChange(plan: string) {
     const limits = getLimits(plan)
     setForm(f => ({
@@ -110,8 +119,8 @@ function EditModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-lg my-4">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-bold text-gray-900">{membership ? 'Editar membresía' : 'Nueva membresía'}</h2>
           <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
@@ -136,11 +145,97 @@ function EditModal({
           </Select>
           <Input label="Inicio" type="date" value={form.started_at} onChange={e => setForm(f => ({ ...f, started_at: e.target.value }))} />
           <Input label="Vencimiento (opcional)" type="date" value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} />
-          <Input label="Máx. sucursales" type="number" min={1} value={form.max_establishments}
-            onChange={e => setForm(f => ({ ...f, max_establishments: Number(e.target.value) }))} />
-          <Input label="Máx. agentes" type="number" min={1} value={form.max_advisors}
-            onChange={e => setForm(f => ({ ...f, max_advisors: Number(e.target.value) }))} />
         </div>
+
+        {/* Add-ons section */}
+        <div className="mt-5 border border-gray-200 rounded-xl overflow-hidden">
+          <div className="bg-gray-50 px-4 py-2.5 border-b border-gray-200">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Límites y add-ons</p>
+          </div>
+          <div className="p-4 flex flex-col gap-4">
+            {/* Establishments */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Building2 size={14} className="text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Sucursales</span>
+                  {baseMaxEst != null && (
+                    <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                      base: {baseMaxEst} incl.
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, max_establishments: Math.max(1, f.max_establishments - 1) }))}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold"
+                  >−</button>
+                  <span className="w-8 text-center text-sm font-bold text-gray-900">
+                    {form.max_establishments >= 9999 ? '∞' : form.max_establishments}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, max_establishments: f.max_establishments + 1 }))}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold"
+                  >+</button>
+                </div>
+              </div>
+              {baseMaxEst != null && extraEst > 0 && (
+                <p className="text-xs text-indigo-600 text-right">
+                  +{extraEst} adicional{extraEst !== 1 ? 'es' : ''} × ${ADDON_PRICES.extraEstablishment}/mes = ${(extraEst * ADDON_PRICES.extraEstablishment).toFixed(2)}/mes
+                </p>
+              )}
+            </div>
+
+            {/* Advisors */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Users size={14} className="text-gray-500" />
+                  <span className="text-sm font-medium text-gray-700">Asesores</span>
+                  {baseMaxAdv != null && (
+                    <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                      base: {baseMaxAdv} incl.
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, max_advisors: Math.max(1, f.max_advisors - 1) }))}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold"
+                  >−</button>
+                  <span className="w-8 text-center text-sm font-bold text-gray-900">
+                    {form.max_advisors >= 9999 ? '∞' : form.max_advisors}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, max_advisors: f.max_advisors + 1 }))}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold"
+                  >+</button>
+                </div>
+              </div>
+              {baseMaxAdv != null && extraAdv > 0 && (
+                <p className="text-xs text-indigo-600 text-right">
+                  +{extraAdv} adicional{extraAdv !== 1 ? 'es' : ''} × ${ADDON_PRICES.extraAdvisor}/mes = ${(extraAdv * ADDON_PRICES.extraAdvisor).toFixed(2)}/mes
+                </p>
+              )}
+            </div>
+
+            {/* Total */}
+            <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-700">Total mensual estimado</span>
+              <div className="text-right">
+                <span className="text-lg font-bold text-indigo-700">${totalMonthly.toFixed(2)}/mes</span>
+                {addonCost > 0 && (
+                  <p className="text-xs text-gray-400">Plan ${basePriceMonthly} + add-ons ${addonCost.toFixed(2)}</p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {error && <p className="text-sm text-red-600 mt-3">{error}</p>}
         <div className="flex gap-3 mt-5">
           <Button loading={saving} onClick={handleSave}>Guardar</Button>

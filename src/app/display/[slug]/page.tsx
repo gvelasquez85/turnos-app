@@ -1,6 +1,27 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import { DisplayScreen } from './DisplayScreen'
+import type { Metadata } from 'next'
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params
+  return {
+    title: 'TurnApp – Pantalla TV',
+    description: 'Pantalla de cola de espera',
+    manifest: '/display-manifest.json',
+    other: {
+      'apple-mobile-web-app-capable': 'yes',
+      'apple-mobile-web-app-status-bar-style': 'black-translucent',
+      'apple-mobile-web-app-title': 'TurnApp TV',
+      'mobile-web-app-capable': 'yes',
+    },
+    viewport: {
+      width: 'device-width',
+      initialScale: 1,
+      maximumScale: 1,
+    },
+  }
+}
 
 export default async function DisplayPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
