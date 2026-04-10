@@ -17,6 +17,11 @@ export default async function MarketplacePage() {
     redirect('/admin')
   }
 
+  // Superadmin manages modules from their own dedicated page
+  if (profile.role === 'superadmin') {
+    redirect('/superadmin/marketplace')
+  }
+
   const brandId = profile.brand_id as string | null
 
   // Load marketplace modules visible to brands

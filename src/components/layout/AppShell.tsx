@@ -58,6 +58,7 @@ const REPORT_ITEMS: NavItem[] = [
 ]
 
 const MARKETPLACE_ITEM: NavItem = { href: '/admin/marketplace', label: 'Marketplace', icon: Zap }
+const SUPERADMIN_MARKETPLACE_ITEM: NavItem = { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap }
 
 const navByRole: Record<AppRole, NavSection[]> = {
   superadmin: [
@@ -73,7 +74,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
+    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, SUPERADMIN_MARKETPLACE_ITEM] },
   ],
   brand_admin: [
     {
@@ -211,6 +212,7 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
 
     // Marketplace is always visible for all brand roles
     if (href.startsWith('/admin/marketplace')) return true
+    if (href.startsWith('/superadmin/marketplace')) return true
 
     // Module-gating: purely based on active_modules flag on the brand.
     // If active_modules is undefined (no modules set), hide optional modules by default.
