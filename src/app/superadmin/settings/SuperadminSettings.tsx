@@ -346,6 +346,28 @@ function IntegrationsTab() {
   const [showVal, setShowVal] = useState<Record<string, boolean>>({})
   const [saving, setSaving] = useState<string | null>(null)
   const [saved, setSaved] = useState<Record<string, boolean>>({})
+  const [testEmailTo, setTestEmailTo] = useState('')
+  const [testSending, setTestSending] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; error?: string; diagnostics?: any } | null>(null)
+
+  async function sendTestEmail() {
+    if (!testEmailTo) return
+    setTestSending(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/superadmin/test-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: testEmailTo }),
+      })
+      const json = await res.json()
+      setTestResult(json)
+    } catch (e: any) {
+      setTestResult({ ok: false, error: e.message })
+    } finally {
+      setTestSending(false)
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -528,6 +550,48 @@ function IntegrationsTab() {
                 )
               })}
             </div>
+
+            {/* Brevo: test email panel */}
+            {integration.key === 'brevo' && (
+              <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+                <p className="text-xs font-semibold text-gray-600 mb-3">🧪 Enviar correo de prueba</p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="destinatario@email.com"
+                    value={testEmailTo}
+                    onChange={e => setTestEmailTo(e.target.value)}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none bg-white"
+                  />
+                  <button
+                    onClick={sendTestEmail}
+                    disabled={testSending || !testEmailTo}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {testSending ? <><Loader2 size={13} className="animate-spin" /> Enviando…</> : <><Send size={13} /> Probar</>}
+                  </button>
+                </div>
+                {testResult && (
+                  <div className={`mt-3 rounded-lg px-4 py-3 text-xs ${testResult.ok ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
+                    {testResult.ok ? (
+                      <p className="font-semibold">✅ {testResult.message}</p>
+                    ) : (
+                      <>
+                        <p className="font-semibold mb-1">❌ {testResult.error}</p>
+                        {testResult.diagnostics && (
+                          <details className="mt-1">
+                            <summary className="cursor-pointer text-red-600 hover:underline">Ver diagnóstico</summary>
+                            <pre className="mt-2 text-[10px] bg-red-100 rounded p-2 overflow-auto whitespace-pre-wrap">
+                              {JSON.stringify(testResult.diagnostics, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )
       })}
