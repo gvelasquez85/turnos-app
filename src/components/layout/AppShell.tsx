@@ -165,10 +165,12 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
       const saved = localStorage.getItem('sidebar-collapsed')
       if (saved !== null) setCollapsed(saved === 'true')
     } catch {}
-    // Leer cookie de impersonación
+    // Leer cookie de impersonación (validar que sea un rol conocido)
     try {
       const m = document.cookie.match(/ta_view_as=([^;]+)/)
-      if (m) setViewAs(m[1] as AppRole)
+      const validRoles: AppRole[] = ['superadmin', 'brand_admin', 'manager', 'advisor', 'reporting']
+      if (m && validRoles.includes(m[1] as AppRole)) setViewAs(m[1] as AppRole)
+      else if (m) document.cookie = 'ta_view_as=; path=/; max-age=0' // limpiar cookie inválida
     } catch {}
   }, [])
 
@@ -229,8 +231,8 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     return true
   }
 
-  const activeRole = viewAs || role
-  const sections = navByRole[activeRole]
+  const activeRole = (viewAs && navByRole[viewAs] ? viewAs : null) || role
+  const sections = navByRole[activeRole] ?? []
   const subtitle = brandName
     ? establishmentName ? `${brandName} · ${establishmentName}` : brandName
     : null
