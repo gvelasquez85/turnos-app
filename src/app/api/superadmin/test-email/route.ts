@@ -11,11 +11,6 @@ async function requireSuperadmin() {
   return user
 }
 
-/**
- * POST /api/superadmin/test-email
- * Sends a test email via Brevo and returns full diagnostics.
- * Body: { to: "email@example.com" }
- */
 export async function POST(req: NextRequest) {
   const user = await requireSuperadmin()
   if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -28,7 +23,6 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // Load config
   const { data: rows } = await service
     .from('system_settings')
     .select('key, value')
@@ -38,37 +32,37 @@ export async function POST(req: NextRequest) {
     (rows ?? []).map((r: any) => [r.key, r.value])
   )
 
-  const brevoKey  = db['BREVO_API_KEY']    || process.env.BREVO_API_KEY
-  const fromEmail = db['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL
-  const fromName  = db['COMMS_FROM_NAME']  || process.env.COMMS_FROM_NAME || 'TurnApp'
+  const rawKey   = db['BREVO_API_KEY']    || process.env.BREVO_API_KEY || ''
+  const brevoKey = rawKey.trim()           // remove accidental whitespace
+  const fromEmail = (db['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL || '').trim()
+  const fromName  = (db['COMMS_FROM_NAME']  || process.env.COMMS_FROM_NAME  || 'TurnApp').trim()
+
+  // Mask key for display: show first 6 + last 4 chars
+  const maskedKey = brevoKey.length > 10
+    ? brevoKey.slice(0, 6) + '••••••••' + brevoKey.slice(-4)
+    : brevoKey ? '(clave demasiado corta)' : '(vacía)'
 
   const diagnostics: Record<string, any> = {
-    brevo_key_configured: !!brevoKey,
-    brevo_key_source: db['BREVO_API_KEY'] ? 'db' : (process.env.BREVO_API_KEY ? 'env' : 'missing'),
+    key_used: maskedKey,
+    key_source: db['BREVO_API_KEY'] ? 'base de datos' : (process.env.BREVO_API_KEY ? 'variable de entorno' : 'no encontrada'),
+    key_length: brevoKey.length,
     from_email: fromEmail || '(no configurado)',
     from_name: fromName,
     to,
   }
 
   if (!brevoKey) {
-    return NextResponse.json({
-      ok: false,
-      error: 'BREVO_API_KEY no configurada. Ve a Superadmin → Configuración → Integraciones → Brevo.',
-      diagnostics,
-    })
+    return NextResponse.json({ ok: false, step: 'config', error: 'BREVO_API_KEY no configurada', diagnostics })
   }
-
   if (!fromEmail) {
-    return NextResponse.json({
-      ok: false,
-      error: 'COMMS_FROM_EMAIL no configurado. Ve a Superadmin → Configuración → Integraciones → Brevo.',
-      diagnostics,
-    })
+    return NextResponse.json({ ok: false, step: 'config', error: 'COMMS_FROM_EMAIL no configurado', diagnostics })
   }
 
-  // Try sending
-  let brevoStatus = 0
-  let brevoBody: any = null
+  // Call Brevo
+  let httpStatus = 0
+  let brevoResponse: any = null
+  let fetchError: string | null = null
+
   try {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
@@ -80,38 +74,63 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         sender: { name: fromName, email: fromEmail },
         to: [{ email: to, name: to }],
-        subject: '✅ Test TurnApp — Brevo configurado correctamente',
-        htmlContent: `
-          <div style="font-family:sans-serif;max-width:500px;margin:0 auto;padding:24px">
-            <h2 style="color:#4f46e5">¡Brevo funciona! 🎉</h2>
-            <p>Este es un correo de prueba enviado desde <strong>TurnApp</strong>.</p>
-            <p style="color:#6b7280;font-size:14px">
-              Si recibiste este mensaje, la integración con Brevo está correctamente configurada
-              y los correos de campañas llegarán sin problemas.
-            </p>
-            <hr style="border:none;border-top:1px solid #e5e7eb;margin:20px 0"/>
-            <p style="color:#9ca3af;font-size:12px">TurnApp · Sistema de turnos</p>
-          </div>
-        `,
+        subject: '✅ Test TurnApp — Brevo',
+        htmlContent: '<p>Correo de prueba desde <strong>TurnApp</strong>. Si lo recibes, Brevo está bien configurado.</p>',
       }),
     })
-    brevoStatus = res.status
-    try { brevoBody = await res.json() } catch { brevoBody = await res.text() }
 
-    diagnostics.brevo_http_status = brevoStatus
-    diagnostics.brevo_response = brevoBody
+    httpStatus = res.status
+    const rawText = await res.text()
+    try { brevoResponse = JSON.parse(rawText) } catch { brevoResponse = rawText }
 
-    if (res.ok) {
-      return NextResponse.json({ ok: true, message: `Correo enviado a ${to}`, diagnostics })
-    } else {
+    diagnostics.http_status = httpStatus
+    diagnostics.brevo_response = brevoResponse
+
+    // Brevo returns 201 + { messageId } on real success
+    const messageId = brevoResponse?.messageId as string | undefined
+    const realSuccess = (httpStatus === 201 || httpStatus === 200) && !!messageId
+
+    if (realSuccess) {
       return NextResponse.json({
-        ok: false,
-        error: `Brevo rechazó el envío (HTTP ${brevoStatus})`,
+        ok: true,
+        message: `Email enviado — messageId: ${messageId}`,
         diagnostics,
       })
     }
+
+    // HTTP 2xx but no messageId — something is off
+    if (res.ok) {
+      return NextResponse.json({
+        ok: false,
+        step: 'brevo_response',
+        error: `Brevo respondió HTTP ${httpStatus} pero sin messageId. Verifica que el sender (${fromEmail}) esté verificado en Brevo.`,
+        diagnostics,
+      })
+    }
+
+    // HTTP error
+    const brevoMessage = brevoResponse?.message || brevoResponse?.error || JSON.stringify(brevoResponse)
+    let hint = ''
+    if (httpStatus === 401) hint = 'API key inválida o expirada. Crea una nueva en Brevo → SMTP & API → API Keys.'
+    else if (httpStatus === 400) hint = `El sender "${fromEmail}" probablemente no está verificado como dominio/sender en Brevo.`
+    else if (httpStatus === 402) hint = 'Límite de envíos alcanzado en tu plan de Brevo.'
+    else if (httpStatus === 403) hint = 'Tu cuenta de Brevo no tiene permisos para envío transaccional.'
+
+    return NextResponse.json({
+      ok: false,
+      step: 'brevo_api',
+      error: `Brevo respondió HTTP ${httpStatus}: ${brevoMessage}${hint ? ` — ${hint}` : ''}`,
+      diagnostics,
+    })
+
   } catch (e: any) {
-    diagnostics.fetch_error = e?.message
-    return NextResponse.json({ ok: false, error: 'Error de red al conectar con Brevo', diagnostics })
+    fetchError = e?.message
+    diagnostics.fetch_error = fetchError
+    return NextResponse.json({
+      ok: false,
+      step: 'network',
+      error: `No se pudo conectar con la API de Brevo: ${fetchError}`,
+      diagnostics,
+    })
   }
 }

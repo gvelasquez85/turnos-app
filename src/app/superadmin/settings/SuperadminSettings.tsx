@@ -572,21 +572,28 @@ function IntegrationsTab() {
                   </button>
                 </div>
                 {testResult && (
-                  <div className={`mt-3 rounded-lg px-4 py-3 text-xs ${testResult.ok ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
-                    {testResult.ok ? (
-                      <p className="font-semibold">✅ {testResult.message}</p>
-                    ) : (
-                      <>
-                        <p className="font-semibold mb-1">❌ {testResult.error}</p>
-                        {testResult.diagnostics && (
-                          <details className="mt-1">
-                            <summary className="cursor-pointer text-red-600 hover:underline">Ver diagnóstico</summary>
-                            <pre className="mt-2 text-[10px] bg-red-100 rounded p-2 overflow-auto whitespace-pre-wrap">
-                              {JSON.stringify(testResult.diagnostics, null, 2)}
-                            </pre>
-                          </details>
-                        )}
-                      </>
+                  <div className={`mt-3 rounded-xl border text-xs space-y-2 overflow-hidden ${testResult.ok ? 'border-green-200' : 'border-red-200'}`}>
+                    {/* Status bar */}
+                    <div className={`px-4 py-2.5 font-semibold flex items-center gap-2 ${testResult.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {testResult.ok ? '✅' : '❌'} {testResult.ok ? testResult.message : testResult.error}
+                    </div>
+                    {/* Diagnostics — always visible */}
+                    {testResult.diagnostics && (
+                      <div className="px-4 pb-3 space-y-1">
+                        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Diagnóstico</p>
+                        {Object.entries(testResult.diagnostics).map(([k, v]) => (
+                          <div key={k} className="flex gap-2">
+                            <span className="font-mono text-gray-500 shrink-0 w-36">{k}:</span>
+                            <span className={`font-mono break-all ${
+                              k === 'http_status' && (v as number) !== 201 ? 'text-red-600 font-bold' :
+                              k === 'http_status' ? 'text-green-600 font-bold' :
+                              'text-gray-700'
+                            }`}>
+                              {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 )}
