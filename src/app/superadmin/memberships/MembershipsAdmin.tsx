@@ -7,7 +7,7 @@ import { Select } from '@/components/ui/select'
 import { PLAN_LIMITS, PRICING, calcMonthlyBase, calcModuleAddon, type Plan } from '@/lib/planLimits'
 import {
   CreditCard, CheckCircle, AlertCircle, Clock, TrendingUp,
-  Edit2, Plus, Building2, Users, DollarSign, X,
+  Edit2, Plus, Building2, Users, DollarSign, X, BadgeDollarSign,
 } from 'lucide-react'
 
 interface Membership {
@@ -204,12 +204,156 @@ function EditModal({
   )
 }
 
+function PaymentModal({
+  membership,
+  onClose,
+  onSaved,
+}: {
+  membership: Membership
+  onClose: () => void
+  onSaved: (m: Membership) => void
+}) {
+  const [form, setForm] = useState({
+    max_establishments: membership.max_establishments,
+    max_advisors: membership.max_advisors,
+    payment_method: 'PayPal',
+    payment_amount: '',
+    payment_date: new Date().toISOString().slice(0, 10),
+  })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const includedAdvisors = form.max_establishments
+  const additionalAdvisors = Math.max(0, form.max_advisors - includedAdvisors)
+  const totalMonthly = calcMonthlyBase(form.max_establishments, form.max_advisors)
+
+  async function handleSave() {
+    setSaving(true); setError('')
+    const supabase = createClient()
+    const { data, error: err } = await supabase
+      .from('memberships')
+      .update({
+        status: 'active',
+        max_establishments: form.max_establishments,
+        max_advisors: form.max_advisors,
+      })
+      .eq('id', membership.id)
+      .select('*, brands(name, slug)')
+      .single()
+    if (err) { setError(err.message); setSaving(false); return }
+    onSaved(data as Membership)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <BadgeDollarSign size={20} className="text-green-600" />
+            <h2 className="text-lg font-bold text-gray-900">Registrar pago recibido</h2>
+          </div>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+        </div>
+
+        <div className="bg-gray-50 rounded-xl px-4 py-3 mb-4 text-sm">
+          <p className="font-medium text-gray-900">{membership.brands?.name}</p>
+          <p className="text-xs text-gray-500 mt-0.5">Membresía actual: <span className="font-medium">{membership.status}</span></p>
+        </div>
+
+        {/* Payment info */}
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Método</label>
+            <select
+              value={form.payment_method}
+              onChange={e => setForm(f => ({ ...f, payment_method: e.target.value }))}
+              className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+            >
+              <option>PayPal</option>
+              <option>Transferencia</option>
+              <option>Wompi</option>
+              <option>PSE</option>
+              <option>Efectivo</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Fecha de pago</label>
+            <input
+              type="date"
+              value={form.payment_date}
+              onChange={e => setForm(f => ({ ...f, payment_date: e.target.value }))}
+              className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Monto recibido (referencia)</label>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="0.00"
+              value={form.payment_amount}
+              onChange={e => setForm(f => ({ ...f, payment_amount: e.target.value }))}
+              className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none"
+            />
+          </div>
+        </div>
+
+        {/* Seat config */}
+        <div className="border border-gray-200 rounded-xl overflow-hidden mb-4">
+          <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wide">Capacidad a activar</p>
+          </div>
+          <div className="p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Building2 size={14} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Sucursales</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setForm(f => ({ ...f, max_establishments: Math.max(1, f.max_establishments - 1) }))} className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold">−</button>
+                <span className="w-8 text-center text-sm font-bold text-gray-900">{form.max_establishments}</span>
+                <button type="button" onClick={() => setForm(f => ({ ...f, max_establishments: f.max_establishments + 1 }))} className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold">+</button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={14} className="text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">Usuarios totales</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => setForm(f => ({ ...f, max_advisors: Math.max(f.max_establishments, f.max_advisors - 1) }))} className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold">−</button>
+                <span className="w-8 text-center text-sm font-bold text-gray-900">{form.max_advisors}</span>
+                <button type="button" onClick={() => setForm(f => ({ ...f, max_advisors: f.max_advisors + 1 }))} className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-50 font-bold">+</button>
+              </div>
+            </div>
+            <div className="border-t border-gray-100 pt-2 flex items-center justify-between">
+              <span className="text-xs text-gray-500">Total mensual base</span>
+              <span className="text-sm font-bold text-indigo-700">${totalMonthly}/mes</span>
+            </div>
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-600 mb-3">{error}</p>}
+        <div className="flex gap-3">
+          <Button loading={saving} onClick={handleSave} className="flex-1">
+            <CheckCircle size={15} className="mr-1" /> Confirmar y activar
+          </Button>
+          <Button variant="secondary" onClick={onClose}>Cancelar</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export function MembershipsAdmin({ memberships: initial, brands }: {
   memberships: Membership[]
   brands: Brand[]
 }) {
   const [memberships, setMemberships] = useState(initial)
   const [editTarget, setEditTarget] = useState<Membership | 'new' | null>(null)
+  const [paymentTarget, setPaymentTarget] = useState<Membership | null>(null)
   const [filterPlan, setFilterPlan] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
@@ -356,9 +500,20 @@ export function MembershipsAdmin({ memberships: initial, brands }: {
                     ${calcMonthlyBase(m.max_establishments, m.max_advisors)}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Button size="sm" variant="ghost" onClick={() => setEditTarget(m)}>
-                      <Edit2 size={14} />
-                    </Button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => setPaymentTarget(m)}
+                        title="Registrar pago recibido"
+                        className="text-green-600 hover:bg-green-50"
+                      >
+                        <BadgeDollarSign size={14} />
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setEditTarget(m)}>
+                        <Edit2 size={14} />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -376,6 +531,13 @@ export function MembershipsAdmin({ memberships: initial, brands }: {
           brands={brands}
           onClose={() => setEditTarget(null)}
           onSaved={onSaved}
+        />
+      )}
+      {paymentTarget && (
+        <PaymentModal
+          membership={paymentTarget}
+          onClose={() => setPaymentTarget(null)}
+          onSaved={(m) => { onSaved(m); setPaymentTarget(null) }}
         />
       )}
     </div>

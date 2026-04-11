@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { calcMonthlyBase, PRICING } from '@/lib/planLimits'
+import { PayPalButton } from '@/components/PayPalButton'
 
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -54,6 +55,7 @@ interface Subscription {
 interface Props {
   brandId: string
   brandModules: Record<string, boolean>
+  brandCountry?: string
   subscriptions: Subscription[]
   modules: MarketplaceModule[]
   isSuperadmin: boolean
@@ -101,6 +103,7 @@ function StatusBadge({ status, sub }: { status: ModuleStatus; sub?: Subscription
 export function MarketplaceClient({
   brandId,
   brandModules: initialModules,
+  brandCountry = 'Colombia',
   subscriptions: initialSubs,
   modules,
   maxEstablishments,
@@ -110,6 +113,9 @@ export function MarketplaceClient({
   const [brandModules, setBrandModules] = useState(initialModules)
   const [loading, setLoading] = useState<string | null>(null)
   const [contractModal, setContractModal] = useState<string | null>(null)
+  const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null)
+
+  const isColombiaAccount = brandCountry === 'Colombia'
 
   function getSub(key: string) { return subs.find(s => s.module_key === key) }
   function modulePrice(mod: MarketplaceModule) {
@@ -346,28 +352,98 @@ export function MarketplaceClient({
       </div>
 
       {/* Contract modal */}
-      {contractModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Zap size={24} className="text-indigo-600" />
+      {contractModal && (() => {
+        const mod = modules.find(m => m.module_key === contractModal)
+        const price = mod ? modulePrice(mod) : 0
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+              {paymentSuccess ? (
+                <div className="text-center">
+                  <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle size={24} className="text-green-600" />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900 mb-2">¡Pago exitoso!</h2>
+                  <p className="text-sm text-gray-500 mb-5">
+                    El módulo ha sido activado. Vigente hasta{' '}
+                    <strong>{new Date(paymentSuccess).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>.
+                  </p>
+                  <Button className="w-full" onClick={() => { setContractModal(null); setPaymentSuccess(null) }}>
+                    Continuar
+                  </Button>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`w-10 h-10 ${mod?.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center shrink-0`}>
+                      <Zap size={18} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">{mod?.label}</p>
+                      {price > 0 && (
+                        <p className="text-sm text-indigo-600 font-semibold">${price}/mes</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mb-4">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Método de pago</p>
+                    {price > 0 ? (
+                      <>
+                        <PayPalButton
+                          moduleKey={contractModal}
+                          amount={price}
+                          currency="USD"
+                          onSuccess={(expiresAt) => {
+                            // Update local state
+                            setSubs(prev => {
+                              const idx = prev.findIndex(s => s.module_key === contractModal)
+                              const next: Subscription = {
+                                id: `${brandId}_${contractModal}`,
+                                brand_id: brandId,
+                                module_key: contractModal,
+                                status: 'active',
+                                trial_started_at: new Date().toISOString(),
+                                trial_expires_at: null,
+                                activated_at: new Date().toISOString(),
+                                expires_at: expiresAt,
+                                price_monthly: price,
+                              }
+                              if (idx >= 0) { const a = [...prev]; a[idx] = next; return a }
+                              return [...prev, next]
+                            })
+                            setBrandModules(m => ({ ...m, [contractModal]: true }))
+                            setPaymentSuccess(expiresAt)
+                          }}
+                        />
+                        {isColombiaAccount && (
+                          <p className="text-xs text-gray-400 mt-3 text-center">
+                            Próximamente: Wompi, PSE, Nequi y más opciones para Colombia.
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-3">Este módulo es gratuito.</p>
+                    )}
+                  </div>
+
+                  <div className="border-t border-gray-100 pt-3">
+                    <a
+                      href={`mailto:soporte@turnapp.co?subject=Contratar módulo: ${contractModal}`}
+                      className="block w-full py-2 px-4 text-center text-sm text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Prefiero pagar por otro medio
+                    </a>
+                    <button onClick={() => setContractModal(null)} className="w-full text-xs text-gray-400 hover:text-gray-600 py-1">
+                      Cancelar
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Pago en línea próximamente</h2>
-            <p className="text-sm text-gray-500 mb-4">
-              Estamos integrando el proceso de pago. Por ahora contacta a nuestro equipo para activar el módulo:
-            </p>
-            <a
-              href={`mailto:soporte@turnapp.co?subject=Contratar módulo: ${contractModal}`}
-              className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
-            >
-              Contactar soporte
-            </a>
-            <button onClick={() => setContractModal(null)} className="text-sm text-gray-400 hover:text-gray-600">
-              Cerrar
-            </button>
           </div>
-        </div>
-      )}
+        )
+      })()}
     </div>
   )
 }

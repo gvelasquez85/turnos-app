@@ -22,7 +22,15 @@ interface Brand {
   contact_email: string | null
   website: string | null
   language: string | null
+  country: string | null
 }
+
+const COUNTRIES = [
+  'Colombia', 'México', 'Argentina', 'Chile', 'Perú', 'Ecuador', 'Venezuela',
+  'Bolivia', 'Paraguay', 'Uruguay', 'Brasil', 'Panamá', 'Costa Rica',
+  'Guatemala', 'Honduras', 'El Salvador', 'Nicaragua', 'República Dominicana',
+  'Cuba', 'Puerto Rico', 'España', 'Estados Unidos', 'Canadá', 'Otro',
+]
 
 interface Membership {
   id: string
@@ -101,6 +109,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     contact_email: initialBrand.contact_email || '',
     website: initialBrand.website || '',
     language: initialBrand.language || 'es',
+    country: initialBrand.country || 'Colombia',
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -200,6 +209,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
         contact_email: form.contact_email || null,
         website: form.website || null,
         language: form.language,
+        country: form.country || null,
       })
       .eq('id', brand.id)
       .select()
@@ -293,7 +303,19 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 <div className="w-9 h-9 rounded-lg border border-gray-200 shrink-0" style={{ backgroundColor: form.primary_color }} />
               </div>
             </div>
-            <Input label="Dirección principal" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle 123, Ciudad" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Input label="Dirección principal" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle 123, Ciudad" />
+              <div className="flex flex-col gap-1">
+                <label className="text-sm font-medium text-gray-700">País</label>
+                <select
+                  value={form.country}
+                  onChange={e => setForm(f => ({ ...f, country: e.target.value }))}
+                  className="h-10 rounded-lg border border-gray-300 px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                >
+                  {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
             <Input label="Correo de contacto" type="email" value={form.contact_email} onChange={e => setForm(f => ({ ...f, contact_email: e.target.value }))} placeholder="contacto@marca.com" />
             <Input label="Sitio web" value={form.website} onChange={e => setForm(f => ({ ...f, website: e.target.value }))} placeholder="https://www.marca.com" />
             {/* Language selector */}

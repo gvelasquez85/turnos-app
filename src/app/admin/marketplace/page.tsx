@@ -36,18 +36,49 @@ export default async function MarketplacePage() {
   const { data: marketplaceModules } = await modulesQuery
 
   // Load this brand's subscriptions
-  const { data: subscriptions } = brandId
+  const { data: rawSubscriptions } = brandId
     ? await supabase
         .from('module_subscriptions')
         .select('*')
         .eq('brand_id', brandId)
     : { data: [] }
 
-  // Load brand active_modules
+  // Auto-expire any trials that have passed their trial_expires_at
+  let subscriptions = rawSubscriptions ?? []
+  if (brandId && subscriptions.length > 0) {
+    const now = new Date().toISOString()
+    const expiredTrials = subscriptions.filter(
+      s => s.status === 'trial' && s.trial_expires_at && s.trial_expires_at < now
+    )
+    if (expiredTrials.length > 0) {
+      await supabase
+        .from('module_subscriptions')
+        .update({ status: 'expired' })
+        .in('id', expiredTrials.map(s => s.id))
+
+      // Deactivate in brand's active_modules
+      const { data: brand } = await supabase
+        .from('brands')
+        .select('active_modules')
+        .eq('id', brandId)
+        .single()
+      if (brand) {
+        const updated = { ...((brand.active_modules as Record<string, boolean>) ?? {}) }
+        for (const s of expiredTrials) updated[s.module_key] = false
+        await supabase.from('brands').update({ active_modules: updated }).eq('id', brandId)
+      }
+      // Reflect in local array
+      subscriptions = subscriptions.map(s =>
+        expiredTrials.find(e => e.id === s.id) ? { ...s, status: 'expired' } : s
+      )
+    }
+  }
+
+  // Load brand data (active_modules + country)
   const { data: brand } = brandId
     ? await supabase
         .from('brands')
-        .select('id, name, active_modules, max_establishments:memberships(max_establishments), max_advisors:memberships(max_advisors)')
+        .select('id, name, active_modules, country')
         .eq('id', brandId)
         .single()
     : { data: null }
@@ -66,7 +97,8 @@ export default async function MarketplacePage() {
     <MarketplaceClient
       brandId={brandId ?? ''}
       brandModules={(brand as any)?.active_modules ?? {}}
-      subscriptions={subscriptions || []}
+      brandCountry={(brand as any)?.country ?? 'Colombia'}
+      subscriptions={subscriptions}
       modules={marketplaceModules || []}
       isSuperadmin={profile.role === 'superadmin'}
       maxEstablishments={(membership as any)?.max_establishments ?? 1}
