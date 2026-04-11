@@ -31,11 +31,17 @@ export default async function BrandSettingsPage() {
     .eq('brand_id', profile.brand_id)
     .order('created_at', { ascending: false })
 
+  const { data: marketplaceModules } = await supabase
+    .from('marketplace_modules')
+    .select('module_key, label, price_monthly, price_per_user, price_per_user_amount')
+    .or('is_visible_to_brands.eq.true,is_coming_soon.eq.true')
+
   return (
     <BrandSettings
       brand={brand}
       membership={membership || null}
       moduleSubscriptions={moduleSubscriptions || []}
+      availableModules={marketplaceModules || []}
     />
   )
 }

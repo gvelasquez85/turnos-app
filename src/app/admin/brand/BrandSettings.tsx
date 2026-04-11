@@ -11,6 +11,7 @@ import {
 import { useEffect, useCallback } from 'react'
 import { PRICING, calcMonthlyBase, calcModuleAddon } from '@/lib/planLimits'
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
+import { PayPalButton } from '@/components/PayPalButton'
 
 interface Brand {
   id: string
@@ -50,10 +51,19 @@ interface ModuleSub {
   price_monthly?: number | null
 }
 
+interface AvailableModule {
+  module_key: string
+  label: string
+  price_monthly: number
+  price_per_user: boolean
+  price_per_user_amount: number
+}
+
 interface Props {
   brand: Brand
   membership: Membership | null
   moduleSubscriptions: ModuleSub[]
+  availableModules?: AvailableModule[]
 }
 
 const PLAN_LABELS: Record<string, string> = {
@@ -98,7 +108,7 @@ function nextBillingDate(membership: Membership | null): Date {
   return next
 }
 
-export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs }: Props) {
+export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs, availableModules = [] }: Props) {
   const [tab, setTab] = useState<'profile' | 'membership' | 'integrations'>('profile')
   const [brand, setBrand] = useState(initialBrand)
   const [form, setForm] = useState({
@@ -118,6 +128,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [moduleSubs, setModuleSubs] = useState<ModuleSub[]>(initialModuleSubs)
   const [cancellingModule, setCancellingModule] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
+  const [payingModule, setPayingModule] = useState<string | null>(null)
+  const isColombiaAccount = (brand.country ?? 'Colombia') === 'Colombia'
 
   // ── Integrations state ───────────────────────────────────────────────────
   type ApiKey = { id: string; name: string; key_prefix: string; active: boolean; created_at: string; last_used_at: string | null }
@@ -238,10 +250,17 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const maxEst = membership?.max_establishments ?? 1
   const maxAdv = membership?.max_advisors ?? 2
   const basePrice = calcMonthlyBase(maxEst, maxAdv)
+  // Only show / count modules that are active or in trial
   const activeModuleSubs = moduleSubs.filter(s => s.status === 'active' || s.status === 'trial')
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
   const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
   const nextBilling = nextBillingDate(membership)
+
+  function getModulePrice(moduleKey: string): number {
+    const mod = availableModules.find(m => m.module_key === moduleKey)
+    if (!mod) return 0
+    return (mod.price_monthly ?? 0) + (mod.price_per_user ? (mod.price_per_user_amount ?? 0) * maxAdv : 0)
+  }
 
   return (
     <div>
@@ -444,42 +463,81 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </div>
           </div>
 
-          {/* Module subscriptions */}
-          {moduleSubs.length > 0 && (
+          {/* Module subscriptions — only show active/trial */}
+          {activeModuleSubs.length > 0 && (
             <div className="mb-8">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Módulos adicionales</h3>
               <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                {moduleSubs.map(sub => (
-                  <div key={sub.id} className="flex items-center justify-between px-4 py-3">
-                    <div>
-                      <span className="text-sm text-gray-700">{MODULE_LABELS[sub.module_key] ?? sub.module_key.replace(/_/g, ' ')}</span>
-                      {sub.price_monthly ? (
-                        <span className="text-xs text-gray-400 ml-2">${sub.price_monthly}/mes</span>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                        sub.status === 'active' ? 'bg-green-100 text-green-700' :
-                        sub.status === 'trial' ? 'bg-amber-100 text-amber-700' :
-                        sub.status === 'cancelled' ? 'bg-gray-100 text-gray-500' :
-                        'bg-red-100 text-red-700'
-                      }`}>
-                        {sub.status === 'trial' && sub.trial_expires_at
-                          ? `Trial — vence ${new Date(sub.trial_expires_at).toLocaleDateString('es')}`
-                          : STATUS_LABELS[sub.status] ?? sub.status}
-                      </span>
-                      {(sub.status === 'active' || sub.status === 'trial') && (
-                        <button
-                          onClick={() => setConfirmCancel(sub.id)}
-                          className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                          title="Cancelar módulo"
-                        >
-                          <X size={14} />
-                        </button>
+                {activeModuleSubs.map(sub => {
+                  const price = getModulePrice(sub.module_key)
+                  return (
+                    <div key={sub.id}>
+                      <div className="flex items-center justify-between px-4 py-3">
+                        <div>
+                          <span className="text-sm font-medium text-gray-700">{MODULE_LABELS[sub.module_key] ?? sub.module_key.replace(/_/g, ' ')}</span>
+                          {price > 0 && (
+                            <span className="text-xs text-gray-400 ml-2">${price}/mes</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {sub.status === 'trial' && (
+                            <button
+                              onClick={() => setPayingModule(payingModule === sub.id ? null : sub.id)}
+                              className="text-xs px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors"
+                            >
+                              {payingModule === sub.id ? 'Cerrar' : 'Contratar'}
+                            </button>
+                          )}
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                            sub.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {sub.status === 'trial' && sub.trial_expires_at
+                              ? `Trial — vence ${new Date(sub.trial_expires_at).toLocaleDateString('es')}`
+                              : STATUS_LABELS[sub.status] ?? sub.status}
+                          </span>
+                          <button
+                            onClick={() => setConfirmCancel(sub.id)}
+                            className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                            title="Cancelar módulo"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                      {/* PayPal payment panel for trial modules */}
+                      {payingModule === sub.id && price > 0 && (
+                        <div className="px-4 pb-4 border-t border-gray-50 bg-gray-50">
+                          <p className="text-xs text-gray-500 mt-3 mb-2">
+                            Pagar <strong>${price}/mes</strong> para activar el módulo. Se renueva mensualmente.
+                          </p>
+                          <PayPalButton
+                            moduleKey={sub.module_key}
+                            amount={price}
+                            currency="USD"
+                            onSuccess={(expiresAt) => {
+                              setModuleSubs(prev => prev.map(s =>
+                                s.id === sub.id
+                                  ? { ...s, status: 'active', price_monthly: price }
+                                  : s
+                              ))
+                              setPayingModule(null)
+                            }}
+                          />
+                          {isColombiaAccount && (
+                            <p className="text-xs text-gray-400 mt-2 text-center">
+                              Próximamente: Wompi, PSE, Nequi y más opciones para Colombia.
+                            </p>
+                          )}
+                        </div>
+                      )}
+                      {payingModule === sub.id && price === 0 && (
+                        <div className="px-4 pb-4 border-t border-gray-50 bg-gray-50">
+                          <p className="text-xs text-gray-500 mt-3">Este módulo es gratuito — no requiere pago.</p>
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           )}
