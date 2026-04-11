@@ -41,6 +41,8 @@ interface Membership {
   expires_at: string | null
   max_establishments: number
   max_advisors: number
+  paypal_subscription_id?: string | null
+  subscribed_amount?: number | null
 }
 
 interface ModuleSub {
@@ -130,6 +132,39 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
   const [payingModule, setPayingModule] = useState<string | null>(null)
   const isColombiaAccount = (brand.country ?? 'Colombia') === 'Colombia'
+  const [paypalSubLoading, setPaypalSubLoading] = useState(false)
+  const [paypalSubError, setPaypalSubError] = useState('')
+  const [membershipSub, setMembershipSub] = useState<{
+    paypal_subscription_id?: string | null
+    subscribed_amount?: number | null
+  }>({
+    paypal_subscription_id: membership?.paypal_subscription_id,
+    subscribed_amount: membership?.subscribed_amount,
+  })
+
+  // Detect PayPal return after subscription approval
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const subId = params.get('subscription_id')
+    const ok = params.get('paypal_ok')
+    const amountParam = params.get('amount')
+    if (!ok || !subId || !amountParam) return
+    const amount = parseFloat(amountParam)
+    fetch('/api/paypal/activate-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscriptionId: subId, amount }),
+    }).then(() => {
+      setMembershipSub({ paypal_subscription_id: subId, subscribed_amount: amount })
+      // Clean URL
+      const url = new URL(window.location.href)
+      url.searchParams.delete('paypal_ok')
+      url.searchParams.delete('subscription_id')
+      url.searchParams.delete('ba_token')
+      url.searchParams.delete('amount')
+      window.history.replaceState({}, '', url.toString())
+    }).catch(console.error)
+  }, [])
 
   // ── Integrations state ───────────────────────────────────────────────────
   type ApiKey = { id: string; name: string; key_prefix: string; active: boolean; created_at: string; last_used_at: string | null }
@@ -255,6 +290,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
   const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
   const nextBilling = nextBillingDate(membership)
+  const activeModuleTotal = activeModuleSubs.reduce((sum, sub) => sum + getModulePrice(sub.module_key), 0)
+  const currentTotal = basePrice + activeModuleTotal
 
   function getModulePrice(moduleKey: string): number {
     const mod = availableModules.find(m => m.module_key === moduleKey)
@@ -450,16 +487,141 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             {/* Medio de pago */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-4">Medio de pago</h3>
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-dashed border-gray-300 mb-4">
-                <CreditCard size={20} className="text-gray-400" />
-                <div>
-                  <p className="text-sm text-gray-500">Sin método de pago configurado</p>
-                  <p className="text-xs text-gray-400">Agregar tarjeta o transferencia</p>
+
+              {/* Price breakdown */}
+              <div className="space-y-1.5 text-sm mb-4">
+                <div className="flex justify-between text-gray-600">
+                  <span>{maxEst} sucursal{maxEst !== 1 ? 'es' : ''} × ${PRICING.perEstablishment}</span>
+                  <span>${maxEst * PRICING.perEstablishment}</span>
+                </div>
+                {maxAdv > maxEst && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>{maxAdv - maxEst} usuario{maxAdv - maxEst !== 1 ? 's' : ''} adicional{maxAdv - maxEst !== 1 ? 'es' : ''} × ${PRICING.perAdditionalAdvisor}</span>
+                    <span>${(maxAdv - maxEst) * PRICING.perAdditionalAdvisor}</span>
+                  </div>
+                )}
+                {activeModuleSubs.map(sub => {
+                  const p = getModulePrice(sub.module_key)
+                  return p > 0 ? (
+                    <div key={sub.id} className="flex justify-between text-gray-600">
+                      <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
+                      <span>${p}</span>
+                    </div>
+                  ) : null
+                })}
+                <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
+                  <span>Total mensual</span>
+                  <span>${currentTotal.toFixed(2)}</span>
                 </div>
               </div>
-              <Button variant="secondary" className="w-full" onClick={() => setUpgradeModal('payment')}>
-                Configurar método de pago
-              </Button>
+
+              {paypalSubError && (
+                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
+                  {paypalSubError}
+                </div>
+              )}
+
+              {/* State A: no subscription */}
+              {!membershipSub.paypal_subscription_id && (
+                <div className="space-y-2">
+                  <Button
+                    className="w-full"
+                    loading={paypalSubLoading}
+                    onClick={async () => {
+                      setPaypalSubLoading(true)
+                      setPaypalSubError('')
+                      try {
+                        const returnUrl = `${window.location.origin}/admin/brand?tab=membership&paypal_ok=1&amount=${currentTotal}`
+                        const cancelUrl = `${window.location.origin}/admin/brand?tab=membership`
+                        const res = await fetch('/api/paypal/create-subscription', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ amount: currentTotal, currency: 'USD', returnUrl, cancelUrl }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok || !data.approvalUrl) throw new Error(data.error ?? 'Error creando suscripción')
+                        window.location.href = data.approvalUrl
+                      } catch (err: unknown) {
+                        setPaypalSubError(err instanceof Error ? err.message : 'Error de PayPal')
+                        setPaypalSubLoading(false)
+                      }
+                    }}
+                  >
+                    Suscribirse con PayPal — ${currentTotal.toFixed(2)}/mes
+                  </Button>
+                  {isColombiaAccount && (
+                    <Button
+                      variant="secondary"
+                      className="w-full"
+                      onClick={() => window.open('mailto:soporte@turnapp.co?subject=Solicitud%20de%20suscripci%C3%B3n', '_blank')}
+                    >
+                      Contactar a soporte
+                    </Button>
+                  )}
+                  <p className="text-xs text-gray-400 text-center">No aplican reembolsos.</p>
+                </div>
+              )}
+
+              {/* State B: active subscription, same amount */}
+              {membershipSub.paypal_subscription_id && currentTotal === (membershipSub.subscribed_amount ?? 0) && (
+                <div>
+                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-3">
+                    <Check size={15} className="text-green-600 shrink-0" />
+                    <div>
+                      <p className="text-sm font-medium text-green-800">Suscripción activa</p>
+                      <p className="text-xs text-green-600 font-mono break-all">{membershipSub.paypal_subscription_id}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 text-center">No aplican reembolsos.</p>
+                </div>
+              )}
+
+              {/* State C: active subscription, amount changed */}
+              {membershipSub.paypal_subscription_id && currentTotal !== (membershipSub.subscribed_amount ?? 0) && (
+                <div>
+                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
+                    <AlertTriangle size={15} className="text-amber-600 mt-0.5 shrink-0" />
+                    <p className="text-xs text-amber-800">
+                      A partir de tu próxima renovación se cobrará{' '}
+                      <strong>${currentTotal.toFixed(2)}/mes</strong>{' '}
+                      (actualmente suscrito: ${(membershipSub.subscribed_amount ?? 0).toFixed(2)}/mes).{' '}
+                      No aplican reembolsos.
+                    </p>
+                  </div>
+                  <Button
+                    className="w-full"
+                    loading={paypalSubLoading}
+                    onClick={async () => {
+                      setPaypalSubLoading(true)
+                      setPaypalSubError('')
+                      try {
+                        // Cancel old subscription (PayPal only, no system change)
+                        await fetch('/api/paypal/cancel-subscription', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ subscriptionId: membershipSub.paypal_subscription_id }),
+                        })
+                        // Create new subscription
+                        const returnUrl = `${window.location.origin}/admin/brand?tab=membership&paypal_ok=1&amount=${currentTotal}`
+                        const cancelUrl = `${window.location.origin}/admin/brand?tab=membership`
+                        const res = await fetch('/api/paypal/create-subscription', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ amount: currentTotal, currency: 'USD', returnUrl, cancelUrl }),
+                        })
+                        const data = await res.json()
+                        if (!res.ok || !data.approvalUrl) throw new Error(data.error ?? 'Error creando suscripción')
+                        window.location.href = data.approvalUrl
+                      } catch (err: unknown) {
+                        setPaypalSubError(err instanceof Error ? err.message : 'Error de PayPal')
+                        setPaypalSubLoading(false)
+                      }
+                    }}
+                  >
+                    Actualizar suscripción
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
