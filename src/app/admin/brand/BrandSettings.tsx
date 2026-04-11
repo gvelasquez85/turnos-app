@@ -257,7 +257,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       </div>
 
       {tab === 'profile' && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-2xl">
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex flex-col gap-4">
             <Input label="Nombre de la marca" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <Input label="URL del logo" value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} placeholder="https://..." />

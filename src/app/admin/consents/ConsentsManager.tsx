@@ -106,7 +106,7 @@ export function ConsentsManager({ consents, brands, defaultBrandId }: Props) {
                 <div className="col-span-1 text-center text-xs text-gray-500">
                   #{(c.tickets as any)?.queue_number || '—'}
                 </div>
-                <div className="col-span-1 flex items-center justify-center gap-1">
+                <div className="col-span-1 flex flex-col items-start gap-1">
                   <span title="Tratamiento de datos" className={`flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${c.data_processing_consent ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'}`}>
                     {c.data_processing_consent && <Check size={10} />} Datos
                   </span>

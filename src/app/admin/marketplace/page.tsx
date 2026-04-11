@@ -24,14 +24,14 @@ export default async function MarketplacePage() {
 
   const brandId = profile.brand_id as string | null
 
-  // Load marketplace modules visible to brands
-  // Superadmin sees ALL modules; brand users see only enabled ones
+  // Load marketplace modules: visible ones + coming-soon ones (shown as preview to brands)
   const modulesQuery = supabase
     .from('marketplace_modules')
     .select('*')
     .order('sort_order')
   if (profile.role !== 'superadmin') {
-    modulesQuery.eq('is_visible_to_brands', true)
+    // Brand users see modules that are enabled OR marked as coming soon
+    modulesQuery.or('is_visible_to_brands.eq.true,is_coming_soon.eq.true')
   }
   const { data: marketplaceModules } = await modulesQuery
 
