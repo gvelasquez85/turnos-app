@@ -231,27 +231,29 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     ? establishmentName ? `${brandName} · ${establishmentName}` : brandName
     : null
 
-  function SidebarContent() {
+  function SidebarContent({ mobile = false }: { mobile?: boolean }) {
+    // On mobile, always show expanded (text labels visible) regardless of desktop collapsed state
+    const isCollapsed = collapsed && !mobile
     return (
       <>
         {/* Header */}
         <div className={cn(
           'flex items-center h-14 px-3 border-b border-gray-100 shrink-0',
-          collapsed ? 'justify-center' : 'justify-between',
+          isCollapsed ? 'justify-center' : 'justify-between',
         )}>
-          {!collapsed && (
+          {!isCollapsed && (
             <div className="flex items-center gap-2.5">
               <TurnAppLogo size={28} />
               <span className="font-bold text-gray-900 tracking-tight">TurnApp</span>
             </div>
           )}
-          {collapsed && <TurnAppLogo size={26} />}
+          {isCollapsed && <TurnAppLogo size={26} />}
           {/* Desktop toggle */}
           <button
             onClick={toggleCollapsed}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 hidden md:flex items-center justify-center shrink-0"
           >
-            {collapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
           {/* Mobile close */}
           <button
@@ -263,7 +265,7 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
         </div>
 
         {/* Brand selector (superadmin only) */}
-        {role === 'superadmin' && brands.length > 0 && !collapsed && (
+        {role === 'superadmin' && brands.length > 0 && !isCollapsed && (
           <div className="px-3 pt-2 pb-1 border-b border-gray-100">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Marca</p>
             <select
@@ -276,7 +278,7 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
             </select>
           </div>
         )}
-        {role === 'superadmin' && brands.length > 0 && collapsed && (
+        {role === 'superadmin' && brands.length > 0 && isCollapsed && (
           <div className="flex justify-center py-2 border-b border-gray-100">
             <Building2 size={16} className="text-gray-400" aria-label={brands.find(b => b.id === selectedBrandId)?.name} />
           </div>
@@ -289,12 +291,12 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
             if (allowedItems.length === 0) return null
             return (
             <div key={si} className={cn('flex flex-col gap-0.5', si > 0 && 'mt-4')}>
-              {!collapsed && section.section && (
+              {!isCollapsed && section.section && (
                 <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-2 mb-1.5">
                   {section.section}
                 </p>
               )}
-              {collapsed && si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />}
+              {isCollapsed && si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />}
               {allowedItems.map(item => {
                 const active = isActive(item.href, item.exact)
                 const Icon = item.icon
@@ -303,17 +305,17 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
                     key={item.href}
                     href={item.href}
                     onClick={() => setMobileOpen(false)}
-                    title={collapsed ? item.label : undefined}
+                    title={isCollapsed ? item.label : undefined}
                     className={cn(
                       'flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors',
-                      collapsed && 'justify-center',
+                      isCollapsed && 'justify-center',
                       active
                         ? 'bg-indigo-50 text-indigo-700 font-medium'
                         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
                     )}
                   >
                     <Icon size={17} className="shrink-0" />
-                    {!collapsed && <span>{item.label}</span>}
+                    {!isCollapsed && <span>{item.label}</span>}
                   </Link>
                 )
               })}
@@ -327,14 +329,14 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
           <Link
             href="/profile"
             onClick={() => setMobileOpen(false)}
-            title={collapsed ? 'Mi perfil' : undefined}
+            title={isCollapsed ? 'Mi perfil' : undefined}
             className={cn(
               'flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors mb-1 w-full text-left',
-              collapsed && 'justify-center',
+              isCollapsed && 'justify-center',
             )}
           >
             <UserCircle size={18} className="text-gray-400 shrink-0" />
-            {!collapsed && (
+            {!isCollapsed && (
               <div className="min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">{fullName || email}</p>
                 {subtitle
@@ -350,46 +352,46 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
               href={`/display/${establishmentSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              title={collapsed ? 'Pantalla TV' : undefined}
+              title={isCollapsed ? 'Pantalla TV' : undefined}
               className={cn(
                 'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 w-full transition-colors mb-1',
-                collapsed && 'justify-center',
+                isCollapsed && 'justify-center',
               )}
             >
               <Monitor size={15} />
-              {!collapsed && <span>Pantalla TV</span>}
+              {!isCollapsed && <span>Pantalla TV</span>}
             </a>
           )}
           {/* Botón ver como agente */}
           {CAN_IMPERSONATE.includes(role) && !viewAs && (
             <button
               onClick={startImpersonate}
-              title={collapsed ? 'Ver como agente' : undefined}
+              title={isCollapsed ? 'Ver como agente' : undefined}
               className={cn(
                 'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-indigo-500 hover:bg-indigo-50 w-full transition-colors mb-1',
-                collapsed && 'justify-center',
+                isCollapsed && 'justify-center',
               )}
             >
               <Eye size={15} />
-              {!collapsed && <span>Ver como agente</span>}
+              {!isCollapsed && <span>Ver como agente</span>}
             </button>
           )}
           {/* Salir de vista asesor */}
           {viewAs && (
             <button
               onClick={stopImpersonate}
-              title={collapsed ? 'Salir de vista asesor' : undefined}
+              title={isCollapsed ? 'Salir de vista asesor' : undefined}
               className={cn(
                 'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-amber-600 hover:bg-amber-50 w-full transition-colors mb-1',
-                collapsed && 'justify-center',
+                isCollapsed && 'justify-center',
               )}
             >
               <EyeOff size={15} />
-              {!collapsed && <span>Salir de vista asesor</span>}
+              {!isCollapsed && <span>Salir de vista asesor</span>}
             </button>
           )}
           {/* Language selector */}
-          {!collapsed && (
+          {!isCollapsed && (
             <div className="px-2 py-1">
               <select
                 value={lang}
@@ -405,14 +407,14 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
           )}
           <button
             onClick={handleLogout}
-            title={collapsed ? 'Cerrar sesión' : undefined}
+            title={isCollapsed ? 'Cerrar sesión' : undefined}
             className={cn(
               'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 hover:bg-red-50 hover:text-red-600 w-full transition-colors',
-              collapsed && 'justify-center',
+              isCollapsed && 'justify-center',
             )}
           >
             <LogOut size={15} />
-            {!collapsed && <span>{t('action.signOut')}</span>}
+            {!isCollapsed && <span>{t('action.signOut')}</span>}
           </button>
         </div>
       </>
@@ -442,7 +444,7 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
         'fixed left-0 top-0 h-full w-56 bg-white border-r border-gray-200 flex flex-col z-30 transition-transform duration-200 md:hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
       )}>
-        <SidebarContent />
+        <SidebarContent mobile={true} />
       </aside>
 
       {/* Mobile top bar */}

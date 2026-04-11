@@ -8,7 +8,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { calcMonthlyBase, calcModuleAddon, PRICING } from '@/lib/planLimits'
+import { calcMonthlyBase, PRICING } from '@/lib/planLimits'
 
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -27,8 +27,13 @@ export interface MarketplaceModule {
   icon: string | null
   color: string | null
   features: string[] | null
-  price_per_establishment: number
-  price_per_advisor: number
+  price_monthly: number
+  price_per_user: boolean
+  price_per_user_amount: number
+  trial_days: number
+  // legacy columns (may still exist in DB)
+  price_per_establishment?: number
+  price_per_advisor?: number
   is_visible_to_brands: boolean
   is_coming_soon: boolean
   sort_order: number
@@ -106,12 +111,11 @@ export function MarketplaceClient({
   const [loading, setLoading] = useState<string | null>(null)
   const [contractModal, setContractModal] = useState<string | null>(null)
 
-  const additionalAdvisors = Math.max(0, maxAdvisors - maxEstablishments)
-
   function getSub(key: string) { return subs.find(s => s.module_key === key) }
   function modulePrice(mod: MarketplaceModule) {
-    return mod.price_per_establishment * maxEstablishments +
-      mod.price_per_advisor * additionalAdvisors
+    const base = mod.price_monthly ?? 0
+    const perUser = mod.price_per_user ? (mod.price_per_user_amount ?? 0) * maxAdvisors : 0
+    return base + perUser
   }
 
   async function startTrial(moduleKey: string) {
@@ -157,7 +161,11 @@ export function MarketplaceClient({
 
   const activeSubs = subs.filter(s => ['trial', 'active'].includes(s.status))
   const baseMonthly = calcMonthlyBase(maxEstablishments, maxAdvisors)
-  const addonMonthly = calcModuleAddon(maxEstablishments, maxAdvisors, activeSubs.length)
+  const addonMonthly = activeSubs.reduce((sum, sub) => {
+    const mod = modules.find(m => m.module_key === sub.module_key)
+    if (!mod) return sum
+    return sum + modulePrice(mod)
+  }, 0)
 
   if (modules.length === 0) {
     return (
@@ -294,12 +302,12 @@ export function MarketplaceClient({
                           <span className="text-gray-400 text-sm">/mes</span>
                         </div>
                         <p className="text-xs text-gray-400">
-                          ${mod.price_per_establishment}/sucursal
-                          {additionalAdvisors > 0 && ` + $${mod.price_per_advisor}/usuario adic.`}
+                          ${mod.price_monthly}/mes base
+                          {mod.price_per_user && ` + $${mod.price_per_user_amount}/usuario`}
                         </p>
                       </>
                     ) : (
-                      <span className="text-sm text-gray-400">Precio personalizado</span>
+                      <span className="text-sm text-gray-400">Gratis</span>
                     )}
                   </div>
                   {!comingSoon && status === 'available' && (
