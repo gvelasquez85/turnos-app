@@ -241,6 +241,19 @@ export function BrandUsersManager({
         </Button>
       </div>
 
+      {/* Upgrade banner when at limit */}
+      {maxAdvisors !== undefined && teamCount >= maxAdvisors && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
+          <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-800 flex-1">
+            Alcanzaste el límite de <strong>{maxAdvisors} usuario{maxAdvisors === 1 ? '' : 's'}</strong> de tu plan.{' '}
+            <a href="/admin/brand?tab=membership" className="underline font-semibold hover:text-amber-900">
+              Ir a membresía para agregar más →
+            </a>
+          </p>
+        </div>
+      )}
+
       {/* Leyenda de roles */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">
         {BRAND_ROLES.map(r => (

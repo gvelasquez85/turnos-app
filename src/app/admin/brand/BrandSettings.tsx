@@ -66,6 +66,8 @@ interface Props {
   membership: Membership | null
   moduleSubscriptions: ModuleSub[]
   availableModules?: AvailableModule[]
+  currentEstablishments?: number
+  currentAdvisors?: number
 }
 
 const PLAN_LABELS: Record<string, string> = {
@@ -110,7 +112,7 @@ function nextBillingDate(membership: Membership | null): Date {
   return next
 }
 
-export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs, availableModules = [] }: Props) {
+export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs, availableModules = [], currentEstablishments = 1, currentAdvisors = 0 }: Props) {
   const [tab, setTab] = useState<'profile' | 'membership' | 'integrations'>('profile')
   const [brand, setBrand] = useState(initialBrand)
   const [form, setForm] = useState({
@@ -134,6 +136,9 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const isColombiaAccount = (brand.country ?? 'Colombia') === 'Colombia'
   const [paypalSubLoading, setPaypalSubLoading] = useState(false)
   const [paypalSubError, setPaypalSubError] = useState('')
+  // Cart: desired seat counts (can only increase from current)
+  const [cartEst, setCartEst] = useState(membership?.max_establishments ?? 1)
+  const [cartAdv, setCartAdv] = useState(membership?.max_advisors ?? 1)
   const [membershipSub, setMembershipSub] = useState<{
     paypal_subscription_id?: string | null
     subscribed_amount?: number | null
@@ -148,20 +153,23 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     const subId = params.get('subscription_id')
     const ok = params.get('paypal_ok')
     const amountParam = params.get('amount')
+    const newEstParam = params.get('newEst')
+    const newAdvParam = params.get('newAdv')
     if (!ok || !subId || !amountParam) return
     const amount = parseFloat(amountParam)
+    const newEst = newEstParam ? parseInt(newEstParam) : undefined
+    const newAdv = newAdvParam ? parseInt(newAdvParam) : undefined
     fetch('/api/paypal/activate-subscription', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscriptionId: subId, amount }),
+      body: JSON.stringify({ subscriptionId: subId, amount, newEst, newAdv }),
     }).then(() => {
       setMembershipSub({ paypal_subscription_id: subId, subscribed_amount: amount })
+      if (newEst) setCartEst(newEst)
+      if (newAdv) setCartAdv(newAdv)
       // Clean URL
       const url = new URL(window.location.href)
-      url.searchParams.delete('paypal_ok')
-      url.searchParams.delete('subscription_id')
-      url.searchParams.delete('ba_token')
-      url.searchParams.delete('amount')
+      ;['paypal_ok', 'subscription_id', 'ba_token', 'amount', 'newEst', 'newAdv'].forEach(k => url.searchParams.delete(k))
       window.history.replaceState({}, '', url.toString())
     }).catch(console.error)
   }, [])
@@ -291,7 +299,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
   const nextBilling = nextBillingDate(membership)
   const activeModuleTotal = activeModuleSubs.reduce((sum, sub) => sum + getModulePrice(sub.module_key), 0)
-  const currentTotal = basePrice + activeModuleTotal
+  // Use cart values (desired seats) to compute the total for payment
+  const cartBase = calcMonthlyBase(cartEst, cartAdv)
+  const currentTotal = cartBase + activeModuleTotal
+  // Free plan within base limits: don't show pricing / PayPal
+  const isFreeWithinLimits = currentPlan === 'free' && cartEst <= (membership?.max_establishments ?? 1) && cartAdv <= (membership?.max_advisors ?? 1)
 
   function getModulePrice(moduleKey: string): number {
     const mod = availableModules.find(m => m.module_key === moduleKey)
@@ -488,32 +500,89 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-4">Medio de pago</h3>
 
-              {/* Price breakdown */}
-              <div className="space-y-1.5 text-sm mb-4">
-                <div className="flex justify-between text-gray-600">
-                  <span>{maxEst} sucursal{maxEst !== 1 ? 'es' : ''} × ${PRICING.perEstablishment}</span>
-                  <span>${maxEst * PRICING.perEstablishment}</span>
-                </div>
-                {maxAdv > maxEst && (
-                  <div className="flex justify-between text-gray-600">
-                    <span>{maxAdv - maxEst} usuario{maxAdv - maxEst !== 1 ? 's' : ''} adicional{maxAdv - maxEst !== 1 ? 'es' : ''} × ${PRICING.perAdditionalAdvisor}</span>
-                    <span>${(maxAdv - maxEst) * PRICING.perAdditionalAdvisor}</span>
+              {/* Seat cart: adjust establishments and advisors */}
+              <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 mb-4 space-y-2">
+                <p className="text-xs font-medium text-gray-600 mb-2">Ajustar capacidad</p>
+                {/* Establishments */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">Sucursales</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCartEst(v => Math.max(currentEstablishments, v - 1))}
+                      disabled={cartEst <= currentEstablishments}
+                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <span className="w-6 text-center text-sm font-semibold text-gray-900">{cartEst}</span>
+                    <button
+                      onClick={() => setCartEst(v => v + 1)}
+                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                    >
+                      <Plus size={12} />
+                    </button>
+                    <span className="text-xs text-gray-400 w-16 text-right">${cartEst * PRICING.perEstablishment}/mes</span>
                   </div>
-                )}
-                {activeModuleSubs.map(sub => {
-                  const p = getModulePrice(sub.module_key)
-                  return p > 0 ? (
-                    <div key={sub.id} className="flex justify-between text-gray-600">
-                      <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
-                      <span>${p}</span>
-                    </div>
-                  ) : null
-                })}
-                <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
-                  <span>Total mensual</span>
-                  <span>${currentTotal.toFixed(2)}</span>
+                </div>
+                {/* Advisors */}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-700">Usuarios</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setCartAdv(v => Math.max(Math.max(currentAdvisors, cartEst), v - 1))}
+                      disabled={cartAdv <= Math.max(currentAdvisors, cartEst)}
+                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Minus size={12} />
+                    </button>
+                    <span className="w-6 text-center text-sm font-semibold text-gray-900">{cartAdv}</span>
+                    <button
+                      onClick={() => setCartAdv(v => v + 1)}
+                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                    >
+                      <Plus size={12} />
+                    </button>
+                    <span className="text-xs text-gray-400 w-16 text-right">
+                      {cartAdv > cartEst ? `+$${(cartAdv - cartEst) * PRICING.perAdditionalAdvisor}/mes` : 'Incluido'}
+                    </span>
+                  </div>
                 </div>
               </div>
+
+              {/* Price breakdown */}
+              {!isFreeWithinLimits && (
+                <div className="space-y-1.5 text-sm mb-4">
+                  <div className="flex justify-between text-gray-600">
+                    <span>{cartEst} sucursal{cartEst !== 1 ? 'es' : ''} × ${PRICING.perEstablishment}</span>
+                    <span>${cartEst * PRICING.perEstablishment}</span>
+                  </div>
+                  {cartAdv > cartEst && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>{cartAdv - cartEst} usuario{cartAdv - cartEst !== 1 ? 's' : ''} adicional{cartAdv - cartEst !== 1 ? 'es' : ''} × ${PRICING.perAdditionalAdvisor}</span>
+                      <span>${(cartAdv - cartEst) * PRICING.perAdditionalAdvisor}</span>
+                    </div>
+                  )}
+                  {activeModuleSubs.map(sub => {
+                    const p = getModulePrice(sub.module_key)
+                    return p > 0 ? (
+                      <div key={sub.id} className="flex justify-between text-gray-600">
+                        <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
+                        <span>${p}</span>
+                      </div>
+                    ) : null
+                  })}
+                  <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
+                    <span>Total mensual</span>
+                    <span>${currentTotal.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
+              {isFreeWithinLimits && (
+                <div className="text-sm text-gray-500 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4 text-center">
+                  Plan gratuito — sin costo mientras estés en los límites incluidos
+                </div>
+              )}
 
               {paypalSubError && (
                 <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
@@ -521,107 +590,76 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </div>
               )}
 
-              {/* State A: no subscription */}
-              {!membershipSub.paypal_subscription_id && (
-                <div className="space-y-2">
-                  <Button
-                    className="w-full"
-                    loading={paypalSubLoading}
-                    onClick={async () => {
-                      setPaypalSubLoading(true)
-                      setPaypalSubError('')
-                      try {
-                        const returnUrl = `${window.location.origin}/admin/brand?tab=membership&paypal_ok=1&amount=${currentTotal}`
-                        const cancelUrl = `${window.location.origin}/admin/brand?tab=membership`
-                        const res = await fetch('/api/paypal/create-subscription', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ amount: currentTotal, currency: 'USD', returnUrl, cancelUrl }),
-                        })
-                        const data = await res.json()
-                        if (!res.ok || !data.approvalUrl) throw new Error(data.error ?? 'Error creando suscripción')
-                        window.location.href = data.approvalUrl
-                      } catch (err: unknown) {
-                        setPaypalSubError(err instanceof Error ? err.message : 'Error de PayPal')
-                        setPaypalSubLoading(false)
-                      }
-                    }}
-                  >
-                    Suscribirse con PayPal — ${currentTotal.toFixed(2)}/mes
-                  </Button>
-                  {isColombiaAccount && (
-                    <Button
-                      variant="secondary"
-                      className="w-full"
-                      onClick={() => window.open('mailto:soporte@turnapp.co?subject=Solicitud%20de%20suscripci%C3%B3n', '_blank')}
-                    >
-                      Contactar a soporte
+              {!isFreeWithinLimits && (() => {
+                const returnUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/admin/brand?tab=membership&paypal_ok=1&amount=${currentTotal}&newEst=${cartEst}&newAdv=${cartAdv}`
+                const cancelUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/admin/brand?tab=membership`
+                const doSubscribe = async () => {
+                  setPaypalSubLoading(true)
+                  setPaypalSubError('')
+                  try {
+                    if (membershipSub.paypal_subscription_id) {
+                      await fetch('/api/paypal/cancel-subscription', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ subscriptionId: membershipSub.paypal_subscription_id }),
+                      })
+                    }
+                    const res = await fetch('/api/paypal/create-subscription', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ amount: currentTotal, currency: 'USD', returnUrl, cancelUrl }),
+                    })
+                    const data = await res.json()
+                    if (!res.ok || !data.approvalUrl) throw new Error(data.error ?? 'Error creando suscripción')
+                    window.location.href = data.approvalUrl
+                  } catch (err: unknown) {
+                    setPaypalSubError(err instanceof Error ? err.message : 'Error de PayPal')
+                    setPaypalSubLoading(false)
+                  }
+                }
+
+                return (
+                  <div className="space-y-2">
+                    {/* State B: active, same amount */}
+                    {membershipSub.paypal_subscription_id && currentTotal === (membershipSub.subscribed_amount ?? 0) && cartEst === maxEst && cartAdv === maxAdv && (
+                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-2">
+                        <Check size={15} className="text-green-600 shrink-0" />
+                        <div>
+                          <p className="text-sm font-medium text-green-800">Suscripción activa</p>
+                          <p className="text-xs text-green-600 font-mono break-all">{membershipSub.paypal_subscription_id}</p>
+                        </div>
+                      </div>
+                    )}
+                    {/* State C: amount or seats changed */}
+                    {membershipSub.paypal_subscription_id && (currentTotal !== (membershipSub.subscribed_amount ?? 0) || cartEst !== maxEst || cartAdv !== maxAdv) && (
+                      <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2">
+                        <AlertTriangle size={15} className="text-amber-600 mt-0.5 shrink-0" />
+                        <p className="text-xs text-amber-800">
+                          A partir de tu próxima renovación se cobrará{' '}
+                          <strong>${currentTotal.toFixed(2)}/mes</strong>{' '}
+                          (actualmente suscrito: ${(membershipSub.subscribed_amount ?? 0).toFixed(2)}/mes).{' '}
+                          No aplican reembolsos.
+                        </p>
+                      </div>
+                    )}
+                    <Button className="w-full" loading={paypalSubLoading} onClick={doSubscribe}>
+                      {membershipSub.paypal_subscription_id
+                        ? `Actualizar suscripción — $${currentTotal.toFixed(2)}/mes`
+                        : `Suscribirse con PayPal — $${currentTotal.toFixed(2)}/mes`}
                     </Button>
-                  )}
-                  <p className="text-xs text-gray-400 text-center">No aplican reembolsos.</p>
-                </div>
-              )}
-
-              {/* State B: active subscription, same amount */}
-              {membershipSub.paypal_subscription_id && currentTotal === (membershipSub.subscribed_amount ?? 0) && (
-                <div>
-                  <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-3">
-                    <Check size={15} className="text-green-600 shrink-0" />
-                    <div>
-                      <p className="text-sm font-medium text-green-800">Suscripción activa</p>
-                      <p className="text-xs text-green-600 font-mono break-all">{membershipSub.paypal_subscription_id}</p>
-                    </div>
+                    {isColombiaAccount && (
+                      <Button
+                        variant="secondary"
+                        className="w-full"
+                        onClick={() => window.open('mailto:soporte@turnapp.co?subject=Solicitud%20de%20suscripci%C3%B3n', '_blank')}
+                      >
+                        Contactar a soporte
+                      </Button>
+                    )}
+                    <p className="text-xs text-gray-400 text-center">No aplican reembolsos.</p>
                   </div>
-                  <p className="text-xs text-gray-400 text-center">No aplican reembolsos.</p>
-                </div>
-              )}
-
-              {/* State C: active subscription, amount changed */}
-              {membershipSub.paypal_subscription_id && currentTotal !== (membershipSub.subscribed_amount ?? 0) && (
-                <div>
-                  <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-3">
-                    <AlertTriangle size={15} className="text-amber-600 mt-0.5 shrink-0" />
-                    <p className="text-xs text-amber-800">
-                      A partir de tu próxima renovación se cobrará{' '}
-                      <strong>${currentTotal.toFixed(2)}/mes</strong>{' '}
-                      (actualmente suscrito: ${(membershipSub.subscribed_amount ?? 0).toFixed(2)}/mes).{' '}
-                      No aplican reembolsos.
-                    </p>
-                  </div>
-                  <Button
-                    className="w-full"
-                    loading={paypalSubLoading}
-                    onClick={async () => {
-                      setPaypalSubLoading(true)
-                      setPaypalSubError('')
-                      try {
-                        // Cancel old subscription (PayPal only, no system change)
-                        await fetch('/api/paypal/cancel-subscription', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ subscriptionId: membershipSub.paypal_subscription_id }),
-                        })
-                        // Create new subscription
-                        const returnUrl = `${window.location.origin}/admin/brand?tab=membership&paypal_ok=1&amount=${currentTotal}`
-                        const cancelUrl = `${window.location.origin}/admin/brand?tab=membership`
-                        const res = await fetch('/api/paypal/create-subscription', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ amount: currentTotal, currency: 'USD', returnUrl, cancelUrl }),
-                        })
-                        const data = await res.json()
-                        if (!res.ok || !data.approvalUrl) throw new Error(data.error ?? 'Error creando suscripción')
-                        window.location.href = data.approvalUrl
-                      } catch (err: unknown) {
-                        setPaypalSubError(err instanceof Error ? err.message : 'Error de PayPal')
-                        setPaypalSubLoading(false)
-                      }
-                    }}
-                  >
-                    Actualizar suscripción
-                  </Button>
-                </div>
-              )}
+                )
+              })()}
             </div>
           </div>
 

@@ -277,6 +277,20 @@ export function EstablishmentsManager({ establishments: initial, brands, default
       </div>
 
 
+      {/* Upgrade banner when at limit */}
+      {!isSuperAdmin && maxEstablishments !== undefined &&
+        establishments.filter(e => e.brand_id === selectedBrandId).length >= maxEstablishments && (
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-5">
+          <AlertTriangle size={16} className="text-amber-500 shrink-0" />
+          <p className="text-sm text-amber-800 flex-1">
+            Alcanzaste el límite de <strong>{maxEstablishments} sucursal{maxEstablishments === 1 ? '' : 'es'}</strong> de tu plan.{' '}
+            <a href="/admin/brand?tab=membership" className="underline font-semibold hover:text-amber-900">
+              Ir a membresía para agregar más →
+            </a>
+          </p>
+        </div>
+      )}
+
       {/* Formulario */}
       {showForm && (
         <div className="bg-white border border-gray-200 rounded-2xl p-5 mb-6">

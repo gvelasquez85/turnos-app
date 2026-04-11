@@ -36,12 +36,26 @@ export default async function BrandSettingsPage() {
     .select('module_key, label, price_monthly, price_per_user, price_per_user_amount')
     .or('is_visible_to_brands.eq.true,is_coming_soon.eq.true')
 
+  // Current seat usage (for cart minimums)
+  const { count: estCount } = await supabase
+    .from('establishments')
+    .select('id', { count: 'exact', head: true })
+    .eq('brand_id', profile.brand_id)
+
+  const { count: advCount } = await supabase
+    .from('profiles')
+    .select('id', { count: 'exact', head: true })
+    .eq('brand_id', profile.brand_id)
+    .neq('role', 'brand_admin')
+
   return (
     <BrandSettings
       brand={brand}
       membership={membership || null}
       moduleSubscriptions={moduleSubscriptions || []}
       availableModules={marketplaceModules || []}
+      currentEstablishments={estCount ?? 1}
+      currentAdvisors={advCount ?? 0}
     />
   )
 }

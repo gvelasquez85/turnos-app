@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
-// Called after user returns from PayPal approval — saves subscription info to membership
+// Called after user returns from PayPal approval — saves subscription info and new seat counts
 export async function POST(req: NextRequest) {
-  const { subscriptionId, amount } = await req.json()
+  const { subscriptionId, amount, newEst, newAdv } = await req.json()
   if (!subscriptionId || !amount) {
     return NextResponse.json({ error: 'subscriptionId and amount required' }, { status: 400 })
   }
@@ -22,13 +22,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No brand found' }, { status: 404 })
   }
 
+  const updatePayload: Record<string, unknown> = {
+    paypal_subscription_id: subscriptionId,
+    subscribed_amount: amount,
+    status: 'active',
+  }
+  if (newEst) updatePayload.max_establishments = newEst
+  if (newAdv) updatePayload.max_advisors = newAdv
+
   const { error } = await supabase
     .from('memberships')
-    .update({
-      paypal_subscription_id: subscriptionId,
-      subscribed_amount: amount,
-      status: 'active',
-    })
+    .update(updatePayload)
     .eq('brand_id', profile.brand_id)
 
   if (error) {
