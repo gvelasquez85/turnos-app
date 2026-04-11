@@ -5,12 +5,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Building2, CreditCard, Check, CheckCircle, ArrowRight,
-  Zap, Star, Crown, Rocket, Sparkles, X, AlertTriangle,
-  Plus, Minus, Users, Store, Key, Webhook, Copy, Trash2,
+  X, AlertTriangle, Plus, Minus, Users, Store, Key, Webhook, Copy, Trash2,
   RefreshCw, ExternalLink, Eye, EyeOff, Globe,
 } from 'lucide-react'
 import { useEffect, useCallback } from 'react'
-import { ADDON_PRICES } from '@/lib/planLimits'
+import { PRICING, calcMonthlyBase, calcModuleAddon } from '@/lib/planLimits'
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
 
 interface Brand {
@@ -49,75 +48,14 @@ interface Props {
   moduleSubscriptions: ModuleSub[]
 }
 
-const PLANS = [
-  {
-    key: 'free',
-    label: 'Gratis',
-    price: 0,
-    icon: Zap,
-    color: 'text-gray-500',
-    border: 'border-gray-200',
-    badge: 'bg-gray-100 text-gray-600',
-    maxEstablishments: 1,
-    maxAdvisors: 3,
-    modules: ['Cola de espera básica'],
-    cta: null,
-  },
-  {
-    key: 'basic',
-    label: 'Básico',
-    price: 29,
-    icon: Star,
-    color: 'text-blue-600',
-    border: 'border-blue-200',
-    badge: 'bg-blue-100 text-blue-700',
-    maxEstablishments: 3,
-    maxAdvisors: 10,
-    modules: ['Cola de espera', 'Pantalla TV (display)', 'Encuestas NPS/CSAT'],
-    cta: 'Contratar Básico',
-  },
-  {
-    key: 'professional',
-    label: 'Profesional',
-    price: 49,
-    icon: Rocket,
-    color: 'text-indigo-600',
-    border: 'border-indigo-400',
-    badge: 'bg-indigo-100 text-indigo-700',
-    maxEstablishments: 10,
-    maxAdvisors: 30,
-    modules: ['Todo lo del Básico', 'Citas programadas'],
-    note: 'Menú, preorden y check-in disponibles como módulos extra',
-    cta: 'Contratar Profesional',
-    highlight: true,
-  },
-  {
-    key: 'enterprise',
-    label: 'Empresarial',
-    price: 79,
-    icon: Crown,
-    color: 'text-purple-600',
-    border: 'border-purple-200',
-    badge: 'bg-purple-100 text-purple-700',
-    maxEstablishments: null,
-    maxAdvisors: null,
-    modules: ['Todo lo del Profesional', 'Sucursales ilimitadas', 'Agentes ilimitados', '1 módulo extra a elección'],
-    cta: 'Contratar Empresarial',
-  },
-  {
-    key: 'enterprise_plus',
-    label: 'Empresarial Plus',
-    price: null,
-    icon: Sparkles,
-    color: 'text-amber-600',
-    border: 'border-amber-200',
-    badge: 'bg-amber-100 text-amber-700',
-    maxEstablishments: null,
-    maxAdvisors: null,
-    modules: ['Todo lo del Empresarial', 'Todos los módulos incluidos', 'SLA y soporte dedicado', 'Integraciones personalizadas'],
-    cta: 'Hablar con ventas',
-  },
-]
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Gratis',
+  standard: 'Estándar',
+  basic: 'Básico',
+  professional: 'Profesional',
+  enterprise: 'Empresarial',
+  enterprise_plus: 'Empresarial Plus',
+}
 
 const MODULE_LABELS: Record<string, string> = {
   menu: 'Menú / Preorden',
@@ -289,10 +227,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   }
 
   const currentPlan = membership?.plan ?? 'free'
-  const currentPlanDef = PLANS.find(p => p.key === currentPlan) ?? PLANS[0]
-  const planPrice = currentPlanDef.price ?? 0
+  const currentPlanLabel = PLAN_LABELS[currentPlan] ?? currentPlan
+  const maxEst = membership?.max_establishments ?? 1
+  const maxAdv = membership?.max_advisors ?? 2
+  const basePrice = calcMonthlyBase(maxEst, maxAdv)
   const activeModuleSubs = moduleSubs.filter(s => s.status === 'active' || s.status === 'trial')
-  const modulesTotal = activeModuleSubs.reduce((sum, s) => sum + (s.price_monthly ?? 0), 0)
+  const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
+  const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
   const nextBilling = nextBillingDate(membership)
 
   return (
@@ -319,7 +260,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       </div>
 
       {tab === 'profile' && (
-        <div className="max-w-lg bg-white rounded-xl border border-gray-200 p-6">
+        <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-2xl">
           <div className="flex flex-col gap-4">
             <Input label="Nombre de la marca" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <Input label="URL del logo" value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} placeholder="https://..." />
@@ -399,15 +340,15 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       )}
 
       {tab === 'membership' && (
-        <div className="max-w-5xl">
+        <div>
           {/* Current plan banner */}
-          <div className={`bg-white rounded-xl border-2 ${currentPlanDef.border} p-5 mb-6 flex items-center justify-between flex-wrap gap-4`}>
+          <div className="bg-white rounded-xl border-2 border-indigo-200 p-5 mb-6 flex items-center justify-between flex-wrap gap-4">
             <div className="flex items-center gap-3">
-              <currentPlanDef.icon size={22} className={currentPlanDef.color} />
+              <CreditCard size={22} className="text-indigo-600" />
               <div>
                 <p className="text-xs text-gray-500 uppercase tracking-wider">Plan actual</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-lg font-bold text-gray-900">{currentPlanDef.label}</span>
+                  <span className="text-lg font-bold text-gray-900">{currentPlanLabel}</span>
                   {membership && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[membership.status] ?? ''}`}>
                       {STATUS_LABELS[membership.status] ?? membership.status}
@@ -418,12 +359,12 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </div>
             <div className="flex gap-6 text-sm">
               <div className="text-center">
-                <p className="font-bold text-gray-900">{membership?.max_establishments ?? 1}</p>
+                <p className="font-bold text-gray-900">{maxEst}</p>
                 <p className="text-gray-500 text-xs">Sucursales</p>
               </div>
               <div className="text-center">
-                <p className="font-bold text-gray-900">{membership?.max_advisors ?? 3}</p>
-                <p className="text-gray-500 text-xs">Agentes</p>
+                <p className="font-bold text-gray-900">{maxAdv}</p>
+                <p className="text-gray-500 text-xs">Usuarios</p>
               </div>
               {membership?.expires_at && (
                 <div className="text-center">
@@ -446,24 +387,24 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               </div>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between text-gray-600">
-                  <span>Plan {currentPlanDef.label}</span>
-                  <span className="font-medium">{planPrice === 0 ? 'Gratis' : `$${planPrice}`}</span>
+                  <span>{maxEst} sucursal{maxEst !== 1 ? 'es' : ''} × ${PRICING.perEstablishment}/mes</span>
+                  <span className="font-medium">${maxEst * PRICING.perEstablishment}</span>
                 </div>
+                {maxAdv > maxEst && (
+                  <div className="flex justify-between text-gray-600">
+                    <span>{maxAdv - maxEst} usuario{maxAdv - maxEst !== 1 ? 's' : ''} adicional{maxAdv - maxEst !== 1 ? 'es' : ''} × ${PRICING.perAdditionalAdvisor}/mes</span>
+                    <span className="font-medium">${(maxAdv - maxEst) * PRICING.perAdditionalAdvisor}</span>
+                  </div>
+                )}
                 {activeModuleSubs.map(sub => (
                   <div key={sub.id} className="flex justify-between text-gray-600">
                     <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
                     <span className="font-medium">{sub.price_monthly ? `$${sub.price_monthly}` : 'Incluido'}</span>
                   </div>
                 ))}
-                <div className="text-xs text-gray-400 pt-1">
-                  Agentes adicionales: +${ADDON_PRICES.extraAdvisor}/agente/mes
-                </div>
-                <div className="text-xs text-gray-400">
-                  Sucursales adicionales: +${ADDON_PRICES.extraEstablishment}/sucursal/mes
-                </div>
                 <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
                   <span>Total estimado</span>
-                  <span>{planPrice + modulesTotal === 0 ? 'Gratis' : `$${(planPrice + modulesTotal).toFixed(2)}`}</span>
+                  <span>{basePrice + modulesAddon === 0 ? 'Gratis' : `$${(basePrice + modulesAddon).toFixed(2)}`}</span>
                 </div>
               </div>
             </div>
@@ -536,7 +477,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Agentes adicionales</p>
-                    <p className="text-xs text-gray-500">${ADDON_PRICES.extraAdvisor}/agente/mes</p>
+                    <p className="text-xs text-gray-500">${PRICING.perAdditionalAdvisor}/usuario/mes</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mb-4">
@@ -548,7 +489,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                     <Plus size={14} />
                   </button>
                   <span className="text-sm text-gray-500 ml-1">
-                    = <span className="font-semibold text-gray-900">${(addonAgents * ADDON_PRICES.extraAdvisor).toFixed(2)}/mes</span>
+                    = <span className="font-semibold text-gray-900">${(addonAgents * PRICING.perAdditionalAdvisor).toFixed(2)}/mes</span>
                   </span>
                 </div>
                 <Button className="w-full" variant="secondary" onClick={() => setAddonModal('agents')}>
@@ -564,7 +505,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Sucursales adicionales</p>
-                    <p className="text-xs text-gray-500">${ADDON_PRICES.extraEstablishment}/sucursal/mes</p>
+                    <p className="text-xs text-gray-500">${PRICING.perEstablishment}/sucursal/mes</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 mb-4">
@@ -576,7 +517,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                     <Plus size={14} />
                   </button>
                   <span className="text-sm text-gray-500 ml-1">
-                    = <span className="font-semibold text-gray-900">${(addonLocations * ADDON_PRICES.extraEstablishment).toFixed(2)}/mes</span>
+                    = <span className="font-semibold text-gray-900">${(addonLocations * PRICING.perEstablishment).toFixed(2)}/mes</span>
                   </span>
                 </div>
                 <Button className="w-full" variant="secondary" onClick={() => setAddonModal('locations')}>
@@ -587,84 +528,44 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
           </div>
           }
 
-          {/* Plan comparison grid */}
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4">Planes disponibles</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
-            {PLANS.map(plan => {
-              const isCurrent = plan.key === currentPlan
-              const Icon = plan.icon
-              return (
-                <div
-                  key={plan.key}
-                  className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
-                    plan.highlight ? 'border-indigo-400 shadow-lg shadow-indigo-100' : isCurrent ? plan.border : 'border-gray-100'
-                  }`}
-                >
-                  {plan.highlight && (
-                    <div className="bg-indigo-600 text-white text-xs font-bold text-center py-1.5 rounded-t-xl tracking-wider">
-                      MÁS POPULAR
-                    </div>
-                  )}
-                  <div className="p-4 flex-1 flex flex-col">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Icon size={16} className={plan.color} />
-                      <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full ${plan.badge}`}>{plan.label}</span>
-                    </div>
-                    <div className="mb-3">
-                      {plan.price === null ? (
-                        <span className="text-lg font-black text-gray-900">A medida</span>
-                      ) : plan.price === 0 ? (
-                        <span className="text-lg font-black text-gray-900">Gratis</span>
-                      ) : (
-                        <>
-                          <span className="text-xl font-black text-gray-900">${plan.price}</span>
-                          <span className="text-gray-400 text-xs">/mes</span>
-                        </>
-                      )}
-                    </div>
-                    <div className="text-xs text-gray-500 mb-3 space-y-0.5">
-                      <p><span className="font-semibold text-gray-700">{plan.maxEstablishments ?? '∞'}</span> sucursales</p>
-                      <p><span className="font-semibold text-gray-700">{plan.maxAdvisors ?? '∞'}</span> agentes</p>
-                    </div>
-                    <ul className="space-y-1.5 flex-1 mb-4">
-                      {plan.modules.map(m => (
-                        <li key={m} className="flex items-start gap-2 text-xs text-gray-600">
-                          <CheckCircle size={11} className="text-green-500 shrink-0 mt-0.5" />
-                          {m}
-                        </li>
-                      ))}
-                      {'note' in plan && plan.note && (
-                        <li className="text-xs text-gray-400 italic mt-1 leading-tight">{plan.note}</li>
-                      )}
-                    </ul>
-                    {isCurrent ? (
-                      <div className="w-full py-2 text-center text-xs font-medium text-gray-400 bg-gray-50 rounded-xl border border-gray-200">
-                        Plan actual
-                      </div>
-                    ) : plan.cta ? (
-                      <Button
-                        className="w-full text-xs"
-                        variant={plan.highlight ? 'primary' : 'secondary'}
-                        onClick={() => setUpgradeModal(plan.key)}
-                      >
-                        {plan.cta} <ArrowRight size={11} className="ml-1" />
-                      </Button>
-                    ) : null}
-                  </div>
+          {/* Pricing reference */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h2 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+              <CreditCard size={15} className="text-indigo-500" /> Modelo de precios
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-indigo-50 rounded-xl p-4">
+                <p className="text-2xl font-black text-indigo-700">${PRICING.perEstablishment}<span className="text-sm font-normal text-indigo-400">/sucursal/mes</span></p>
+                <p className="text-xs text-indigo-600 mt-1">Incluye 1 usuario por sucursal</p>
+                <ul className="mt-3 space-y-1">
+                  {['Cola de espera', 'Pantalla TV', 'Formulario de clientes', 'Promociones', 'Campos de asesor', 'Autorizaciones'].map(f => (
+                    <li key={f} className="flex items-center gap-1.5 text-xs text-indigo-700">
+                      <CheckCircle size={11} className="text-indigo-400 shrink-0" /> {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="flex flex-col gap-3">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xl font-black text-gray-800">+${PRICING.perAdditionalAdvisor}<span className="text-sm font-normal text-gray-400">/usuario adicional/mes</span></p>
+                  <p className="text-xs text-gray-500 mt-1">A partir del 2.º usuario por sucursal</p>
                 </div>
-              )
-            })}
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <p className="text-xl font-black text-gray-800">+${PRICING.modulePerEstablishment}<span className="text-sm font-normal text-gray-400">/sucursal/módulo/mes</span></p>
+                  <p className="text-xs text-gray-500 mt-1">CRM, encuestas, citas, menú y más</p>
+                </div>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400 mt-4 border-t border-gray-100 pt-3">
+              ¿Necesitas más capacidad o módulos? Contacta a soporte para ajustar tu plan.
+            </p>
           </div>
-
-          <p className="text-xs text-gray-400 mt-4">
-            Todos los planes admiten agentes y sucursales adicionales: +${ADDON_PRICES.extraAdvisor}/agente/mes · +${ADDON_PRICES.extraEstablishment}/sucursal/mes
-          </p>
         </div>
       )}
 
       {/* ── Integrations tab ── */}
       {tab === 'integrations' && (
-        <div className="max-w-3xl">
+        <div>
           {/* API Keys */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-4">
@@ -816,42 +717,36 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       )}
 
       {/* Upgrade modal */}
-      {upgradeModal && upgradeModal !== 'payment' && (() => {
-        const plan = PLANS.find(p => p.key === upgradeModal)!
-        const isEnterprise = upgradeModal === 'enterprise'
-        return (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-              <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <plan.icon size={24} className="text-indigo-600" />
-              </div>
-              <h2 className="text-lg font-bold text-gray-900 mb-2">Contratar plan {plan.label}</h2>
-              <p className="text-sm text-gray-500 mb-5">
-                {isEnterprise
-                  ? 'Incluye 1 módulo extra a elección (menú, preorden, check-in, check-out u otro). Contáctanos y te lo configuramos:'
-                  : 'Estamos integrando el proceso de pago. Por ahora, contáctanos y activamos tu plan en minutos:'}
-              </p>
-              <a
-                href={`mailto:soporte@turnapp.co?subject=Quiero contratar plan ${plan.label}&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero contratar el plan ${plan.label}.`}
-                className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
-              >
-                Contactar soporte →
-              </a>
-              <a
-                href={`https://wa.me/573001234567?text=Hola%2C+quiero+contratar+TurnApp+plan+${encodeURIComponent(plan.label)}+para+la+marca+${encodeURIComponent(initialBrand.name)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block w-full py-2.5 px-4 bg-green-500 text-white rounded-xl font-medium text-sm hover:bg-green-600 transition-colors mb-3"
-              >
-                Escribir por WhatsApp
-              </a>
-              <button onClick={() => setUpgradeModal(null)} className="text-sm text-gray-400 hover:text-gray-600">
-                Cerrar
-              </button>
+      {upgradeModal && upgradeModal !== 'payment' && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
+            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <CreditCard size={24} className="text-indigo-600" />
             </div>
+            <h2 className="text-lg font-bold text-gray-900 mb-2">Ampliar plan</h2>
+            <p className="text-sm text-gray-500 mb-5">
+              Contáctanos para ajustar tu plan (más sucursales, usuarios o módulos). Lo activamos en minutos:
+            </p>
+            <a
+              href={`mailto:soporte@turnapp.co?subject=Quiero ampliar mi plan TurnApp&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero ampliar mi plan.`}
+              className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
+            >
+              Contactar soporte →
+            </a>
+            <a
+              href={`https://wa.me/573001234567?text=Hola%2C+quiero+ampliar+mi+plan+TurnApp+para+la+marca+${encodeURIComponent(initialBrand.name)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-2.5 px-4 bg-green-500 text-white rounded-xl font-medium text-sm hover:bg-green-600 transition-colors mb-3"
+            >
+              Escribir por WhatsApp
+            </a>
+            <button onClick={() => setUpgradeModal(null)} className="text-sm text-gray-400 hover:text-gray-600">
+              Cerrar
+            </button>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       {/* Add-ons contact modal */}
       {addonModal && (
@@ -867,8 +762,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </h2>
             <p className="text-sm font-semibold text-indigo-600 mb-3">
               ${addonModal === 'agents'
-                ? (addonAgents * ADDON_PRICES.extraAdvisor).toFixed(2)
-                : (addonLocations * ADDON_PRICES.extraEstablishment).toFixed(2)}/mes adicionales
+                ? (addonAgents * PRICING.perAdditionalAdvisor).toFixed(2)
+                : (addonLocations * PRICING.perEstablishment).toFixed(2)}/mes adicionales
             </p>
             <p className="text-sm text-gray-500 mb-5">
               Contáctanos para activar la capacidad adicional en tu cuenta:

@@ -9,7 +9,8 @@ export default async function ReportsPage() {
 
   const { data: profile } = await supabase.from('profiles').select('role, brand_id, establishment_id, brands(active_modules)').eq('id', user.id).single()
 
-  const activeModules = (profile?.brands as any)?.active_modules || []
+  const moduleObj: Record<string, boolean> = (profile?.brands as any)?.active_modules || {}
+  const activeModules = Object.keys(moduleObj).filter(k => moduleObj[k] === true)
 
   // Load establishments the user can see (include brand_id for client-side filtering)
   const estQuery = supabase.from('establishments').select('id, name, brand_id').eq('active', true)

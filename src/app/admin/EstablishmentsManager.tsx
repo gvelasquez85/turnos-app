@@ -260,7 +260,11 @@ export function EstablishmentsManager({ establishments: initial, brands, default
         </div>
         <Button
           onClick={openNew}
-          disabled={!selectedBrandId}
+          disabled={
+            !selectedBrandId ||
+            (!isSuperAdmin && maxEstablishments !== undefined &&
+              establishments.filter(e => e.brand_id === selectedBrandId).length >= maxEstablishments)
+          }
           title={
             !isSuperAdmin && maxEstablishments !== undefined &&
             establishments.filter(e => e.brand_id === selectedBrandId).length >= maxEstablishments

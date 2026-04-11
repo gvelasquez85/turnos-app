@@ -40,20 +40,11 @@ export function BrandFormConfigWrapper({ brands, defaultBrandId }: Props) {
 
   return (
     <div>
-      {/* Active brand indicator */}
-      <div className="flex items-center gap-3 mb-5 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl">
-        <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center shrink-0">
-          <Building2 size={15} className="text-white" />
-        </div>
-        <div>
-          <p className="text-xs text-indigo-500 font-medium uppercase tracking-wide">Editando formulario de</p>
-          <p className="text-sm font-bold text-indigo-900">{activeBrand.name}</p>
-        </div>
-        {brands.length > 1 && (
-          <p className="ml-auto text-xs text-indigo-400">Cambia la marca desde el selector del menú lateral</p>
-        )}
-      </div>
-
+      {brands.length > 1 && (
+        <p className="text-sm text-gray-500 mb-5">
+          Marca: <span className="font-medium text-gray-700">{activeBrand.name}</span>
+        </p>
+      )}
       <BrandFormConfig
         key={configKey}
         brandId={activeBrand.id}

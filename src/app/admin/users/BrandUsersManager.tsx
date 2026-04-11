@@ -94,12 +94,6 @@ export function BrandUsersManager({
   }
 
   function openNew() {
-    if (maxAdvisors !== undefined && teamCount >= maxAdvisors) {
-      setError(`Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu membresía en Mi marca → Membresía.`)
-      setShowForm(true)
-      setEditing(null)
-      return
-    }
     setEditing(null)
     setForm({ email: '', password: '', full_name: '', role: 'advisor', establishment_id: '' })
     setError('')
@@ -236,7 +230,15 @@ export function BrandUsersManager({
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">Asesores, managers y usuarios de reportes</p>
         </div>
-        <Button onClick={openNew}><Plus size={16} className="mr-1" /> Nuevo usuario</Button>
+        <Button
+          onClick={openNew}
+          disabled={maxAdvisors !== undefined && teamCount >= maxAdvisors}
+          title={maxAdvisors !== undefined && teamCount >= maxAdvisors
+            ? `Límite de ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} alcanzado`
+            : undefined}
+        >
+          <Plus size={16} className="mr-1" /> Nuevo usuario
+        </Button>
       </div>
 
       {/* Leyenda de roles */}
