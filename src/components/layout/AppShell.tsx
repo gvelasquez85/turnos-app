@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
-import { getLimits } from '@/lib/planLimits'
 import { I18nProvider, useT } from '@/lib/i18n/context'
 import { SUPPORTED_LANGUAGES, type LangCode } from '@/lib/i18n/translations'
 
@@ -68,13 +67,14 @@ const navByRole: Record<AppRole, NavSection[]> = {
         { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
         { href: '/superadmin/memberships', label: 'Membresías', icon: CreditCard },
         { href: '/superadmin/users', label: 'Usuarios', icon: Users },
+        SUPERADMIN_MARKETPLACE_ITEM,
         { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
       ],
     },
     { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
     { section: 'Operación', items: OPERATION_ITEMS },
     { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, SUPERADMIN_MARKETPLACE_ITEM] },
+    { section: 'Módulos adicionales', items: MODULE_ITEMS },
   ],
   brand_admin: [
     {
