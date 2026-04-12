@@ -147,6 +147,15 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     subscribed_amount: membership?.subscribed_amount,
   })
 
+  // Read ?tab= URL param to open the correct tab on load (e.g. links from limit banners)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tabParam = params.get('tab')
+    if (tabParam === 'membership' || tabParam === 'integrations' || tabParam === 'profile') {
+      setTab(tabParam)
+    }
+  }, [])
+
   // Detect PayPal return after subscription approval
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -298,17 +307,19 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
   const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
   const nextBilling = nextBillingDate(membership)
-  const activeModuleTotal = activeModuleSubs.reduce((sum, sub) => sum + getModulePrice(sub.module_key), 0)
   // Use cart values (desired seats) to compute the total for payment
   const cartBase = calcMonthlyBase(cartEst, cartAdv)
+  // activeModuleTotal uses cartAdv so per-user fees reflect the desired advisor count
+  const activeModuleTotal = activeModuleSubs.reduce((sum, sub) => sum + getModulePrice(sub.module_key, cartAdv), 0)
   const currentTotal = cartBase + activeModuleTotal
-  // Free plan within base limits: don't show pricing / PayPal
-  const isFreeWithinLimits = currentPlan === 'free' && cartEst <= (membership?.max_establishments ?? 1) && cartAdv <= (membership?.max_advisors ?? 1)
+  // Free plan: genuinely free when within the fixed free-tier limits (1 est, 2 advisors, no paid modules)
+  const isFreeWithinLimits = currentPlan === 'free' && cartEst <= 1 && cartAdv <= 2 && activeModuleTotal === 0
 
-  function getModulePrice(moduleKey: string): number {
+  // advisorCount defaults to current maxAdv for display; pass cartAdv for payment calculations
+  function getModulePrice(moduleKey: string, advisorCount = maxAdv): number {
     const mod = availableModules.find(m => m.module_key === moduleKey)
     if (!mod) return 0
-    return (mod.price_monthly ?? 0) + (mod.price_per_user ? (mod.price_per_user_amount ?? 0) * maxAdv : 0)
+    return (mod.price_monthly ?? 0) + (mod.price_per_user ? (mod.price_per_user_amount ?? 0) * advisorCount : 0)
   }
 
   return (
@@ -771,9 +782,6 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </div>
               </div>
             </div>
-            <p className="text-xs text-gray-400 mt-4 border-t border-gray-100 pt-3">
-              ¿Necesitas más sucursales o usuarios? Contacta a soporte para ajustar tu plan.
-            </p>
           </div>
         </div>
       )}

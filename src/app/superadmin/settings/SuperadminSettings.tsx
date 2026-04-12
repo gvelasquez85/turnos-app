@@ -349,6 +349,28 @@ function IntegrationsTab() {
   const [testEmailTo, setTestEmailTo] = useState('')
   const [testSending, setTestSending] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; message?: string; error?: string; diagnostics?: any } | null>(null)
+  const [testPushTo, setTestPushTo] = useState('')
+  const [testPushSending, setTestPushSending] = useState(false)
+  const [testPushResult, setTestPushResult] = useState<{ ok: boolean; message?: string; error?: string; diagnostics?: any } | null>(null)
+
+  async function sendTestPush() {
+    if (!testPushTo) return
+    setTestPushSending(true)
+    setTestPushResult(null)
+    try {
+      const res = await fetch('/api/superadmin/test-push', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: testPushTo }),
+      })
+      const json = await res.json()
+      setTestPushResult(json)
+    } catch (e: any) {
+      setTestPushResult({ ok: false, error: e.message })
+    } finally {
+      setTestPushSending(false)
+    }
+  }
 
   async function sendTestEmail() {
     if (!testEmailTo) return
@@ -550,6 +572,54 @@ function IntegrationsTab() {
                 )
               })}
             </div>
+
+            {/* Firebase: test push panel */}
+            {integration.key === 'firebase' && (
+              <div className="px-5 py-4 border-t border-gray-100 bg-gray-50">
+                <p className="text-xs font-semibold text-gray-600 mb-3">🧪 Enviar push de prueba</p>
+                <div className="flex gap-2">
+                  <input
+                    type="email"
+                    placeholder="email del cliente (del ticket más reciente)"
+                    value={testPushTo}
+                    onChange={e => setTestPushTo(e.target.value)}
+                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none bg-white"
+                  />
+                  <button
+                    onClick={sendTestPush}
+                    disabled={testPushSending || !testPushTo}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors whitespace-nowrap"
+                  >
+                    {testPushSending ? <><Loader2 size={13} className="animate-spin" /> Enviando…</> : <><Send size={13} /> Probar</>}
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">Busca el ticket más reciente con ese email que tenga push registrado.</p>
+                {testPushResult && (
+                  <div className={`mt-3 rounded-xl border text-xs space-y-2 overflow-hidden ${testPushResult.ok ? 'border-green-200' : 'border-red-200'}`}>
+                    <div className={`px-4 py-2.5 font-semibold flex items-center gap-2 ${testPushResult.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {testPushResult.ok ? '✅' : '❌'} {testPushResult.ok ? testPushResult.message : testPushResult.error}
+                    </div>
+                    {testPushResult.diagnostics && (
+                      <div className="px-4 pb-3 space-y-1">
+                        <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Diagnóstico</p>
+                        {Object.entries(testPushResult.diagnostics).map(([k, v]) => (
+                          <div key={k} className="flex gap-2">
+                            <span className="font-mono text-gray-500 shrink-0 w-36">{k}:</span>
+                            <span className={`font-mono break-all ${
+                              k === 'http_status' && (v as number) !== 200 ? 'text-red-600 font-bold' :
+                              k === 'http_status' ? 'text-green-600 font-bold' :
+                              'text-gray-700'
+                            }`}>
+                              {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Brevo: test email panel */}
             {integration.key === 'brevo' && (
