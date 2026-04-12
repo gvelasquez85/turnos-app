@@ -579,7 +579,7 @@ function IntegrationsTab() {
                 <p className="text-xs font-semibold text-gray-600 mb-3">🧪 Enviar push de prueba</p>
                 <div className="flex gap-2">
                   <input
-                    type="email"
+                    type="text"
                     placeholder="email del cliente (del ticket más reciente)"
                     value={testPushTo}
                     onChange={e => setTestPushTo(e.target.value)}

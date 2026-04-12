@@ -14,11 +14,14 @@ export default async function ConsentsPage() {
   if (profile.brand_id) brandsQuery = brandsQuery.eq('id', profile.brand_id)
   const { data: brands } = await brandsQuery.order('name')
 
-  const { data: consents } = await supabase
+  let consentsQuery = supabase
     .from('data_consents')
     .select('*, establishments(name), tickets(queue_number)')
     .order('consented_at', { ascending: false })
-    .limit(200)
+    .limit(500)
+  // Brand-scoped filter (belt-and-suspenders on top of RLS)
+  if (profile.brand_id) consentsQuery = consentsQuery.eq('brand_id', profile.brand_id)
+  const { data: consents } = await consentsQuery
 
   return (
     <ConsentsManager

@@ -6,7 +6,7 @@ import { Shield, Download, Search, Check } from 'lucide-react'
 interface Consent {
   id: string
   ticket_id: string | null
-  establishment_id: string
+  establishment_id: string | null
   brand_id: string
   customer_name: string
   customer_phone: string | null
@@ -101,7 +101,7 @@ export function ConsentsManager({ consents, brands, defaultBrandId }: Props) {
                   {brandMap[c.brand_id] || '—'}
                 </div>
                 <div className="col-span-2 text-gray-600 truncate text-xs">
-                  {(c.establishments as any)?.name || '—'}
+                  {c.establishments?.name ?? <span className="text-gray-400 italic">Sucursal eliminada</span>}
                 </div>
                 <div className="col-span-1 text-center text-xs text-gray-500">
                   #{(c.tickets as any)?.queue_number || '—'}

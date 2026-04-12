@@ -31,15 +31,23 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // Find the most recent ticket with a push_subscription for this email
-  const { data: ticket } = await service
+  // Find the most recent ticket for this email that has a push_subscription
+  const { data: tickets, error: ticketError } = await service
     .from('tickets')
     .select('id, queue_number, customer_name, push_subscription, customer_email')
     .eq('customer_email', to)
-    .not('push_subscription', 'is', null)
     .order('created_at', { ascending: false })
-    .limit(1)
-    .single()
+    .limit(10)
+
+  if (ticketError) {
+    return NextResponse.json({ ok: false, error: ticketError.message })
+  }
+
+  // Pick the most recent one that actually has a push token
+  const ticket = (tickets ?? []).find(t => {
+    const s = t.push_subscription as { token?: string } | null
+    return s?.token
+  })
 
   if (!ticket) {
     return NextResponse.json({

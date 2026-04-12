@@ -137,8 +137,9 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [paypalSubLoading, setPaypalSubLoading] = useState(false)
   const [paypalSubError, setPaypalSubError] = useState('')
   // Cart: desired seat counts (can only increase from current)
-  const [cartEst, setCartEst] = useState(membership?.max_establishments ?? 1)
-  const [cartAdv, setCartAdv] = useState(membership?.max_advisors ?? 1)
+  const _initPlan = membership?.plan ?? 'free'
+  const [cartEst, setCartEst] = useState(_initPlan === 'free' ? 1 : (membership?.max_establishments ?? 1))
+  const [cartAdv, setCartAdv] = useState(_initPlan === 'free' ? 2 : (membership?.max_advisors ?? 2))
   const [membershipSub, setMembershipSub] = useState<{
     paypal_subscription_id?: string | null
     subscribed_amount?: number | null
@@ -299,8 +300,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
 
   const currentPlan = membership?.plan ?? 'free'
   const currentPlanLabel = PLAN_LABELS[currentPlan] ?? currentPlan
-  const maxEst = membership?.max_establishments ?? 1
-  const maxAdv = membership?.max_advisors ?? 2
+  // Free plan is capped at fixed limits regardless of what's in the membership record
+  const FREE_EST_LIMIT = 1
+  const FREE_ADV_LIMIT = 2
+  const maxEst = currentPlan === 'free' ? FREE_EST_LIMIT : (membership?.max_establishments ?? 1)
+  const maxAdv = currentPlan === 'free' ? FREE_ADV_LIMIT : (membership?.max_advisors ?? 2)
   const basePrice = calcMonthlyBase(maxEst, maxAdv)
   // Only show / count modules that are active or in trial
   const activeModuleSubs = moduleSubs.filter(s => s.status === 'active' || s.status === 'trial')
