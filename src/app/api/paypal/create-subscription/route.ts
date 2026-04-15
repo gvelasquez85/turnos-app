@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         'PayPal-Request-Id': `product-${Date.now()}`,
       },
       body: JSON.stringify({
-        name: 'TurnApp Membresía',
+        name: 'TurnFlow Membresía',
         type: 'SERVICE',
         category: 'SOFTWARE',
       }),
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         product_id: product.id,
-        name: `TurnApp Plan $${amount}/mes`,
+        name: `TurnFlow Plan $${amount}/mes`,
         status: 'ACTIVE',
         billing_cycles: [
           {
@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         plan_id: plan.id,
         application_context: {
-          brand_name: 'TurnApp',
+          brand_name: 'TurnFlow',
           locale: 'es-CO',
           shipping_preference: 'NO_SHIPPING',
           user_action: 'SUBSCRIBE_NOW',

@@ -11,7 +11,7 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, UserCheck, Zap,
 } from 'lucide-react'
-import { TurnAppLogo } from '@/components/brand/TurnAppLogo'
+import { TurnFlowLogo } from '@/components/brand/TurnAppLogo'
 import { useBrandStore } from '@/stores/brandStore'
 import { I18nProvider, useT } from '@/lib/i18n/context'
 import { SUPPORTED_LANGUAGES, type LangCode } from '@/lib/i18n/translations'
@@ -243,11 +243,11 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
         )}>
           {!isCollapsed && (
             <div className="flex items-center gap-2.5">
-              <TurnAppLogo size={28} />
-              <span className="font-bold text-gray-900 tracking-tight">TurnApp</span>
+              <TurnFlowLogo size={28} />
+              <span className="font-bold text-gray-900 tracking-tight">TurnFlow</span>
             </div>
           )}
-          {isCollapsed && <TurnAppLogo size={26} />}
+          {isCollapsed && <TurnFlowLogo size={26} />}
           {/* Desktop toggle */}
           <button
             onClick={toggleCollapsed}
@@ -455,8 +455,8 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
         >
           <Menu size={20} />
         </button>
-        <TurnAppLogo size={26} />
-        <span className="font-bold text-gray-900 tracking-tight">TurnApp</span>
+        <TurnFlowLogo size={26} />
+        <span className="font-bold text-gray-900 tracking-tight">TurnFlow</span>
       </div>
 
       {/* Main content */}

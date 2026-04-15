@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TurnApp",
+  title: "TurnFlow",
   description: "Sistema de gestión de turnos",
   icons: { icon: '/favicon.svg' },
 };

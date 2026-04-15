@@ -1,12 +1,12 @@
 'use client'
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { translate, type LangCode, type TranslationKey } from './translations'
+import { translate, type LangCode } from './translations'
 
 interface I18nContextValue {
   lang: LangCode
   setLang: (lang: LangCode) => void
-  t: (key: TranslationKey, fallback?: string) => string
+  t: (key: string, fallback?: string) => string
 }
 
 const I18nContext = createContext<I18nContextValue>({
@@ -25,7 +25,7 @@ export function I18nProvider({ children, initialLang = 'es' }: { children: React
   useEffect(() => {
     // Persist chosen language in localStorage for session consistency
     try {
-      const stored = localStorage.getItem('turnapp-lang') as LangCode | null
+      const stored = localStorage.getItem('turnflow-lang') as LangCode | null
       if (stored && stored !== initialLang) setLangState(stored)
     } catch { /* ignore */ }
 
@@ -47,10 +47,10 @@ export function I18nProvider({ children, initialLang = 'es' }: { children: React
 
   function setLang(l: LangCode) {
     setLangState(l)
-    try { localStorage.setItem('turnapp-lang', l) } catch { /* ignore */ }
+    try { localStorage.setItem('turnflow-lang', l) } catch { /* ignore */ }
   }
 
-  function t(key: TranslationKey, fallback?: string): string {
+  function t(key: string, fallback?: string): string {
     // DB override takes priority over static translation
     const override = dbOverrides[lang]?.[key]
     if (override) return override

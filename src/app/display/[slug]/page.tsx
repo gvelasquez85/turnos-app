@@ -6,13 +6,13 @@ import type { Metadata } from 'next'
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params
   return {
-    title: 'TurnApp – Pantalla TV',
+    title: 'TurnFlow – Pantalla TV',
     description: 'Pantalla de cola de espera',
     manifest: '/display-manifest.json',
     other: {
       'apple-mobile-web-app-capable': 'yes',
       'apple-mobile-web-app-status-bar-style': 'black-translucent',
-      'apple-mobile-web-app-title': 'TurnApp TV',
+      'apple-mobile-web-app-title': 'TurnFlow TV',
       'mobile-web-app-capable': 'yes',
     },
     viewport: {

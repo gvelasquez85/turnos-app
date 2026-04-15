@@ -112,7 +112,7 @@ export default async function ValidarPage({ params }: { params: Promise<{ id: st
           ID de registro: <span className="font-mono">{id}</span>
         </p>
         <p className="text-center text-xs text-gray-400 mt-1">
-          Powered by <span className="font-semibold text-indigo-600">TurnApp</span>
+          Powered by <span className="font-semibold text-indigo-600">TurnFlow</span>
         </p>
       </div>
     </div>

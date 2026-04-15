@@ -333,7 +333,7 @@ function TvPreview({ widgets, bgColor, accentColor, fontColor }: { widgets: Widg
           </div>
 
           {/* Footer */}
-          <div className="px-3 py-1 border-t border-white/10 opacity-30 text-[6px]">TurnApp</div>
+          <div className="px-3 py-1 border-t border-white/10 opacity-30 text-[6px]">TurnFlow</div>
         </div>
       </div>
 

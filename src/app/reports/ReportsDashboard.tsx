@@ -201,7 +201,7 @@ function GeneralTab({ establishments }: { establishments: { id: string; name: st
             <Download size={14} /> CSV
           </button>
           <button
-            onClick={() => printReport('Reporte General – TurnApp')}
+            onClick={() => printReport('Reporte General – TurnFlow')}
             className="flex items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
           >
             <Download size={14} /> PDF

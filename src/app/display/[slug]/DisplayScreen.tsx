@@ -336,7 +336,7 @@ export function DisplayScreen({ establishment, config }: Props) {
 
       {/* Footer */}
       <div className="px-8 py-3 border-t border-white/10 flex items-center justify-between opacity-40">
-        <span className="text-xs">TurnApp</span>
+        <span className="text-xs">TurnFlow</span>
         <span className="text-xs">{tickets.length} en cola</span>
       </div>
     </div>

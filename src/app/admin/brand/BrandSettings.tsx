@@ -666,7 +666,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                       <Button
                         variant="secondary"
                         className="w-full"
-                        onClick={() => window.open('mailto:soporte@turnapp.co?subject=Solicitud%20de%20suscripci%C3%B3n', '_blank')}
+                        onClick={() => window.open('mailto:soporte@turnflow.co?subject=Solicitud%20de%20suscripci%C3%B3n', '_blank')}
                       >
                         Contactar a soporte
                       </Button>
@@ -862,7 +862,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
           <div className="mb-8">
             <div className="mb-4">
               <h2 className="text-base font-semibold text-gray-900 flex items-center gap-2"><Webhook size={16} />Webhooks salientes</h2>
-              <p className="text-xs text-gray-500 mt-0.5">TurnApp enviará un POST JSON a estas URLs cuando ocurra cada evento. Deja vacío para deshabilitar.</p>
+              <p className="text-xs text-gray-500 mt-0.5">TurnFlow enviará un POST JSON a estas URLs cuando ocurra cada evento. Deja vacío para deshabilitar.</p>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
@@ -955,13 +955,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               Contáctanos para ajustar tu plan (más sucursales, usuarios o módulos). Lo activamos en minutos:
             </p>
             <a
-              href={`mailto:soporte@turnapp.co?subject=Quiero ampliar mi plan TurnApp&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero ampliar mi plan.`}
+              href={`mailto:soporte@turnflow.co?subject=Quiero ampliar mi plan TurnFlow&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero ampliar mi plan.`}
               className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
             >
               Contactar soporte →
             </a>
             <a
-              href={`https://wa.me/573001234567?text=Hola%2C+quiero+ampliar+mi+plan+TurnApp+para+la+marca+${encodeURIComponent(initialBrand.name)}`}
+              href={`https://wa.me/573001234567?text=Hola%2C+quiero+ampliar+mi+plan+TurnFlow+para+la+marca+${encodeURIComponent(initialBrand.name)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="block w-full py-2.5 px-4 bg-green-500 text-white rounded-xl font-medium text-sm hover:bg-green-600 transition-colors mb-3"
@@ -987,7 +987,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               Estamos integrando el proceso de pago en línea. Por ahora, contáctanos para coordinar el método de pago:
             </p>
             <a
-              href={`mailto:soporte@turnapp.co?subject=Configurar pago TurnApp&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero configurar un método de pago.`}
+              href={`mailto:soporte@turnflow.co?subject=Configurar pago TurnFlow&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero configurar un método de pago.`}
               className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
             >
               Contactar soporte →

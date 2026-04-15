@@ -1,10 +1,10 @@
-interface TurnAppLogoProps {
+interface TurnFlowLogoProps {
   size?: number
   className?: string
 }
 
-/** Logo de TurnApp: letra T con tres puntos debajo (cola) sobre fondo índigo */
-export function TurnAppLogo({ size = 32, className }: TurnAppLogoProps) {
+/** Logo de TurnFlow: letra T con tres puntos debajo (cola) sobre fondo índigo */
+export function TurnFlowLogo({ size = 32, className }: TurnFlowLogoProps) {
   return (
     <svg
       width={size}
@@ -28,7 +28,7 @@ export function TurnAppLogo({ size = 32, className }: TurnAppLogoProps) {
 }
 
 /** Versión monotono para usar sobre fondos oscuros o en marca de agua */
-export function TurnAppLogoMono({ size = 32, className }: TurnAppLogoProps) {
+export function TurnFlowLogoMono({ size = 32, className }: TurnFlowLogoProps) {
   return (
     <svg
       width={size}

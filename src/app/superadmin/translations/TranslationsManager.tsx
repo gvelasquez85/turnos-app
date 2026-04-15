@@ -17,6 +17,22 @@ const KEY_GROUPS: Record<string, string> = {
   'form.': 'Formulario cliente',
   'est.': 'Sucursales',
   'misc.': 'Varios',
+  'brand.': 'Perfil de marca',
+  'membership.': 'Membresía',
+  'crm.': 'CRM / Clientes',
+  'consent.': 'Autorizaciones',
+  'integration.': 'Integraciones',
+  'advisor.': 'Panel asesor',
+  'auth.': 'Autenticación',
+  'report.': 'Reportes',
+  'display.': 'Pantalla TV',
+  'marketplace.': 'Marketplace',
+  'appt.': 'Citas',
+  'survey.': 'Encuestas',
+  'promo.': 'Promociones',
+  'menu.': 'Menú',
+  'table.': 'Tablas',
+  'msg.': 'Mensajes',
 }
 
 function groupKey(key: string): string {

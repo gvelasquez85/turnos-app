@@ -95,10 +95,27 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
       if (permission !== 'denied') {
         const token = await requestAndGetToken()
         if (token) {
+          // Save to ticket (for per-ticket lookup)
           await supabase
             .from('tickets')
             .update({ push_subscription: { token, type: 'fcm' } })
             .eq('id', data.id)
+
+          // Also upsert to customers table so CRM mass-push can reach them
+          await supabase
+            .from('customers')
+            .upsert(
+              {
+                brand_id: establishment.brand_id,
+                email: form.email.trim(),
+                name: form.name.trim(),
+                phone: form.phone.trim() ? fullPhone() : null,
+                fcm_token: token,
+                fcm_token_updated_at: new Date().toISOString(),
+              },
+              { onConflict: 'brand_id,email' }
+            )
+
           setNotifEnabled(true)
         }
       }

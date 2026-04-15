@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const rawKey   = db['BREVO_API_KEY']    || process.env.BREVO_API_KEY || ''
   const brevoKey = rawKey.trim()           // remove accidental whitespace
   const fromEmail = (db['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL || '').trim()
-  const fromName  = (db['COMMS_FROM_NAME']  || process.env.COMMS_FROM_NAME  || 'TurnApp').trim()
+  const fromName  = (db['COMMS_FROM_NAME']  || process.env.COMMS_FROM_NAME  || 'TurnFlow').trim()
 
   // Mask key for display: show first 6 + last 4 chars
   const maskedKey = brevoKey.length > 10
@@ -74,8 +74,8 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         sender: { name: fromName, email: fromEmail },
         to: [{ email: to, name: to }],
-        subject: '✅ Test TurnApp — Brevo',
-        htmlContent: '<p>Correo de prueba desde <strong>TurnApp</strong>. Si lo recibes, Brevo está bien configurado.</p>',
+        subject: '✅ Test TurnFlow — Brevo',
+        htmlContent: '<p>Correo de prueba desde <strong>TurnFlow</strong>. Si lo recibes, Brevo está bien configurado.</p>',
       }),
     })
 

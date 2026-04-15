@@ -181,7 +181,7 @@ export function MarketplaceClient({
         </div>
         <h2 className="text-lg font-bold text-gray-900 mb-2">Marketplace no disponible aún</h2>
         <p className="text-sm text-gray-500 max-w-xs">
-          Pronto habrá módulos disponibles para ampliar tu TurnApp. Contacta a soporte para más información.
+          Pronto habrá módulos disponibles para ampliar tu TurnFlow. Contacta a soporte para más información.
         </p>
       </div>
     )
@@ -196,7 +196,7 @@ export function MarketplaceClient({
           <h1 className="text-2xl font-bold text-gray-900">Marketplace de módulos</h1>
         </div>
         <p className="text-gray-500 text-sm">
-          Expande TurnApp con funcionalidades adicionales. Prueba gratis 7 días, sin tarjeta de crédito.
+          Expande TurnFlow con funcionalidades adicionales. Prueba gratis 7 días, sin tarjeta de crédito.
         </p>
       </div>
 
@@ -429,7 +429,7 @@ export function MarketplaceClient({
 
                   <div className="border-t border-gray-100 pt-3">
                     <a
-                      href={`mailto:soporte@turnapp.co?subject=Contratar módulo: ${contractModal}`}
+                      href={`mailto:soporte@turnflow.co?subject=Contratar módulo: ${contractModal}`}
                       className="block w-full py-2 px-4 text-center text-sm text-gray-500 hover:text-gray-700 underline"
                     >
                       Prefiero pagar por otro medio

@@ -37,12 +37,12 @@ const INTEGRATIONS = [
       {
         env: 'COMMS_FROM_EMAIL',
         label: 'Email remitente',
-        hint: 'Dirección verificada en Brevo (ej: noreply@turnapp.co). Debe estar autorizada como sender.',
+        hint: 'Dirección verificada en Brevo (ej: noreply@turnflow.co). Debe estar autorizada como sender.',
       },
       {
         env: 'COMMS_FROM_NAME',
         label: 'Nombre remitente',
-        hint: 'Nombre que verán los destinatarios (ej: TurnApp)',
+        hint: 'Nombre que verán los destinatarios (ej: TurnFlow)',
       },
     ],
     docs: 'https://developers.brevo.com/docs/send-a-transactional-email',

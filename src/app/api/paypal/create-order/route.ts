@@ -48,7 +48,7 @@ export async function POST(req: Request) {
       body: JSON.stringify({
         intent: 'CAPTURE',
         purchase_units: [{
-          description: `TurnApp módulo: ${moduleKey}`,
+          description: `TurnFlow módulo: ${moduleKey}`,
           amount: {
             currency_code: currency,
             value: String(parseFloat(amount).toFixed(2)),

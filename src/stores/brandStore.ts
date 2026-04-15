@@ -12,6 +12,6 @@ export const useBrandStore = create<BrandStore>()(
       selectedBrandId: '',
       setSelectedBrandId: (id) => set({ selectedBrandId: id }),
     }),
-    { name: 'turnapp-brand' }
+    { name: 'turnflow-brand' }
   )
 )

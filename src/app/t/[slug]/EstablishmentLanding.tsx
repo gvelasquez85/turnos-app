@@ -117,7 +117,7 @@ export function EstablishmentLanding({ establishment, visitReasons, promotions }
       </div>
 
       {/* Footer */}
-      <p className="text-center text-xs text-gray-300 mt-auto pb-6">Powered by TurnApp</p>
+      <p className="text-center text-xs text-gray-300 mt-auto pb-6">Powered by TurnFlow</p>
     </div>
   )
 }

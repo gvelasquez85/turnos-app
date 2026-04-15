@@ -270,7 +270,7 @@ export function BrandFormConfig({
           <p className="text-xs text-red-600 mt-1">Supera el límite de {MAX_POLICY_CHARS} caracteres</p>
         )}
         <p className="text-xs text-gray-400 mt-2">
-          Si dejas este campo vacío, se usará la política predeterminada de TurnApp.
+          Si dejas este campo vacío, se usará la política predeterminada de TurnFlow.
         </p>
       </div>
 

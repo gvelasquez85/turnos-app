@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
   if (!consent) return new NextResponse('Consent not found', { status: 404 })
 
   const est = (consent.establishments as any)
-  const brandName = est?.brands?.name || 'TurnApp'
+  const brandName = est?.brands?.name || 'TurnFlow'
   const estName = est?.name || ''
   const date = new Date(consent.consented_at).toLocaleString('es', {
     dateStyle: 'full', timeStyle: 'medium'
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 </head>
 <body>
 <div class="header">
-  <div class="logo">TurnApp</div>
+  <div class="logo">TurnFlow</div>
   <div class="subtitle">Sistema de Gestión de Turnos</div>
 </div>
 
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
 
 <div class="footer">
   <p>Este documento es evidencia de la autorización de tratamiento de datos obtenida digitalmente.</p>
-  <p style="margin-top:4px;">Generado por TurnApp · ${new Date().toISOString()}</p>
+  <p style="margin-top:4px;">Generado por TurnFlow · ${new Date().toISOString()}</p>
 </div>
 
 <div class="no-print" style="text-align:center;margin-top:30px;">
