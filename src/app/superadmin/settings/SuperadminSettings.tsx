@@ -73,11 +73,16 @@ const INTEGRATIONS = [
       { env: 'NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID', label: 'Sender ID', hint: 'Firebase Console → Configuración → Cloud Messaging → ID del remitente' },
       { env: 'NEXT_PUBLIC_FIREBASE_APP_ID', label: 'App ID', hint: 'Firebase Console → Configuración → General → ID de la app' },
       { env: 'NEXT_PUBLIC_FIREBASE_VAPID_KEY', label: 'VAPID Key', hint: 'Firebase Console → Configuración → Cloud Messaging → Certificados push web → Clave pública' },
-      { env: 'FIREBASE_SERVER_KEY', label: 'Server Key ⚠️', hint: 'Firebase Console → Configuración → Cloud Messaging → Server key. REQUERIDA para enviar notificaciones push.', required: true },
+      {
+        env: 'FIREBASE_SERVICE_ACCOUNT',
+        label: 'Service Account JSON ⚠️',
+        hint: 'Firebase Console → Configuración del proyecto → Cuentas de servicio → Generar nueva clave privada. Pega el contenido completo del .json aquí. Reemplaza a la Server Key (obsoleta desde 2024).',
+        required: true,
+      },
     ],
-    docs: 'https://firebase.google.com/docs/web/setup',
+    docs: 'https://firebase.google.com/docs/cloud-messaging/migrate-v1',
     status: 'partial' as const,
-    statusNote: 'Server Key pendiente. Sin ella las notificaciones push no se envían.',
+    statusNote: 'Service Account JSON requerido. La API V1 de FCM usa OAuth2 con Service Account (la Server Key fue deprecada en 2024).',
   },
   {
     key: 'supabase',
@@ -593,7 +598,7 @@ function IntegrationsTab() {
                     {testPushSending ? <><Loader2 size={13} className="animate-spin" /> Enviando…</> : <><Send size={13} /> Probar</>}
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 mt-1.5">Busca el ticket más reciente con ese email que tenga push registrado.</p>
+                <p className="text-xs text-gray-400 mt-1.5">Ingresa el email de un cliente que haya aceptado notificaciones push al tomar turno.</p>
                 {testPushResult && (
                   <div className={`mt-3 rounded-xl border text-xs space-y-2 overflow-hidden ${testPushResult.ok ? 'border-green-200' : 'border-red-200'}`}>
                     <div className={`px-4 py-2.5 font-semibold flex items-center gap-2 ${testPushResult.ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

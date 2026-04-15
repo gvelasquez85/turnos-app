@@ -1,0 +1,48 @@
+interface TurnFlowLogoProps {
+  size?: number
+  className?: string
+}
+
+/** Logo de TurnFlow: letra T con tres puntos debajo (cola) sobre fondo índigo */
+export function TurnFlowLogo({ size = 32, className }: TurnFlowLogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect width="40" height="40" rx="9" fill="#4F46E5" />
+      {/* Barra horizontal de la T */}
+      <rect x="10" y="11" width="20" height="3.5" rx="1.75" fill="white" />
+      {/* Barra vertical de la T */}
+      <rect x="18.25" y="11" width="3.5" height="15" rx="1.75" fill="white" />
+      {/* Puntos: cola de espera */}
+      <circle cx="13" cy="32" r="2.2" fill="white" fillOpacity="0.65" />
+      <circle cx="20" cy="32" r="2.2" fill="white" fillOpacity="0.65" />
+      <circle cx="27" cy="32" r="2.2" fill="white" fillOpacity="0.65" />
+    </svg>
+  )
+}
+
+/** Versión monotono para usar sobre fondos oscuros o en marca de agua */
+export function TurnFlowLogoMono({ size = 32, className }: TurnFlowLogoProps) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+    >
+      <rect x="10" y="11" width="20" height="3.5" rx="1.75" fill="currentColor" />
+      <rect x="18.25" y="11" width="3.5" height="15" rx="1.75" fill="currentColor" />
+      <circle cx="13" cy="32" r="2.2" fill="currentColor" fillOpacity="0.5" />
+      <circle cx="20" cy="32" r="2.2" fill="currentColor" fillOpacity="0.5" />
+      <circle cx="27" cy="32" r="2.2" fill="currentColor" fillOpacity="0.5" />
+    </svg>
+  )
+}

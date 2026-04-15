@@ -1,29 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-
-async function getFcmServerKey(): Promise<string | null> {
-  try {
-    const service = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    )
-    const { data } = await service
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'FIREBASE_SERVER_KEY')
-      .single()
-    if (data?.value) return data.value
-  } catch {}
-  return process.env.FIREBASE_SERVER_KEY ?? null
-}
+import { getServiceAccount, sendFCMMessage } from '@/lib/fcm'
 
 export async function POST(req: NextRequest) {
   const { to } = await req.json()
   if (!to) return NextResponse.json({ ok: false, error: 'email requerido' }, { status: 400 })
 
-  const FCM_SERVER_KEY = await getFcmServerKey()
-  if (!FCM_SERVER_KEY) {
-    return NextResponse.json({ ok: false, error: 'FIREBASE_SERVER_KEY no configurada' }, { status: 503 })
+  const serviceAccount = await getServiceAccount()
+  if (!serviceAccount) {
+    return NextResponse.json({
+      ok: false,
+      error: 'FIREBASE_SERVICE_ACCOUNT no configurada. Ve a Integraciones → Firebase → Service Account JSON.',
+    }, { status: 503 })
   }
 
   const service = createServiceClient(
@@ -31,7 +19,7 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
-  // First try customers table (has fcm_token from CRM)
+  // 1. Buscar en tabla customers (token registrado desde CustomerFlow)
   const { data: customer } = await service
     .from('customers')
     .select('id, name, fcm_token, email')
@@ -43,14 +31,14 @@ export async function POST(req: NextRequest) {
 
   let fcmToken: string | undefined
   let customerName: string = to
-  let ticketInfo = ''
+  let source = ''
 
   if (customer?.fcm_token) {
     fcmToken = customer.fcm_token
     customerName = customer.name || to
-    ticketInfo = 'desde tabla customers'
+    source = 'customers table'
   } else {
-    // Fallback: search tickets by customer_email
+    // 2. Fallback: buscar en tickets por customer_email
     const { data: tickets } = await service
       .from('tickets')
       .select('id, queue_number, customer_name, push_subscription, customer_email')
@@ -67,50 +55,50 @@ export async function POST(req: NextRequest) {
       const sub = ticket.push_subscription as { token?: string }
       fcmToken = sub?.token
       customerName = ticket.customer_name || to
-      ticketInfo = `ticket #${ticket.queue_number}`
+      source = `ticket #${ticket.queue_number}`
     }
   }
 
   if (!fcmToken) {
+    // Diagnóstico útil: cuántos tickets tiene pero sin token
+    const { count } = await service
+      .from('tickets')
+      .select('*', { count: 'exact', head: true })
+      .eq('customer_email', to)
+
     return NextResponse.json({
       ok: false,
-      error: `No se encontró token push para ${to}. El cliente debe haber aceptado notificaciones en al menos un turno.`,
+      error: `No se encontró token push para ${to}.`,
+      diagnostics: {
+        hint: count && count > 0
+          ? `El cliente tiene ${count} ticket(s) pero ninguno con push aceptado. El cliente debe abrir el link de turno y aceptar las notificaciones.`
+          : 'No se encontró ningún ticket con ese email. Verifica que el email sea correcto.',
+        tickets_found: count ?? 0,
+        solution: 'El cliente debe ir a /t/[sucursal], tomar un turno y aceptar las notificaciones push cuando el navegador lo pida.',
+      },
     })
   }
 
-  const res = await fetch('https://fcm.googleapis.com/fcm/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `key=${FCM_SERVER_KEY}`,
-    },
-    body: JSON.stringify({
-      to: fcmToken,
-      notification: {
-        title: '🔔 Push de prueba — TurnFlow',
-        body: `Hola ${customerName}, las notificaciones push están funcionando.`,
-        icon: '/icon-192.png',
-      },
-      data: { test: 'true' },
-    }),
+  const result = await sendFCMMessage({
+    token: fcmToken,
+    title: '🔔 Push de prueba — TurnFlow',
+    body: `Hola ${customerName}, las notificaciones push están funcionando.`,
+    data: { test: 'true' },
+    serviceAccount,
   })
 
-  const result = await res.json()
-  const httpStatus = res.status
-
   return NextResponse.json({
-    ok: httpStatus === 200 && result.success === 1,
-    message: httpStatus === 200 && result.success === 1
-      ? `Push enviado a ${customerName} (${ticketInfo})`
+    ok: result.success,
+    message: result.success
+      ? `Push enviado a ${customerName} (${source})`
       : 'FCM respondió con error',
     diagnostics: {
-      http_status: httpStatus,
-      fcm_success: result.success,
-      fcm_failure: result.failure,
-      fcm_results: JSON.stringify(result.results ?? []),
+      success: result.success,
+      fcm_message_id: result.messageId ?? null,
+      fcm_error: result.error ?? null,
       token_preview: fcmToken.slice(0, 20) + '…',
       customer: customerName,
-      source: ticketInfo,
+      source,
     },
   })
 }

@@ -1,6 +1,6 @@
 {
-  "name": "TurnApp – Pantalla TV",
-  "short_name": "TurnApp TV",
+  "name": "TurnFlow – Pantalla TV",
+  "short_name": "TurnFlow TV",
   "description": "Pantalla de cola de espera para sala de clientes",
   "start_url": "/display",
   "display": "fullscreen",

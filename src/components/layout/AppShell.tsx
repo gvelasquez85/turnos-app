@@ -11,7 +11,7 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, UserCheck, Zap,
 } from 'lucide-react'
-import { TurnFlowLogo } from '@/components/brand/TurnAppLogo'
+import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
 import { I18nProvider, useT } from '@/lib/i18n/context'
 import { SUPPORTED_LANGUAGES, type LangCode } from '@/lib/i18n/translations'

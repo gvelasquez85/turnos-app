@@ -16,11 +16,11 @@ const messaging = firebase.messaging()
 // Handle background messages
 messaging.onBackgroundMessage(function (payload) {
   const { title, body, icon } = payload.notification || {}
-  self.registration.showNotification(title || 'TurnApp', {
+  self.registration.showNotification(title || 'TurnFlow', {
     body: body || 'Es tu turno',
     icon: icon || '/icon-192.png',
     badge: '/icon-192.png',
-    tag: 'turnapp-ticket',
+    tag: 'turnflow-ticket',
     renotify: true,
     data: payload.data,
   })
