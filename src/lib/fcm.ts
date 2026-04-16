@@ -68,6 +68,35 @@ async function getAccessToken(sa: ServiceAccount): Promise<string> {
 
 // ─── Service Account loader ───────────────────────────────────────────────────
 
+/**
+ * Parsea el JSON del service account tolerando los formatos comunes de Vercel:
+ * - JSON minificado (ideal)
+ * - JSON con saltos de línea reales dentro del private_key (Vercel los introduce
+ *   cuando pegas un JSON multilínea en el panel de variables de entorno)
+ */
+function parseServiceAccountJSON(raw: string): ServiceAccount | null {
+  // Intento 1: JSON directo (caso ideal — JSON minificado)
+  try { return JSON.parse(raw) as ServiceAccount } catch {}
+
+  // Intento 2: Vercel a veces convierte \n del JSON en saltos de línea reales.
+  // Eso rompe JSON.parse porque los strings no pueden tener newlines sin escapar.
+  // Solución: escapar los saltos de línea que estén DENTRO de valores string.
+  try {
+    // Reemplaza saltos de línea reales por \\n solo donde corresponde
+    const fixed = raw.replace(/("private_key"\s*:\s*")([\s\S]*?)(")/g, (_, pre, key, post) =>
+      pre + key.replace(/\n/g, '\\n').replace(/\r/g, '') + post
+    )
+    return JSON.parse(fixed) as ServiceAccount
+  } catch {}
+
+  // Intento 3: escapar TODOS los saltos de línea y re-parsear
+  try {
+    return JSON.parse(raw.replace(/\n/g, '\\n').replace(/\r/g, '')) as ServiceAccount
+  } catch {}
+
+  return null
+}
+
 export async function getServiceAccount(): Promise<ServiceAccount | null> {
   // 1. Try DB system_settings
   try {
@@ -79,18 +108,18 @@ export async function getServiceAccount(): Promise<ServiceAccount | null> {
       .from('system_settings')
       .select('value')
       .eq('key', 'FIREBASE_SERVICE_ACCOUNT')
-      .single()
+      .maybeSingle()
     if (data?.value) {
-      return JSON.parse(data.value) as ServiceAccount
+      const parsed = parseServiceAccountJSON(data.value)
+      if (parsed) return parsed
     }
   } catch {}
 
-  // 2. Fall back to env var
+  // 2. Fall back to env var de Vercel / .env
   const raw = process.env.FIREBASE_SERVICE_ACCOUNT
   if (raw) {
-    try {
-      return JSON.parse(raw) as ServiceAccount
-    } catch {}
+    const parsed = parseServiceAccountJSON(raw)
+    if (parsed) return parsed
   }
 
   return null
