@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Users, CalendarClock, CalendarCheck, UtensilsCrossed } from 'lucide-react'
 import { CustomerFlow } from './CustomerFlow'
 import AppointmentCheckin from './AppointmentCheckin'
+import { I18nProvider } from '@/lib/i18n/context'
 
 interface Props {
   establishment: {
@@ -20,7 +21,7 @@ interface Props {
 
 type View = 'landing' | 'queue' | 'checkin'
 
-export function EstablishmentLanding({ establishment, visitReasons, promotions }: Props) {
+function EstablishmentLandingInner({ establishment, visitReasons, promotions }: Props) {
   const [view, setView] = useState<View>('landing')
   const primaryColor = (establishment.brands as any)?.primary_color ?? '#6366f1'
 
@@ -119,5 +120,13 @@ export function EstablishmentLanding({ establishment, visitReasons, promotions }
       {/* Footer */}
       <p className="text-center text-xs text-gray-300 mt-auto pb-6">Powered by TurnFlow</p>
     </div>
+  )
+}
+
+export function EstablishmentLanding(props: Props) {
+  return (
+    <I18nProvider>
+      <EstablishmentLandingInner {...props} />
+    </I18nProvider>
   )
 }
