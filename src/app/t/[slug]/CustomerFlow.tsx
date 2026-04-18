@@ -31,10 +31,42 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   const [notifEnabled, setNotifEnabled] = useState(false)
 
   const { permission, requestAndGetToken } = usePushNotifications()
+  const [pushLoading, setPushLoading] = useState(false)
   const brand = establishment.brands
   const consentText = brand.data_policy_text || CONSENT_TEXT_DEFAULT
 
   function fullPhone() { return `${form.phoneCode}${form.phone.trim()}` }
+
+  async function savePushToken(supabase: ReturnType<typeof createClient>, ticketId: string) {
+    const token = await requestAndGetToken()
+    if (!token) return
+    await supabase
+      .from('tickets')
+      .update({ push_subscription: { token, type: 'fcm' } })
+      .eq('id', ticketId)
+    await supabase
+      .from('customers')
+      .upsert(
+        {
+          brand_id: establishment.brand_id,
+          email: form.email.trim(),
+          name: form.name.trim(),
+          phone: form.phone.trim() ? fullPhone() : null,
+          fcm_token: token,
+          fcm_token_updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'brand_id,email' }
+      )
+    setNotifEnabled(true)
+  }
+
+  async function handleEnablePush() {
+    if (!ticket) return
+    setPushLoading(true)
+    const supabase = createClient()
+    await savePushToken(supabase, ticket.id)
+    setPushLoading(false)
+  }
 
   function validateForm() {
     const errs: Record<string, string> = {}
@@ -91,33 +123,9 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         consent_text: consentText,
       })
 
-      // Request push notification permission and save FCM token
+      // Solicitar permiso push y guardar token
       if (permission !== 'denied') {
-        const token = await requestAndGetToken()
-        if (token) {
-          // Save to ticket (for per-ticket lookup)
-          await supabase
-            .from('tickets')
-            .update({ push_subscription: { token, type: 'fcm' } })
-            .eq('id', data.id)
-
-          // Also upsert to customers table so CRM mass-push can reach them
-          await supabase
-            .from('customers')
-            .upsert(
-              {
-                brand_id: establishment.brand_id,
-                email: form.email.trim(),
-                name: form.name.trim(),
-                phone: form.phone.trim() ? fullPhone() : null,
-                fcm_token: token,
-                fcm_token_updated_at: new Date().toISOString(),
-              },
-              { onConflict: 'brand_id,email' }
-            )
-
-          setNotifEnabled(true)
-        }
+        await savePushToken(supabase as ReturnType<typeof createClient>, data.id)
       }
 
       setTicket(data)
@@ -393,11 +401,20 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             <span>Por favor espera a ser llamado</span>
           </div>
 
-          {notifEnabled && (
-            <div className="mt-4 flex items-center justify-center gap-2 text-green-600 text-sm">
+          {notifEnabled ? (
+            <div className="mt-4 flex items-center justify-center gap-2 text-green-600 text-sm bg-green-50 rounded-xl px-4 py-2.5">
               <Bell size={14} />
-              <span>Te notificaremos cuando sea tu turno</span>
+              <span>Te avisaremos cuando sea tu turno</span>
             </div>
+          ) : permission !== 'denied' && (
+            <button
+              onClick={handleEnablePush}
+              disabled={pushLoading}
+              className="mt-4 w-full flex items-center justify-center gap-2 text-indigo-600 text-sm bg-indigo-50 hover:bg-indigo-100 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60"
+            >
+              <Bell size={14} />
+              {pushLoading ? 'Activando…' : 'Recibir aviso cuando sea tu turno'}
+            </button>
           )}
 
           <div className="mt-4 pt-4 border-t border-gray-100 text-left">
