@@ -401,19 +401,29 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             <span>Por favor espera a ser llamado</span>
           </div>
 
+          {/* Sala de espera — funciona en TODOS los navegadores (Safari incluido) */}
+          <a
+            href={`/espera/${ticket?.id}`}
+            className="mt-4 w-full flex items-center justify-center gap-2 text-white text-sm font-medium rounded-xl px-4 py-3 transition-colors"
+            style={{ backgroundColor: '#6366f1' }}
+          >
+            <Clock size={14} />
+            Ver mi posición en la cola
+          </a>
+
           {notifEnabled ? (
-            <div className="mt-4 flex items-center justify-center gap-2 text-green-600 text-sm bg-green-50 rounded-xl px-4 py-2.5">
-              <Bell size={14} />
-              <span>Te avisaremos cuando sea tu turno</span>
+            <div className="mt-2 flex items-center justify-center gap-2 text-green-600 text-xs bg-green-50 rounded-xl px-4 py-2">
+              <Bell size={12} />
+              <span>También recibirás una notificación push</span>
             </div>
           ) : permission !== 'denied' && (
             <button
               onClick={handleEnablePush}
               disabled={pushLoading}
-              className="mt-4 w-full flex items-center justify-center gap-2 text-indigo-600 text-sm bg-indigo-50 hover:bg-indigo-100 rounded-xl px-4 py-2.5 transition-colors disabled:opacity-60"
+              className="mt-2 w-full flex items-center justify-center gap-2 text-indigo-600 text-xs bg-indigo-50 hover:bg-indigo-100 rounded-xl px-4 py-2 transition-colors disabled:opacity-60"
             >
-              <Bell size={14} />
-              {pushLoading ? 'Activando…' : 'Recibir aviso cuando sea tu turno'}
+              <Bell size={12} />
+              {pushLoading ? 'Activando…' : 'Activar aviso push (opcional)'}
             </button>
           )}
 

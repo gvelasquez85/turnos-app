@@ -1,30 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-
-async function getFcmServerKey(): Promise<string | null> {
-  // Try DB override first (system_settings), then fall back to env var
-  try {
-    const service = createServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
-    const { data } = await service
-      .from('system_settings')
-      .select('value')
-      .eq('key', 'FIREBASE_SERVER_KEY')
-      .single()
-    if (data?.value) return data.value
-  } catch {}
-  return process.env.FIREBASE_SERVER_KEY ?? null
-}
+import { getServiceAccount, sendFCMMessage } from '@/lib/fcm'
 
 export async function POST(req: NextRequest) {
-  const FCM_SERVER_KEY = await getFcmServerKey()
-  if (!FCM_SERVER_KEY) {
-    return NextResponse.json({ error: 'FCM not configured' }, { status: 503 })
-  }
-
   const { ticketId } = await req.json()
   if (!ticketId) return NextResponse.json({ error: 'ticketId required' }, { status: 400 })
 
@@ -32,40 +11,56 @@ export async function POST(req: NextRequest) {
 
   const { data: ticket } = await supabase
     .from('tickets')
-    .select('id, queue_number, customer_name, push_subscription, establishments(name)')
+    .select('id, queue_number, customer_name, push_subscription, customer_email, establishment_id, establishments(name)')
     .eq('id', ticketId)
     .single()
 
-  if (!ticket?.push_subscription) {
-    return NextResponse.json({ skipped: true })
+  if (!ticket) return NextResponse.json({ error: 'ticket not found' }, { status: 404 })
+
+  const establishmentName = (ticket.establishments as any)?.name ?? ''
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? ''
+  const waitingRoomUrl = `${appUrl}/espera/${ticket.id}`
+
+  // ── Buscar FCM token: ticket primero, luego customers ────────────────────────
+  let fcmToken: string | undefined
+
+  const sub = ticket.push_subscription as { token?: string } | null
+  if (sub?.token) fcmToken = sub.token
+
+  if (!fcmToken && ticket.customer_email) {
+    const service = createServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+    const { data: customer } = await service
+      .from('customers')
+      .select('fcm_token')
+      .eq('email', ticket.customer_email)
+      .not('fcm_token', 'is', null)
+      .order('fcm_token_updated_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (customer?.fcm_token) fcmToken = customer.fcm_token
   }
 
-  const sub = ticket.push_subscription as { token?: string }
-  const fcmToken = sub.token
-  if (!fcmToken) return NextResponse.json({ skipped: true })
-
-  const establishmentName = (ticket.establishments as any)?.name ?? 'tu establecimiento'
-
-  const res = await fetch('https://fcm.googleapis.com/fcm/send', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `key=${FCM_SERVER_KEY}`,
-    },
-    body: JSON.stringify({
-      to: fcmToken,
-      notification: {
+  // ── Enviar push con FCM V1 API ───────────────────────────────────────────────
+  let pushed = false
+  if (fcmToken) {
+    const serviceAccount = await getServiceAccount()
+    if (serviceAccount) {
+      const result = await sendFCMMessage({
+        token: fcmToken,
         title: '¡Es tu turno! 🔔',
         body: `Turno ${ticket.queue_number} — ${establishmentName} te está llamando`,
-        icon: '/icon-192.png',
-      },
-      data: {
-        ticketId: ticket.id,
-        url: '/',
-      },
-    }),
-  })
+        data: {
+          ticketId: ticket.id,
+          url: waitingRoomUrl,
+        },
+        serviceAccount,
+      })
+      pushed = result.success
+    }
+  }
 
-  const result = await res.json()
-  return NextResponse.json({ sent: true, result })
+  return NextResponse.json({ ok: true, pushed, waitingRoomUrl })
 }
