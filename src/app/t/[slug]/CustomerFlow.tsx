@@ -57,7 +57,8 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   const [notifEnabled, setNotifEnabled] = useState(false)
   const [pushLoading, setPushLoading] = useState(false)
 
-  const { permission, requestAndGetToken } = usePushNotifications()
+  const { permission, requestAndGetToken, lastError: pushHookError } = usePushNotifications()
+  const [pushError, setPushError] = useState<string | null>(null)
   const brand = establishment.brands
   const consentText = brand.data_policy_text || CONSENT_TEXT_DEFAULT
   const primaryColor = (brand as any).primary_color || '#6366f1'
@@ -110,8 +111,13 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   async function handleEnablePush() {
     if (!ticket) return
     setPushLoading(true)
+    setPushError(null)
     const supabase = createClient()
     await savePushToken(supabase, ticket.id)
+    // Si no se activó, mostrar el error del hook
+    if (!notifEnabled) {
+      setPushError(pushHookError || 'No se pudieron activar las notificaciones')
+    }
     setPushLoading(false)
   }
 
@@ -465,15 +471,20 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               <span>También recibirás una notificación push</span>
             </div>
           ) : permission !== 'denied' && (
-            <button
-              onClick={handleEnablePush}
-              disabled={pushLoading}
-              className="mt-2 w-full flex items-center justify-center gap-2 text-xs rounded-xl px-4 py-2 transition-opacity disabled:opacity-60 hover:opacity-80"
-              style={{ color: primaryColor, backgroundColor: alpha(primaryColor, 0.08) }}
-            >
-              <Bell size={12} />
-              {pushLoading ? 'Activando…' : 'Activar aviso push (opcional)'}
-            </button>
+            <>
+              <button
+                onClick={handleEnablePush}
+                disabled={pushLoading}
+                className="mt-2 w-full flex items-center justify-center gap-2 text-xs rounded-xl px-4 py-2 transition-opacity disabled:opacity-60 hover:opacity-80"
+                style={{ color: primaryColor, backgroundColor: alpha(primaryColor, 0.08) }}
+              >
+                <Bell size={12} />
+                {pushLoading ? 'Activando…' : 'Activar aviso push (opcional)'}
+              </button>
+              {pushError && (
+                <p className="text-xs text-red-500 text-center mt-1 px-2">{pushError}</p>
+              )}
+            </>
           )}
 
           <div className="mt-4 pt-4 border-t border-gray-100 text-left">

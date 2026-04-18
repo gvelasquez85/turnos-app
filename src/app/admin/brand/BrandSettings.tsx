@@ -93,8 +93,8 @@ const MODULE_LABELS: Record<string, string> = {
 
 const STATUS_LABELS: Record<string, string> = {
   active: 'Activa',
-  trial: 'Prueba',
-  expired: 'Vencida',
+  trial: 'En prueba',
+  expired: 'Prueba finalizada',
   cancelled: 'Cancelada',
 }
 const STATUS_COLORS: Record<string, string> = {
@@ -725,13 +725,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                               {payingModule === sub.id ? 'Cerrar' : 'Contratar'}
                             </button>
                           )}
-                          {/* Reactivar (vencido) */}
+                          {/* Comprar para seguir usando (vencido) */}
                           {sub.status === 'expired' && (
                             <button
                               onClick={() => setPayingModule(payingModule === sub.id ? null : sub.id)}
-                              className="text-xs px-2.5 py-1 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+                              className="text-xs px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors whitespace-nowrap"
                             >
-                              {payingModule === sub.id ? 'Cerrar' : 'Reactivar'}
+                              {payingModule === sub.id ? 'Cerrar' : 'Comprar para seguir usando'}
                             </button>
                           )}
                           {/* Badge de estado */}
@@ -742,7 +742,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                             'bg-gray-100 text-gray-500'
                           }`}>
                             {sub.status === 'trial' && sub.trial_expires_at
-                              ? `Trial — vence ${new Date(sub.trial_expires_at).toLocaleDateString('es')}`
+                              ? `Prueba — vence ${new Date(sub.trial_expires_at).toLocaleDateString('es')}`
                               : STATUS_LABELS[sub.status] ?? sub.status}
                           </span>
                           {/* Cancelar solo si está activo/trial */}
@@ -757,11 +757,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                           )}
                         </div>
                       </div>
-                      {/* PayPal panel: trial "Contratar" o expired "Reactivar" */}
+                      {/* PayPal panel: trial "Contratar" o expired "Comprar para seguir usando" */}
                       {payingModule === sub.id && price > 0 && (
                         <div className="px-4 pb-4 border-t border-gray-50 bg-gray-50">
                           <p className="text-xs text-gray-500 mt-3 mb-2">
-                            {sub.status === 'expired' ? 'Reactivar' : 'Activar'} por <strong>${price}/mes</strong>. Se renueva mensualmente.
+                            {sub.status === 'expired' ? 'Comprar' : 'Activar'} por <strong>${price}/mes</strong>. Se renueva mensualmente.
                           </p>
                           <PayPalButton
                             moduleKey={sub.module_key}

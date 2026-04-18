@@ -214,15 +214,16 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     if (href.startsWith('/admin/marketplace')) return true
     if (href.startsWith('/superadmin/marketplace')) return true
 
-    // Module-gating: based on active_modules flag on the brand.
-    // - undefined → never activated → HIDE (link never appears)
-    // - true      → active/trial    → SHOW and fully accessible
-    // - false     → expired/cancelled → SHOW, but page renders a trial-expired overlay
-    if (href.startsWith('/admin/appointments')) return activeModules?.appointments !== undefined
-    if (href.startsWith('/admin/surveys')) return activeModules?.surveys !== undefined
-    if (href.startsWith('/admin/crm')) return activeModules?.crm !== undefined
-    if (href.startsWith('/admin/menu')) return activeModules?.menu !== undefined
-    // Display is a core feature — always show; overlay handled on the page itself
+    // Módulos de marketplace: SOLO visibles cuando están activos (trial o pago).
+    // active_modules[key] === true  → trial activo o pago activo → MOSTRAR
+    // active_modules[key] === false → trial vencido / cancelado  → OCULTAR del nav
+    // active_modules[key] === undefined → nunca activado          → OCULTAR del nav
+    // Si el usuario accede por URL directa (bookmark), TrialExpiredGate bloquea la página.
+    if (href.startsWith('/admin/appointments')) return activeModules?.appointments === true
+    if (href.startsWith('/admin/surveys')) return activeModules?.surveys === true
+    if (href.startsWith('/admin/crm')) return activeModules?.crm === true
+    if (href.startsWith('/admin/menu')) return activeModules?.menu === true
+    // Pantalla TV es función core — siempre visible independiente del flag
 
     return true
   }

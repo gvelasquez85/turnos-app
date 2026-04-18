@@ -63,6 +63,8 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
   const [pulse, setPulse] = useState(false)
   const [connected, setConnected] = useState(true)
   const alertFired = useRef(false)
+  // Track last known status from polling to detect transitions outside setStatus updater
+  const prevStatusRef = useRef<TicketStatus>(initialTicket.status)
   const primaryColor = initialTicket.brand_color || '#6366f1'
 
   const handleCalled = useCallback(() => {
@@ -74,34 +76,47 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
     try { navigator.vibrate?.([200, 100, 200, 100, 400]) } catch {}
   }, [soundEnabled])
 
-  // ── Polling principal (funciona en Safari, Chrome, Firefox, sin RLS issues) ──
+  // ── Polling principal ────────────────────────────────────────────────────────
+  // - Usa `cancelled` flag para evitar que polls huérfanos sigan corriendo
+  //   cuando el effect se limpia (cambio de estado, unmount).
+  // - handleCalled() se llama FUERA del setStatus updater (los updaters deben
+  //   ser funciones puras; llamarlos con side-effects es un anti-patrón React).
   useEffect(() => {
     if (status === 'done' || status === 'cancelled') return
 
+    let cancelled = false
     let timeoutId: ReturnType<typeof setTimeout>
 
     const poll = async () => {
+      if (cancelled) return
       try {
         const res = await fetch(`/api/espera/${initialTicket.id}`, { cache: 'no-store' })
-        if (!res.ok) { setConnected(false); return }
+        if (cancelled) return
+        if (!res.ok) {
+          setConnected(false)
+          if (!cancelled) timeoutId = setTimeout(poll, 10000)
+          return
+        }
         const data = await res.json() as { status: TicketStatus; ahead: number }
-        setConnected(true)
+        if (cancelled) return
 
-        // Actualizar posición en cola
+        setConnected(true)
         setAhead(data.ahead)
 
-        // Detectar cambio de estado
-        setStatus(prev => {
-          if (prev !== data.status) {
-            if (data.status === 'in_progress') handleCalled()
-          }
-          return data.status
-        })
+        // Detectar transición de estado ANTES de actualizar el state
+        // para poder llamar handleCalled() como efecto limpio (no dentro de un updater)
+        const prevStatus = prevStatusRef.current
+        if (prevStatus !== data.status && data.status === 'in_progress') {
+          handleCalled()
+        }
+        prevStatusRef.current = data.status
+        setStatus(data.status)
 
-        // Reprogramar solo si sigue en espera
+        // Reprogramar solo si sigue en espera y el effect no fue cancelado
         const delay = pollInterval(data.ahead, data.status)
-        if (delay) timeoutId = setTimeout(poll, delay)
+        if (delay && !cancelled) timeoutId = setTimeout(poll, delay)
       } catch {
+        if (cancelled) return
         setConnected(false)
         timeoutId = setTimeout(poll, 10000) // retry en 10s si falla
       }
@@ -110,22 +125,27 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
     // Primera consulta a los 2s para no bloquear el render inicial
     timeoutId = setTimeout(poll, 2000)
 
-    return () => clearTimeout(timeoutId)
+    return () => {
+      cancelled = true
+      clearTimeout(timeoutId)
+    }
   }, [initialTicket.id, status, handleCalled])
 
   // ── Visibilidad: polling inmediato al volver al tab ───────────────────────
   useEffect(() => {
     const onVisible = () => {
       if (document.visibilityState === 'visible' && status === 'waiting') {
-        // Forzar consulta inmediata refrescando el estado
         fetch(`/api/espera/${initialTicket.id}`, { cache: 'no-store' })
           .then(r => r.json())
           .then((data: { status: TicketStatus; ahead: number }) => {
             setAhead(data.ahead)
-            setStatus(prev => {
-              if (prev !== data.status && data.status === 'in_progress') handleCalled()
-              return data.status
-            })
+            // Mismo patrón: handleCalled() fuera del updater
+            const prevStatus = prevStatusRef.current
+            if (prevStatus !== data.status && data.status === 'in_progress') {
+              handleCalled()
+            }
+            prevStatusRef.current = data.status
+            setStatus(data.status)
           })
           .catch(() => {})
       }
