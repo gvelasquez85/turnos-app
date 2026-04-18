@@ -13,10 +13,36 @@ const CONSENT_TEXT_DEFAULT = `Al proporcionar sus datos personales, usted autori
 type Step = 'promo' | 'form' | 'reason' | 'confirm'
 
 interface Props {
-  establishment: Establishment & { brands: { name: string; logo_url: string | null; data_policy_text: string | null; form_fields: any[] | null } }
+  establishment: Establishment & {
+    brands: {
+      name: string
+      logo_url: string | null
+      data_policy_text: string | null
+      form_fields: any[] | null
+      primary_color: string | null
+    }
+  }
   visitReasons: VisitReason[]
   promotions: Promotion[]
 }
+
+// ── Color helpers ─────────────────────────────────────────────────────────────
+function hexRgb(hex: string): [number, number, number] {
+  const h = hex.replace('#', '')
+  const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h
+  return [
+    parseInt(full.slice(0, 2), 16) || 99,
+    parseInt(full.slice(2, 4), 16) || 102,
+    parseInt(full.slice(4, 6), 16) || 241,
+  ]
+}
+
+function alpha(hex: string, opacity: number): string {
+  const [r, g, b] = hexRgb(hex)
+  return `rgba(${r}, ${g}, ${b}, ${opacity})`
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function CustomerFlow({ establishment, visitReasons, promotions }: Props) {
   const { t } = useT()
@@ -29,11 +55,12 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showConsentText, setShowConsentText] = useState(false)
   const [notifEnabled, setNotifEnabled] = useState(false)
+  const [pushLoading, setPushLoading] = useState(false)
 
   const { permission, requestAndGetToken } = usePushNotifications()
-  const [pushLoading, setPushLoading] = useState(false)
   const brand = establishment.brands
   const consentText = brand.data_policy_text || CONSENT_TEXT_DEFAULT
+  const primaryColor = (brand as any).primary_color || '#6366f1'
 
   function fullPhone() { return `${form.phoneCode}${form.phone.trim()}` }
 
@@ -90,7 +117,6 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     setLoading(true)
     const supabase = createClient()
 
-    // Obtener número de turno
     const { data: queueNum } = await supabase
       .rpc('get_next_queue_number', { p_establishment_id: establishment.id })
 
@@ -110,7 +136,6 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
       .single()
 
     if (!error && data) {
-      // Insert data consent record
       await supabase.from('data_consents').insert({
         ticket_id: data.id,
         establishment_id: establishment.id,
@@ -123,7 +148,6 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         consent_text: consentText,
       })
 
-      // Solicitar permiso push y guardar token
       if (permission !== 'denied') {
         await savePushToken(supabase as ReturnType<typeof createClient>, data.id)
       }
@@ -134,11 +158,11 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     setLoading(false)
   }
 
-  // STEP: Promotions
+  // ── STEP: Promotions ────────────────────────────────────────────────────────
   if (step === 'promo') {
     const promo = promotions[promoIndex]
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${alpha(primaryColor, 0.7)} 100%)` }}>
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <div className="w-full max-w-sm">
             <div className="text-center mb-6">
@@ -160,17 +184,14 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             </div>
 
             <div className="flex gap-3 mt-6">
-              {promoIndex < promotions.length - 1 ? (
-                <Button
-                  className="flex-1"
-                  variant="secondary"
-                  onClick={() => setPromoIndex(i => i + 1)}
-                >
+              {promoIndex < promotions.length - 1 && (
+                <Button className="flex-1" variant="secondary" onClick={() => setPromoIndex(i => i + 1)}>
                   Siguiente <ChevronRight size={16} />
                 </Button>
-              ) : null}
+              )}
               <Button
-                className="flex-1 bg-white text-indigo-700 hover:bg-white/90"
+                className="flex-1 bg-white hover:bg-white/90"
+                style={{ color: primaryColor }}
                 onClick={() => setStep('form')}
               >
                 {t('form.takeTurn')}
@@ -182,13 +203,13 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     )
   }
 
-  // STEP: Customer form
+  // ── STEP: Customer form ─────────────────────────────────────────────────────
   if (step === 'form') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-indigo-600 text-white text-center py-6 px-4">
+        <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
           <h1 className="text-xl font-bold">{brand.name}</h1>
-          <p className="text-indigo-200 text-sm">{establishment.name}</p>
+          <p className="text-sm" style={{ color: alpha('#ffffff', 0.75) }}>{establishment.name}</p>
         </div>
         <div className="flex-1 p-6 max-w-sm mx-auto w-full">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('form.yourData')}</h2>
@@ -209,7 +230,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 <select
                   value={form.phoneCode}
                   onChange={e => setForm(f => ({ ...f, phoneCode: e.target.value }))}
-                  className="h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 shrink-0"
+                  className="h-10 rounded-lg border border-gray-300 bg-white px-2 text-sm text-gray-900 focus:outline-none shrink-0"
                 >
                   {['+57','+1','+52','+54','+56','+51','+58','+593','+595','+598','+502','+503','+504','+505','+506','+507','+509','+34','+44','+49','+33','+55'].map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -220,7 +241,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                   placeholder="300 123 4567"
                   value={form.phone}
                   onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                  className="flex-1 h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="flex-1 h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
                 />
               </div>
               {errors.phone && <p className="text-xs text-red-600 mt-1">{errors.phone}</p>}
@@ -239,11 +260,9 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 type="checkbox"
                 checked={form.marketing_opt_in}
                 onChange={e => setForm(f => ({ ...f, marketing_opt_in: e.target.checked }))}
-                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
+                className="mt-0.5 h-4 w-4 rounded border-gray-300"
               />
-              <span className="text-sm text-gray-600">
-                {t('form.marketing')} {brand.name}
-              </span>
+              <span className="text-sm text-gray-600">{t('form.marketing')} {brand.name}</span>
             </label>
 
             {/* Brand custom fields */}
@@ -254,11 +273,8 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 return (
                   <div key={field.id}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}{field.required ? ' *' : ''}</label>
-                    <select
-                      value={value}
-                      onChange={e => onChange(e.target.value)}
-                      className="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                    >
+                    <select value={value} onChange={e => onChange(e.target.value)}
+                      className="w-full h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:outline-none">
                       <option value="">Seleccionar...</option>
                       {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
@@ -271,7 +287,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                   <div key={field.id}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}{field.required ? ' *' : ''}</label>
                     <textarea value={value} onChange={e => onChange(e.target.value)} rows={3}
-                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none" />
                     {(errors as any)[`custom_${field.id}`] && <p className="text-xs text-red-600 mt-1">{(errors as any)[`custom_${field.id}`]}</p>}
                   </div>
                 )
@@ -293,7 +309,8 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               <button
                 type="button"
                 onClick={() => setShowConsentText(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-sm text-indigo-700 font-medium bg-indigo-50 hover:bg-indigo-100 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 text-sm font-medium transition-colors"
+                style={{ color: primaryColor, backgroundColor: alpha(primaryColor, 0.07) }}
               >
                 <span>{t('form.policyTitle')}</span>
                 <ChevronDown size={16} className={`transition-transform ${showConsentText ? 'rotate-180' : ''}`} />
@@ -312,20 +329,17 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                   type="checkbox"
                   checked={form.data_consent}
                   onChange={e => setForm(f => ({ ...f, data_consent: e.target.checked }))}
-                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600"
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
                 />
-                <span className="text-sm text-gray-700 font-medium">
-                  {t('form.dataConsent')} *
-                </span>
+                <span className="text-sm text-gray-700 font-medium">{t('form.dataConsent')} *</span>
               </label>
-              {errors.data_consent && (
-                <p className="text-xs text-red-600 mt-1 ml-7">{errors.data_consent}</p>
-              )}
+              {errors.data_consent && <p className="text-xs text-red-600 mt-1 ml-7">{errors.data_consent}</p>}
             </div>
 
             <Button
               size="lg"
-              className="w-full mt-2"
+              className="w-full mt-2 text-white"
+              style={{ backgroundColor: primaryColor }}
               onClick={() => {
                 const errs = validateForm()
                 if (Object.keys(errs).length > 0) { setErrors(errs); return }
@@ -340,13 +354,13 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     )
   }
 
-  // STEP: Select reason
+  // ── STEP: Select reason ─────────────────────────────────────────────────────
   if (step === 'reason') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="bg-indigo-600 text-white text-center py-6 px-4">
+        <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
           <h1 className="text-xl font-bold">{brand.name}</h1>
-          <p className="text-indigo-200 text-sm">{establishment.name}</p>
+          <p className="text-sm" style={{ color: alpha('#ffffff', 0.75) }}>{establishment.name}</p>
         </div>
         <div className="flex-1 p-6 max-w-sm mx-auto w-full">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">¿En qué te podemos ayudar?</h2>
@@ -357,11 +371,12 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
               <button
                 key={reason.id}
                 onClick={() => setSelectedReason(reason)}
-                className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                className="w-full text-left p-4 rounded-xl border-2 transition-all bg-white"
+                style={
                   selectedReason?.id === reason.id
-                    ? 'border-indigo-600 bg-indigo-50'
-                    : 'border-gray-200 bg-white hover:border-indigo-300'
-                }`}
+                    ? { borderColor: primaryColor, backgroundColor: alpha(primaryColor, 0.06) }
+                    : { borderColor: '#e5e7eb' }
+                }
               >
                 <div className="font-medium text-gray-900">{reason.name}</div>
                 {reason.description && (
@@ -373,7 +388,8 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
 
           <Button
             size="lg"
-            className="w-full mt-6"
+            className="w-full mt-6 text-white"
+            style={{ backgroundColor: primaryColor }}
             disabled={!selectedReason}
             loading={loading}
             onClick={handleSubmit}
@@ -385,9 +401,12 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
     )
   }
 
-  // STEP: Confirmation
+  // ── STEP: Confirmation ──────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-600 to-purple-700 flex flex-col items-center justify-center p-6">
+    <div
+      className="min-h-screen flex flex-col items-center justify-center p-6"
+      style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${alpha(primaryColor, 0.75)} 100%)` }}
+    >
       <div className="w-full max-w-sm text-center">
         <CheckCircle size={64} className="text-white mx-auto mb-4" />
         <h1 className="text-white text-2xl font-bold mb-1">¡Turno registrado!</h1>
@@ -395,17 +414,17 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
 
         <div className="bg-white rounded-2xl p-8 shadow-2xl">
           <p className="text-gray-500 text-sm mb-2">Tu número de turno</p>
-          <div className="text-6xl font-black text-indigo-600 mb-4">{ticket?.queue_number}</div>
+          <div className="text-6xl font-black mb-4" style={{ color: primaryColor }}>{ticket?.queue_number}</div>
           <div className="flex items-center justify-center gap-2 text-gray-600 text-sm">
             <Clock size={16} />
             <span>Por favor espera a ser llamado</span>
           </div>
 
-          {/* Sala de espera — funciona en TODOS los navegadores (Safari incluido) */}
+          {/* Sala de espera — funciona en todos los navegadores (Safari incluido) */}
           <a
             href={`/espera/${ticket?.id}`}
-            className="mt-4 w-full flex items-center justify-center gap-2 text-white text-sm font-medium rounded-xl px-4 py-3 transition-colors"
-            style={{ backgroundColor: '#6366f1' }}
+            className="mt-4 w-full flex items-center justify-center gap-2 text-white text-sm font-medium rounded-xl px-4 py-3 transition-opacity hover:opacity-90"
+            style={{ backgroundColor: primaryColor }}
           >
             <Clock size={14} />
             Ver mi posición en la cola
@@ -420,7 +439,8 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
             <button
               onClick={handleEnablePush}
               disabled={pushLoading}
-              className="mt-2 w-full flex items-center justify-center gap-2 text-indigo-600 text-xs bg-indigo-50 hover:bg-indigo-100 rounded-xl px-4 py-2 transition-colors disabled:opacity-60"
+              className="mt-2 w-full flex items-center justify-center gap-2 text-xs rounded-xl px-4 py-2 transition-opacity disabled:opacity-60 hover:opacity-80"
+              style={{ color: primaryColor, backgroundColor: alpha(primaryColor, 0.08) }}
             >
               <Bell size={12} />
               {pushLoading ? 'Activando…' : 'Activar aviso push (opcional)'}
