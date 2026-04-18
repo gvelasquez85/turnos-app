@@ -214,13 +214,15 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     if (href.startsWith('/admin/marketplace')) return true
     if (href.startsWith('/superadmin/marketplace')) return true
 
-    // Module-gating: purely based on active_modules flag on the brand.
-    // If active_modules is undefined (no modules set), hide optional modules by default.
-    if (href.startsWith('/admin/appointments')) return activeModules?.appointments === true
-    if (href.startsWith('/admin/surveys')) return activeModules?.surveys === true
-    if (href.startsWith('/admin/crm')) return activeModules?.crm === true
-    if (href.startsWith('/admin/menu')) return activeModules?.menu === true
-    if (href.startsWith('/admin/display') && activeModules?.display === false) return false
+    // Module-gating: based on active_modules flag on the brand.
+    // - undefined → never activated → HIDE (link never appears)
+    // - true      → active/trial    → SHOW and fully accessible
+    // - false     → expired/cancelled → SHOW, but page renders a trial-expired overlay
+    if (href.startsWith('/admin/appointments')) return activeModules?.appointments !== undefined
+    if (href.startsWith('/admin/surveys')) return activeModules?.surveys !== undefined
+    if (href.startsWith('/admin/crm')) return activeModules?.crm !== undefined
+    if (href.startsWith('/admin/menu')) return activeModules?.menu !== undefined
+    // Display is a core feature — always show; overlay handled on the page itself
 
     return true
   }

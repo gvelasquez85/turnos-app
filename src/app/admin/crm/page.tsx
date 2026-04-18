@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { CRMDashboard } from './CRMDashboard'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 
 export default async function CRMPage() {
   const supabase = await createClient()
@@ -34,11 +35,29 @@ export default async function CRMPage() {
     .eq('active', true)
     .order('name')
 
+  // Check trial expiry
+  let isExpired = false
+  let expiredAt: string | null = null
+  if (profile.role !== 'superadmin') {
+    const { data: sub } = await supabase
+      .from('module_subscriptions')
+      .select('status, trial_expires_at, expires_at')
+      .eq('brand_id', brandId)
+      .eq('module_key', 'crm')
+      .maybeSingle()
+    if (sub?.status === 'expired') {
+      isExpired = true
+      expiredAt = sub.trial_expires_at ?? sub.expires_at ?? null
+    }
+  }
+
   return (
-    <CRMDashboard
-      customers={customers ?? []}
-      establishments={establishments ?? []}
-      brandId={brandId}
-    />
+    <TrialExpiredGate isExpired={isExpired} moduleLabel="Clientes CRM" expiredAt={expiredAt}>
+      <CRMDashboard
+        customers={customers ?? []}
+        establishments={establishments ?? []}
+        brandId={brandId}
+      />
+    </TrialExpiredGate>
   )
 }

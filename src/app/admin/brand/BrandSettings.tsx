@@ -19,6 +19,8 @@ interface Brand {
   slug: string
   logo_url: string | null
   primary_color: string | null
+  secondary_color: string | null
+  font_color: string | null
   address: string | null
   contact_email: string | null
   website: string | null
@@ -119,6 +121,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     name: initialBrand.name,
     logo_url: initialBrand.logo_url || '',
     primary_color: initialBrand.primary_color || '#6366f1',
+    secondary_color: initialBrand.secondary_color || '#7c3aed',
+    font_color: initialBrand.font_color || '#ffffff',
     address: initialBrand.address || '',
     contact_email: initialBrand.contact_email || '',
     website: initialBrand.website || '',
@@ -270,6 +274,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
         name: form.name,
         logo_url: form.logo_url || null,
         primary_color: form.primary_color,
+        secondary_color: form.secondary_color,
+        font_color: form.font_color,
         address: form.address || null,
         contact_email: form.contact_email || null,
         website: form.website || null,
@@ -306,8 +312,10 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const maxEst = currentPlan === 'free' ? FREE_EST_LIMIT : (membership?.max_establishments ?? 1)
   const maxAdv = currentPlan === 'free' ? FREE_ADV_LIMIT : (membership?.max_advisors ?? 2)
   const basePrice = calcMonthlyBase(maxEst, maxAdv)
-  // Only show / count modules that are active or in trial
+  // For billing calculations: only active/trial modules count
   const activeModuleSubs = moduleSubs.filter(s => s.status === 'active' || s.status === 'trial')
+  // For display in membership tab: also show expired/cancelled so user sees what they had
+  const allModuleSubs = moduleSubs.filter(s => ['active', 'trial', 'expired', 'cancelled'].includes(s.status))
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
   const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
   const nextBilling = nextBillingDate(membership)
@@ -354,37 +362,47 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
           <div className="flex flex-col gap-4">
             <Input label="Nombre de la marca" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
             <Input label="URL del logo" value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} placeholder="https://..." />
-            <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-gray-700">Color principal</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="color"
-                  value={form.primary_color}
-                  onChange={e => setForm(f => ({ ...f, primary_color: e.target.value }))}
-                  className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer p-0.5 shrink-0"
-                />
-                <input
-                  type="text"
-                  value={form.primary_color}
-                  onChange={e => {
-                    const val = e.target.value
-                    setForm(f => ({ ...f, primary_color: val }))
-                  }}
-                  onBlur={e => {
-                    let val = e.target.value.trim()
-                    if (val && !val.startsWith('#')) val = '#' + val
-                    if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val)) {
-                      setForm(f => ({ ...f, primary_color: val.toLowerCase() }))
-                    } else {
-                      setForm(f => ({ ...f, primary_color: form.primary_color }))
-                    }
-                  }}
-                  maxLength={7}
-                  placeholder="#6366f1"
-                  className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
-                <div className="w-9 h-9 rounded-lg border border-gray-200 shrink-0" style={{ backgroundColor: form.primary_color }} />
-              </div>
+            {/* ── Colores de marca ── */}
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-semibold text-gray-700">Colores de la marca</p>
+              <p className="text-xs text-gray-400 -mt-2">Se usan en formularios públicos, pantalla TV y páginas de turno.</p>
+              {/* Color helper */}
+              {([
+                { key: 'primary_color', label: 'Color principal', hint: 'Botones, encabezados y elementos de acción', placeholder: '#6366f1' },
+                { key: 'secondary_color', label: 'Color secundario', hint: 'Fondos de página y pantalla TV', placeholder: '#7c3aed' },
+                { key: 'font_color', label: 'Color de fuente', hint: 'Texto sobre fondos de color de la marca', placeholder: '#ffffff' },
+              ] as const).map(({ key, label, hint, placeholder }) => (
+                <div key={key} className="flex flex-col gap-1">
+                  <label className="text-sm font-medium text-gray-700">{label}</label>
+                  {hint && <p className="text-xs text-gray-400">{hint}</p>}
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={form[key]}
+                      onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                      className="w-10 h-10 rounded-lg border border-gray-300 cursor-pointer p-0.5 shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={form[key]}
+                      onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                      onBlur={e => {
+                        let val = e.target.value.trim()
+                        if (val && !val.startsWith('#')) val = '#' + val
+                        if (/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(val)) {
+                          setForm(f => ({ ...f, [key]: val.toLowerCase() }))
+                        } else {
+                          setForm(f => ({ ...f, [key]: form[key] }))
+                        }
+                      }}
+                      maxLength={7}
+                      placeholder={placeholder}
+                      className="w-28 rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <div className="w-9 h-9 rounded-lg border border-gray-200 shrink-0" style={{ backgroundColor: form[key] }} />
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Input label="Dirección principal" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="Calle 123, Ciudad" />
@@ -678,23 +696,27 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </div>
           </div>
 
-          {/* Module subscriptions — only show active/trial */}
-          {activeModuleSubs.length > 0 && (
+          {/* Module subscriptions — active, trial, expired, cancelled */}
+          {allModuleSubs.length > 0 && (
             <div className="mb-8">
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Módulos adicionales</h3>
               <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
-                {activeModuleSubs.map(sub => {
+                {allModuleSubs.map(sub => {
                   const price = getModulePrice(sub.module_key)
+                  const isExpiredOrCancelled = sub.status === 'expired' || sub.status === 'cancelled'
                   return (
                     <div key={sub.id}>
                       <div className="flex items-center justify-between px-4 py-3">
-                        <div>
-                          <span className="text-sm font-medium text-gray-700">{MODULE_LABELS[sub.module_key] ?? sub.module_key.replace(/_/g, ' ')}</span>
-                          {price > 0 && (
-                            <span className="text-xs text-gray-400 ml-2">${price}/mes</span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`text-sm font-medium ${isExpiredOrCancelled ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                            {MODULE_LABELS[sub.module_key] ?? sub.module_key.replace(/_/g, ' ')}
+                          </span>
+                          {price > 0 && !isExpiredOrCancelled && (
+                            <span className="text-xs text-gray-400">${price}/mes</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
+                          {/* Contratar (trial activo) */}
                           {sub.status === 'trial' && (
                             <button
                               onClick={() => setPayingModule(payingModule === sub.id ? null : sub.id)}
@@ -703,33 +725,49 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                               {payingModule === sub.id ? 'Cerrar' : 'Contratar'}
                             </button>
                           )}
+                          {/* Reactivar (vencido) */}
+                          {sub.status === 'expired' && (
+                            <button
+                              onClick={() => setPayingModule(payingModule === sub.id ? null : sub.id)}
+                              className="text-xs px-2.5 py-1 rounded-lg bg-red-600 text-white font-medium hover:bg-red-700 transition-colors"
+                            >
+                              {payingModule === sub.id ? 'Cerrar' : 'Reactivar'}
+                            </button>
+                          )}
+                          {/* Badge de estado */}
                           <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                            sub.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                            sub.status === 'active'    ? 'bg-green-100 text-green-700' :
+                            sub.status === 'trial'     ? 'bg-amber-100 text-amber-700' :
+                            sub.status === 'expired'   ? 'bg-red-100 text-red-700'     :
+                            'bg-gray-100 text-gray-500'
                           }`}>
                             {sub.status === 'trial' && sub.trial_expires_at
                               ? `Trial — vence ${new Date(sub.trial_expires_at).toLocaleDateString('es')}`
                               : STATUS_LABELS[sub.status] ?? sub.status}
                           </span>
-                          <button
-                            onClick={() => setConfirmCancel(sub.id)}
-                            className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
-                            title="Cancelar módulo"
-                          >
-                            <X size={14} />
-                          </button>
+                          {/* Cancelar solo si está activo/trial */}
+                          {!isExpiredOrCancelled && (
+                            <button
+                              onClick={() => setConfirmCancel(sub.id)}
+                              className="p-1 text-gray-400 hover:text-red-500 rounded transition-colors"
+                              title="Cancelar módulo"
+                            >
+                              <X size={14} />
+                            </button>
+                          )}
                         </div>
                       </div>
-                      {/* PayPal payment panel for trial modules */}
+                      {/* PayPal panel: trial "Contratar" o expired "Reactivar" */}
                       {payingModule === sub.id && price > 0 && (
                         <div className="px-4 pb-4 border-t border-gray-50 bg-gray-50">
                           <p className="text-xs text-gray-500 mt-3 mb-2">
-                            Pagar <strong>${price}/mes</strong> para activar el módulo. Se renueva mensualmente.
+                            {sub.status === 'expired' ? 'Reactivar' : 'Activar'} por <strong>${price}/mes</strong>. Se renueva mensualmente.
                           </p>
                           <PayPalButton
                             moduleKey={sub.module_key}
                             amount={price}
                             currency="USD"
-                            onSuccess={(expiresAt) => {
+                            onSuccess={(_expiresAt) => {
                               setModuleSubs(prev => prev.map(s =>
                                 s.id === sub.id
                                   ? { ...s, status: 'active', price_monthly: price }

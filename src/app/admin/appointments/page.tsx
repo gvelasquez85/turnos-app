@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppointmentsManager } from './AppointmentsManager'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 
 export default async function AppointmentsPage() {
   const supabase = await createClient()
@@ -44,7 +45,7 @@ export default async function AppointmentsPage() {
   if (profile.role !== 'superadmin' && profile.brand_id) advisorQuery.eq('brand_id', profile.brand_id)
   const { data: advisors } = await advisorQuery
 
-  // Appointments for this week + 7 days
+  // Appointments for this week + 14 days
   const from = new Date(); from.setDate(from.getDate() - 1)
   const to = new Date(); to.setDate(to.getDate() + 14)
   const estIds = (establishments || []).map(e => e.id)
@@ -61,15 +62,33 @@ export default async function AppointmentsPage() {
     appointments = data || []
   }
 
+  // Check trial expiry
+  let isExpired = false
+  let expiredAt: string | null = null
+  if (profile.role !== 'superadmin' && profile.brand_id) {
+    const { data: sub } = await supabase
+      .from('module_subscriptions')
+      .select('status, trial_expires_at, expires_at')
+      .eq('brand_id', profile.brand_id)
+      .eq('module_key', 'appointments')
+      .maybeSingle()
+    if (sub?.status === 'expired') {
+      isExpired = true
+      expiredAt = sub.trial_expires_at ?? sub.expires_at ?? null
+    }
+  }
+
   return (
-    <AppointmentsManager
-      appointments={appointments}
-      establishments={establishments || []}
-      brands={brands || []}
-      visitReasons={visitReasons}
-      advisors={advisors || []}
-      defaultBrandId={profile.brand_id || null}
-      defaultEstId={profile.establishment_id || null}
-    />
+    <TrialExpiredGate isExpired={isExpired} moduleLabel="Citas programadas" expiredAt={expiredAt}>
+      <AppointmentsManager
+        appointments={appointments}
+        establishments={establishments || []}
+        brands={brands || []}
+        visitReasons={visitReasons}
+        advisors={advisors || []}
+        defaultBrandId={profile.brand_id || null}
+        defaultEstId={profile.establishment_id || null}
+      />
+    </TrialExpiredGate>
   )
 }

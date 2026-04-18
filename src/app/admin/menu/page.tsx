@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { MenuBuilder } from './MenuBuilder'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 
 export default async function MenuPage() {
   const supabase = await createClient()
@@ -42,12 +43,30 @@ export default async function MenuPage() {
     preOrders = data || []
   }
 
+  // Check trial expiry
+  let isExpired = false
+  let expiredAt: string | null = null
+  if (profile.role !== 'superadmin' && profile.brand_id) {
+    const { data: sub } = await supabase
+      .from('module_subscriptions')
+      .select('status, trial_expires_at, expires_at')
+      .eq('brand_id', profile.brand_id)
+      .eq('module_key', 'menu')
+      .maybeSingle()
+    if (sub?.status === 'expired') {
+      isExpired = true
+      expiredAt = sub.trial_expires_at ?? sub.expires_at ?? null
+    }
+  }
+
   return (
-    <MenuBuilder
-      establishments={establishments || []}
-      menus={menus}
-      preOrders={preOrders}
-      defaultEstId={null}
-    />
+    <TrialExpiredGate isExpired={isExpired} moduleLabel="Menú / Preorden" expiredAt={expiredAt}>
+      <MenuBuilder
+        establishments={establishments || []}
+        menus={menus}
+        preOrders={preOrders}
+        defaultEstId={null}
+      />
+    </TrialExpiredGate>
   )
 }
