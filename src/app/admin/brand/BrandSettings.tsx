@@ -496,8 +496,9 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
           </div>
 
           {/* Billing & modules row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-            {/* Próxima factura */}
+          <div className={`grid grid-cols-1 ${!isFreeWithinLimits ? 'md:grid-cols-2' : ''} gap-4 mb-8`}>
+            {/* Próxima factura — oculta en plan gratuito dentro de límites */}
+            {!isFreeWithinLimits && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-gray-700">Próxima factura</h3>
@@ -528,6 +529,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </div>
               </div>
             </div>
+            )}
 
             {/* Medio de pago */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">

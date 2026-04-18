@@ -25,13 +25,16 @@ export default async function TicketPage({ params }: { params: Promise<{ slug: s
     .eq('active', true)
     .order('sort_order')
 
-  // Cargar promociones vigentes
+  // Cargar promociones vigentes:
+  // - Específicas de la sucursal (establishment_id = this establishment)
+  // - De toda la marca (establishment_id IS NULL AND brand_id = this brand)
   const now = new Date().toISOString()
+  const brandId = (establishment as any).brand_id
   const { data: promotions } = await supabase
     .from('promotions')
     .select('*')
-    .eq('establishment_id', establishment.id)
     .eq('active', true)
+    .or(`establishment_id.eq.${establishment.id},and(brand_id.eq.${brandId},establishment_id.is.null)`)
     .or(`starts_at.is.null,starts_at.lte.${now}`)
     .or(`ends_at.is.null,ends_at.gte.${now}`)
 

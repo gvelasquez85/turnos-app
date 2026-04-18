@@ -6,11 +6,21 @@ export default async function ValidarPage({ params }: { params: Promise<{ id: st
   const { id } = await params
   const supabase = await createAdminClient()
 
-  const { data: consent } = await supabase
+  // Intenta buscar por consent_id primero; si no encuentra, busca por ticket_id
+  let { data: consent } = await supabase
     .from('data_consents')
     .select('*, establishments(name, brands(name))')
     .eq('id', id)
-    .single()
+    .maybeSingle()
+
+  if (!consent) {
+    const { data: byTicket } = await supabase
+      .from('data_consents')
+      .select('*, establishments(name, brands(name))')
+      .eq('ticket_id', id)
+      .maybeSingle()
+    consent = byTicket
+  }
 
   if (!consent) notFound()
 

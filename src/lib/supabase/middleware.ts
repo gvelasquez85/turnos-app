@@ -25,7 +25,7 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Public routes - no auth needed
-  const publicRoutes = ['/login', '/t/', '/espera/', '/auth/', '/forgot-password', '/reset-password', '/book/', '/order/', '/display/', '/survey/', '/api/firebase-sw']
+  const publicRoutes = ['/login', '/t/', '/espera/', '/auth/', '/forgot-password', '/reset-password', '/book/', '/order/', '/display/', '/survey/', '/api/firebase-sw', '/validar/', '/validarautorizacion']
   const isPublic = publicRoutes.some(r => path.startsWith(r)) || path === '/'
 
   if (!user && !isPublic) {

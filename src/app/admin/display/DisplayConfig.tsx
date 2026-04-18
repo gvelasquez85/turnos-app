@@ -40,10 +40,12 @@ interface DisplayConfigRow {
 
 // ── Layout presets ──────────────────────────────────────────────────────────────
 const LAYOUT_PRESETS = [
+  // ── Clásicos ──
   {
     id: 'simple',
     label: 'Cola simple',
-    description: 'Turno actual + lista de espera',
+    description: 'Turno actual + lista de espera en pantalla completa',
+    emoji: '📋',
     widgets: [
       { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
       { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos en cola', maxItems: 6 } },
@@ -51,8 +53,9 @@ const LAYOUT_PRESETS = [
   },
   {
     id: 'with_side',
-    label: 'Cola + lateral',
-    description: 'Cola principal con reloj y texto lateral',
+    label: 'Cola + reloj lateral',
+    description: 'Cola a la izquierda, reloj y fecha en panel lateral',
+    emoji: '🕐',
     widgets: [
       { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
       { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos en cola', maxItems: 5 } },
@@ -61,13 +64,60 @@ const LAYOUT_PRESETS = [
   },
   {
     id: 'with_video',
-    label: 'Cola + contenido',
-    description: 'Cola principal con video/imagen lateral',
+    label: 'Cola + video lateral',
+    description: 'Cola en pantalla principal, video o imagen y reloj al lado',
+    emoji: '🎬',
     widgets: [
       { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
       { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos en cola', maxItems: 4 } },
       { id: 'w3', type: 'clock' as WidgetType, col: 'side' as const, config: {} },
       { id: 'w4', type: 'youtube' as WidgetType, col: 'side' as const, config: { title: '' } },
+    ],
+  },
+  // ── Disruptivos ──
+  {
+    id: 'xxl_number',
+    label: 'Número XXL',
+    description: '⚡ Solo el turno actual a pantalla completa — máximo impacto',
+    emoji: '🔢',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: '' } },
+    ],
+  },
+  {
+    id: 'billboard',
+    label: 'Cartelera',
+    description: '⚡ Turno + mensaje personalizado en principal, cola y reloj al lado',
+    emoji: '📣',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo ahora' } },
+      { id: 'w2', type: 'text' as WidgetType, col: 'main' as const, config: { content: '¡Bienvenidos! Gracias por su preferencia.', textAlign: 'center' as const, fontSize: 'lg' as const } },
+      { id: 'w3', type: 'queue_waiting' as WidgetType, col: 'side' as const, config: { title: 'En espera', maxItems: 8 } },
+      { id: 'w4', type: 'clock' as WidgetType, col: 'side' as const, config: {} },
+    ],
+  },
+  {
+    id: 'content_first',
+    label: 'Contenido al frente',
+    description: '⚡ Video/imagen ocupa la pantalla principal, cola en panel lateral',
+    emoji: '📺',
+    widgets: [
+      { id: 'w1', type: 'image' as WidgetType, col: 'main' as const, config: { title: '' } },
+      { id: 'w2', type: 'queue_now' as WidgetType, col: 'side' as const, config: { title: 'Turno actual' } },
+      { id: 'w3', type: 'queue_waiting' as WidgetType, col: 'side' as const, config: { title: 'En espera', maxItems: 6 } },
+      { id: 'w4', type: 'clock' as WidgetType, col: 'side' as const, config: {} },
+    ],
+  },
+  {
+    id: 'dashboard',
+    label: 'Dashboard completo',
+    description: '⚡ Todo en pantalla: turno, aviso y reloj en lateral más amplio',
+    emoji: '🖥️',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Atendiendo' } },
+      { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'Próximos', maxItems: 4 } },
+      { id: 'w3', type: 'clock' as WidgetType, col: 'side' as const, config: {} },
+      { id: 'w4', type: 'text' as WidgetType, col: 'side' as const, config: { content: 'Por favor espere a ser llamado por su número de turno', textAlign: 'center' as const, fontSize: 'sm' as const } },
     ],
   },
 ]
@@ -363,8 +413,10 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
   const [accentColor, setAccentColor] = useState(DEFAULT_CONFIG.accent_color)
   const [fontColor, setFontColor] = useState(DEFAULT_CONFIG.font_color)
   const [widgets, setWidgets] = useState<Widget[]>(DEFAULT_CONFIG.widgets)
+  const [localConfigs, setLocalConfigs] = useState<DisplayConfigRow[]>(displayConfigs)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [applyScope, setApplyScope] = useState<'single' | 'all'>('single')
   const [copiedToAll, setCopiedToAll] = useState(false)
 
@@ -383,7 +435,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
 
   useEffect(() => {
     if (!selectedEstId) return
-    const existing = displayConfigs.find(c => c.establishment_id === selectedEstId)
+    const existing = localConfigs.find(c => c.establishment_id === selectedEstId)
     if (existing) {
       setBgColor(existing.bg_color)
       setAccentColor(existing.accent_color)
@@ -395,7 +447,7 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
       setFontColor(DEFAULT_CONFIG.font_color)
       setWidgets(DEFAULT_CONFIG.widgets)
     }
-  }, [selectedEstId, displayConfigs])
+  }, [selectedEstId, localConfigs])
 
   const selectedEst = establishments.find(e => e.id === selectedEstId)
 
@@ -427,22 +479,42 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
   async function handleSave() {
     if (!selectedEstId) return
     setSaving(true)
+    setSaveError(null)
     const supabase = createClient()
-    const payload = { bg_color: bgColor, accent_color: accentColor, font_color: fontColor, show_clock: true, widgets, updated_at: new Date().toISOString() }
+    const payload = { bg_color: bgColor, accent_color: accentColor, font_color: fontColor, show_clock: true, widgets }
 
-    // Save to selected establishment
     const estIds = applyScope === 'all'
       ? brandEstablishments.map(e => e.id)
       : [selectedEstId]
 
+    let firstError: string | null = null
     for (const estId of estIds) {
-      await supabase.from('display_configs').upsert(
+      const { error } = await supabase.from('display_configs').upsert(
         { establishment_id: estId, ...payload },
         { onConflict: 'establishment_id' }
       )
+      if (error && !firstError) firstError = error.message
     }
 
     setSaving(false)
+
+    if (firstError) {
+      setSaveError(firstError)
+      return
+    }
+
+    // Update in-memory configs so re-selecting the establishment reflects saved data
+    setLocalConfigs(prev => {
+      const next = [...prev]
+      for (const estId of estIds) {
+        const idx = next.findIndex(c => c.establishment_id === estId)
+        const updated: DisplayConfigRow = { establishment_id: estId, ...payload }
+        if (idx >= 0) next[idx] = { ...next[idx], ...updated }
+        else next.push(updated)
+      }
+      return next
+    })
+
     setSaved(true)
     if (applyScope === 'all') { setCopiedToAll(true); setTimeout(() => setCopiedToAll(false), 3000) }
     setTimeout(() => setSaved(false), 2500)
@@ -544,6 +616,11 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
             : applyScope === 'all' ? <span className="flex items-center gap-1"><Copy size={14} /> Guardar y aplicar a toda la marca</span> : 'Guardar configuración'
           }
         </Button>
+        {saveError && (
+          <div className="rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-xs text-red-700">
+            ⚠ Error al guardar: {saveError}
+          </div>
+        )}
       </div>
 
       {/* ── MAIN AREA ─────────────────────────────────────────── */}
@@ -568,8 +645,9 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
                 onClick={() => setWidgets(preset.widgets.map(w => ({ ...w, id: genId() })))}
                 className="text-left rounded-xl border-2 border-gray-200 hover:border-indigo-400 hover:bg-indigo-50 p-3 transition-all active:scale-95"
               >
+                <p className="text-lg mb-1">{preset.emoji}</p>
                 <p className="text-sm font-semibold text-gray-800">{preset.label}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{preset.description}</p>
+                <p className="text-xs text-gray-400 mt-0.5 leading-snug">{preset.description.replace(/^⚡\s*/, '')}</p>
                 <p className="text-xs text-indigo-500 mt-1.5 font-medium">{preset.widgets.length} widget{preset.widgets.length !== 1 ? 's' : ''}</p>
               </button>
             ))}

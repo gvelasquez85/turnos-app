@@ -123,14 +123,48 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
 
   function validateForm() {
     const errs: Record<string, string> = {}
+
     if (!form.name.trim()) errs.name = 'El nombre es requerido'
-    if (!form.phone.trim()) errs.phone = 'El teléfono es requerido'
-    if (!form.email.trim()) errs.email = 'El correo electrónico es requerido'
+
+    if (!form.phone.trim()) {
+      errs.phone = 'El teléfono es requerido'
+    } else if (!/^\d[\d\s\-]{5,}$/.test(form.phone.trim())) {
+      errs.phone = 'Ingresa solo dígitos (mínimo 6 números)'
+    }
+
+    if (!form.email.trim()) {
+      errs.email = 'El correo electrónico es requerido'
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      errs.email = 'Ingresa un correo electrónico válido'
+    }
+
     if (!form.data_consent) errs.data_consent = 'Debes autorizar el tratamiento de datos para continuar'
+
     const customFields = (establishment.brands as any).form_fields || []
     customFields.forEach((field: any) => {
-      if (field.required && !(form as any)[`custom_${field.id}`]?.trim()) {
+      const rawVal = (form as any)[`custom_${field.id}`]
+      const strVal = rawVal != null ? String(rawVal).trim() : ''
+
+      if (field.required && !strVal) {
         errs[`custom_${field.id}`] = `${field.label} es requerido`
+        return
+      }
+
+      if (strVal) {
+        if (field.field_type === 'number') {
+          if (strVal === '' || isNaN(Number(strVal))) {
+            errs[`custom_${field.id}`] = `${field.label} debe ser un número válido`
+          }
+        } else if (field.field_type === 'date') {
+          const d = new Date(strVal)
+          if (isNaN(d.getTime())) {
+            errs[`custom_${field.id}`] = `${field.label} debe ser una fecha válida`
+          }
+        } else if (field.field_type === 'email') {
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(strVal)) {
+            errs[`custom_${field.id}`] = `${field.label} debe ser un correo válido`
+          }
+        }
       }
     })
     return errs
@@ -269,9 +303,10 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
                 </select>
                 <input
                   type="tel"
+                  inputMode="numeric"
                   placeholder="300 123 4567"
                   value={form.phone}
-                  onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                  onChange={e => setForm(f => ({ ...f, phone: e.target.value.replace(/[^0-9\s\-]/g, '') }))}
                   className="flex-1 h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 placeholder-gray-400 focus:outline-none"
                 />
               </div>
@@ -490,6 +525,17 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
           <div className="mt-4 pt-4 border-t border-gray-100 text-left">
             <p className="text-xs text-gray-500">Motivo: <span className="font-medium text-gray-700">{selectedReason?.name}</span></p>
             <p className="text-xs text-gray-500 mt-1">Nombre: <span className="font-medium text-gray-700">{form.name}</span></p>
+            {ticket?.id && (
+              <a
+                href={`/validar/${ticket.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-3 block text-xs underline"
+                style={{ color: primaryColor }}
+              >
+                Validar autorización de datos →
+              </a>
+            )}
           </div>
         </div>
 
