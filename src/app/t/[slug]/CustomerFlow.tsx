@@ -62,6 +62,26 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   const consentText = brand.data_policy_text || CONSENT_TEXT_DEFAULT
   const primaryColor = (brand as any).primary_color || '#6366f1'
 
+  // Header reutilizable con logo de la marca
+  const BrandHeader = () => (
+    <div className="text-white text-center py-5 px-4" style={{ backgroundColor: primaryColor }}>
+      {brand.logo_url && (
+        <div className="flex justify-center mb-3">
+          <div className="bg-white rounded-2xl px-5 py-2.5 shadow-sm inline-flex items-center justify-center">
+            <img
+              src={brand.logo_url}
+              alt={brand.name}
+              className="h-10 w-auto object-contain"
+              style={{ maxWidth: '140px' }}
+            />
+          </div>
+        </div>
+      )}
+      <h1 className={`font-bold ${brand.logo_url ? 'text-base' : 'text-xl'}`}>{brand.name}</h1>
+      <p className="text-sm mt-0.5" style={{ color: alpha('#ffffff', 0.75) }}>{establishment.name}</p>
+    </div>
+  )
+
   function fullPhone() { return `${form.phoneCode}${form.phone.trim()}` }
 
   async function savePushToken(supabase: ReturnType<typeof createClient>, ticketId: string) {
@@ -166,11 +186,19 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
         <div className="flex-1 flex flex-col items-center justify-center p-6">
           <div className="w-full max-w-sm">
             <div className="text-center mb-6">
-              <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs px-3 py-1 rounded-full mb-3">
+              <span className="inline-flex items-center gap-1 bg-white/20 text-white text-xs px-3 py-1 rounded-full mb-4">
                 <Tag size={12} /> Promoción {promoIndex + 1} de {promotions.length}
               </span>
-              <h2 className="text-white text-2xl font-bold">{brand.name}</h2>
-              <p className="text-white/70 text-sm">{establishment.name}</p>
+              {brand.logo_url ? (
+                <div className="flex justify-center mb-3">
+                  <div className="bg-white rounded-2xl px-5 py-2.5 shadow-md inline-flex items-center justify-center">
+                    <img src={brand.logo_url} alt={brand.name} className="h-10 w-auto object-contain" style={{ maxWidth: '140px' }} />
+                  </div>
+                </div>
+              ) : (
+                <h2 className="text-white text-2xl font-bold">{brand.name}</h2>
+              )}
+              <p className="text-white/70 text-sm mt-1">{establishment.name}</p>
             </div>
 
             <div className="bg-white rounded-2xl overflow-hidden shadow-2xl">
@@ -207,10 +235,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   if (step === 'form') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
-          <h1 className="text-xl font-bold">{brand.name}</h1>
-          <p className="text-sm" style={{ color: alpha('#ffffff', 0.75) }}>{establishment.name}</p>
-        </div>
+        <BrandHeader />
         <div className="flex-1 p-6 max-w-sm mx-auto w-full">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">{t('form.yourData')}</h2>
           <p className="text-sm text-gray-500 mb-6">Completa el formulario para tomar tu turno</p>
@@ -358,10 +383,7 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
   if (step === 'reason') {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
-        <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
-          <h1 className="text-xl font-bold">{brand.name}</h1>
-          <p className="text-sm" style={{ color: alpha('#ffffff', 0.75) }}>{establishment.name}</p>
-        </div>
+        <BrandHeader />
         <div className="flex-1 p-6 max-w-sm mx-auto w-full">
           <h2 className="text-lg font-semibold text-gray-900 mb-1">¿En qué te podemos ayudar?</h2>
           <p className="text-sm text-gray-500 mb-6">Selecciona el motivo de tu visita</p>
@@ -408,7 +430,14 @@ export function CustomerFlow({ establishment, visitReasons, promotions }: Props)
       style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, ${alpha(primaryColor, 0.75)} 100%)` }}
     >
       <div className="w-full max-w-sm text-center">
-        <CheckCircle size={64} className="text-white mx-auto mb-4" />
+        {brand.logo_url && (
+          <div className="flex justify-center mb-5">
+            <div className="bg-white rounded-2xl px-6 py-3 shadow-md inline-flex items-center justify-center">
+              <img src={brand.logo_url} alt={brand.name} className="h-10 w-auto object-contain" style={{ maxWidth: '160px' }} />
+            </div>
+          </div>
+        )}
+        <CheckCircle size={56} className="text-white mx-auto mb-3" />
         <h1 className="text-white text-2xl font-bold mb-1">¡Turno registrado!</h1>
         <p className="text-white/70 mb-8">Te atenderemos en breve</p>
 
