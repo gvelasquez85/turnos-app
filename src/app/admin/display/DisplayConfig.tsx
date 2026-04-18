@@ -16,7 +16,7 @@ type WidgetType = 'queue_now' | 'queue_waiting' | 'clock' | 'text' | 'youtube' |
 interface Widget {
   id: string
   type: WidgetType
-  col: 'main' | 'side'
+  col: 'main' | 'side' | 'extra'
   config: {
     title?: string
     content?: string
@@ -25,6 +25,7 @@ interface Widget {
     maxItems?: number
     textAlign?: 'left' | 'center' | 'right'
     fontSize?: 'sm' | 'md' | 'lg' | 'xl'
+    fitVideo?: boolean
   }
 }
 
@@ -120,6 +121,31 @@ const LAYOUT_PRESETS = [
       { id: 'w4', type: 'text' as WidgetType, col: 'side' as const, config: { content: 'Por favor espere a ser llamado por su número de turno', textAlign: 'center' as const, fontSize: 'sm' as const } },
     ],
   },
+  // ── 3 columnas ──
+  {
+    id: 'minimal_trio',
+    label: 'Trío minimalista',
+    description: '3 col — Turno · Cola · Reloj: una cosa por columna, sin ruido visual',
+    emoji: '🔲',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: '' } },
+      { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'side' as const, config: { title: 'Próximos', maxItems: 8 } },
+      { id: 'w3', type: 'clock' as WidgetType, col: 'extra' as const, config: {} },
+    ],
+  },
+  {
+    id: 'video_central',
+    label: 'Video central',
+    description: '3 col — Cola izquierda, video autoajustado al centro, reloj y mensaje a la derecha',
+    emoji: '🎞️',
+    widgets: [
+      { id: 'w1', type: 'queue_now' as WidgetType, col: 'main' as const, config: { title: 'Turno actual' } },
+      { id: 'w2', type: 'queue_waiting' as WidgetType, col: 'main' as const, config: { title: 'En espera', maxItems: 4 } },
+      { id: 'w3', type: 'youtube' as WidgetType, col: 'side' as const, config: { title: '', fitVideo: true } },
+      { id: 'w4', type: 'clock' as WidgetType, col: 'extra' as const, config: {} },
+      { id: 'w5', type: 'text' as WidgetType, col: 'extra' as const, config: { content: '¡Gracias por su preferencia!', textAlign: 'center' as const, fontSize: 'md' as const } },
+    ],
+  },
 ]
 
 interface Props {
@@ -168,6 +194,46 @@ const WIDGET_META: Record<WidgetType, { label: string; icon: React.ReactNode; co
 const ALL_WIDGET_TYPES: WidgetType[] = ['queue_now', 'queue_waiting', 'clock', 'text', 'youtube', 'image']
 
 function genId() { return Math.random().toString(36).slice(2, 9) }
+
+/** Convierte cualquier URL/iframe de YouTube al formato embed listo para usar */
+function extractYouTubeEmbedUrl(input: string): string {
+  const raw = input.trim()
+  if (!raw) return raw
+
+  // Si pegaron un iframe, extraer el src
+  const iframeSrc = raw.match(/src=["']([^"']+)["']/)
+  const target = iframeSrc ? iframeSrc[1] : raw
+
+  // Ya es un embed → normalizar con autoplay+loop
+  const embedMatch = target.match(/youtube(?:-nocookie)?\.com\/embed\/([^?&\s/"]+)/)
+  if (embedMatch) {
+    const vid = embedMatch[1]
+    return `https://www.youtube.com/embed/${vid}?autoplay=1&mute=1&loop=1&playlist=${vid}`
+  }
+
+  let videoId: string | null = null
+
+  // youtu.be/ID
+  const shortMatch = target.match(/youtu\.be\/([^?&\s/"]+)/)
+  if (shortMatch) videoId = shortMatch[1]
+
+  // youtube.com/watch?v=ID
+  if (!videoId) {
+    try { videoId = new URL(target).searchParams.get('v') } catch {}
+  }
+
+  // youtube.com/shorts/ID
+  if (!videoId) {
+    const shortsMatch = target.match(/youtube\.com\/shorts\/([^?&\s/"]+)/)
+    if (shortsMatch) videoId = shortsMatch[1]
+  }
+
+  if (videoId) {
+    return `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&playlist=${videoId}`
+  }
+
+  return raw // no reconocido, devolver tal cual
+}
 
 // ── Widget config fields (expanded) ────────────────────────────────────────────
 function WidgetConfigFields({ widget, onChange }: { widget: Widget; onChange: (cfg: Widget['config']) => void }) {
@@ -224,12 +290,39 @@ function WidgetConfigFields({ widget, onChange }: { widget: Widget; onChange: (c
         </>
       )}
       {type === 'youtube' && (
-        <div>
-          <label className="text-xs font-medium text-gray-600 block mb-1">URL de embed</label>
-          <Input value={config.youtubeUrl ?? ''} onChange={e => onChange({ ...config, youtubeUrl: e.target.value })}
-            placeholder="https://www.youtube.com/embed/VIDEO_ID" className="h-8 text-sm" />
-          <p className="text-xs text-gray-400 mt-1">Usa el link de embed: .../embed/VIDEO_ID</p>
-        </div>
+        <>
+          <div>
+            <label className="text-xs font-medium text-gray-600 block mb-1">URL del video</label>
+            <Input
+              value={config.youtubeUrl ?? ''}
+              onChange={e => {
+                const parsed = extractYouTubeEmbedUrl(e.target.value)
+                onChange({ ...config, youtubeUrl: parsed })
+              }}
+              placeholder="Pega cualquier link o código iframe de YouTube"
+              className="h-8 text-sm"
+            />
+            {config.youtubeUrl && config.youtubeUrl.includes('/embed/') && (
+              <p className="text-xs text-green-600 mt-1">✓ URL de embed lista</p>
+            )}
+            {config.youtubeUrl && !config.youtubeUrl.includes('/embed/') && (
+              <p className="text-xs text-amber-600 mt-1">⚠ No se reconoció como URL de YouTube</p>
+            )}
+            <p className="text-xs text-gray-400 mt-1">Acepta youtube.com/watch, youtu.be, Shorts e iframe</p>
+          </div>
+          <label className="flex items-start gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={config.fitVideo ?? false}
+              onChange={e => onChange({ ...config, fitVideo: e.target.checked })}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-indigo-600 shrink-0"
+            />
+            <div>
+              <span className="text-xs font-medium text-gray-700">Autoajustar al espacio disponible</span>
+              <p className="text-[10px] text-gray-400 mt-0.5">El video se centra y ocupa toda la altura de la columna en lugar de mantener proporción 16:9</p>
+            </div>
+          </label>
+        </>
       )}
       {type === 'image' && (
         <div>
@@ -261,10 +354,10 @@ function WidgetRow({ widget, isDragOver, onDragStart, onDragEnter, onDragEnd, on
         <span className={`p-1 rounded-lg border ${meta.color}`}>{meta.icon}</span>
         <span className="text-sm font-medium text-gray-800 flex-1">{meta.label}</span>
         <div className="flex rounded-lg overflow-hidden border border-gray-200 text-xs shrink-0">
-          {(['main', 'side'] as const).map(col => (
+          {([['main', 'Col 1'], ['side', 'Col 2'], ['extra', 'Col 3']] as const).map(([col, label]) => (
             <button key={col} onClick={() => onUpdate({ ...widget, col })}
-              className={`px-2.5 py-1 font-medium transition-colors ${widget.col === col ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
-              {col === 'main' ? 'Principal' : 'Lateral'}
+              className={`px-2 py-1 font-medium transition-colors ${widget.col === col ? 'bg-indigo-600 text-white' : 'bg-white text-gray-500 hover:bg-gray-50'}`}>
+              {label}
             </button>
           ))}
         </div>
@@ -284,24 +377,76 @@ function WidgetRow({ widget, isDragOver, onDragStart, onDragEnter, onDragEnd, on
   )
 }
 
+// ── Shared mini widget renderer for TvPreview ──────────────────────────────────
+function MiniWidgetList({ widgets, accentColor }: { widgets: Widget[]; accentColor: string }) {
+  if (widgets.length === 0) return (
+    <div className="opacity-15 text-[6px] text-center mt-2 border border-dashed border-white/20 rounded p-2">vacío</div>
+  )
+  return (
+    <>
+      {widgets.map(w => {
+        if (w.type === 'queue_now') return (
+          <div key={w.id} className="shrink-0">
+            {w.config.title && <div className="opacity-40 uppercase tracking-widest text-[5px] mb-0.5">{w.config.title}</div>}
+            <div className="rounded-lg p-1.5 flex items-center gap-1.5" style={{ backgroundColor: accentColor }}>
+              <div className="text-[13px] font-black">001</div>
+              <div className="text-[6px] font-bold leading-tight opacity-80">Demo</div>
+            </div>
+          </div>
+        )
+        if (w.type === 'queue_waiting') return (
+          <div key={w.id} className="shrink-0">
+            {w.config.title && <div className="opacity-40 uppercase tracking-widest text-[5px] mb-0.5">{w.config.title}</div>}
+            <div className="grid grid-cols-3 gap-0.5">
+              {[2,3,4].map(n => (
+                <div key={n} className="rounded p-0.5 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
+                  <div className="font-black text-[8px]">00{n}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )
+        if (w.type === 'clock') return (
+          <div key={w.id} className="text-center shrink-0">
+            <div className="font-mono font-bold text-[11px]">12:00</div>
+            <div className="opacity-40 text-[5px] capitalize">lunes 31 ene</div>
+          </div>
+        )
+        const meta = WIDGET_META[w.type]
+        return (
+          <div key={w.id} className="rounded p-1 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
+            <div className="flex items-center gap-0.5 opacity-70 text-[6px]">{meta.icon} {meta.label}</div>
+          </div>
+        )
+      })}
+    </>
+  )
+}
+
 // ── TV preview (mini 16:9) ──────────────────────────────────────────────────────
 function TvPreview({ widgets, bgColor, accentColor, fontColor }: { widgets: Widget[]; bgColor: string; accentColor: string; fontColor: string }) {
   const mainWidgets = widgets.filter(w => w.col === 'main')
   const sideWidgets = widgets.filter(w => w.col === 'side')
+  const extraWidgets = widgets.filter(w => w.col === 'extra')
+  const isThreeCol = extraWidgets.length > 0
 
   // Calculate approximate height usage as % of 1080px
   const bodyAvailable = 1080 - HEADER_HEIGHT - FOOTER_HEIGHT - PADDING
   const mainH = mainWidgets.reduce((s, w) => s + WIDGET_HEIGHT_PX[w.type], 0)
   const sideH = sideWidgets.reduce((s, w) => s + WIDGET_HEIGHT_PX[w.type], 0)
-  const maxH = Math.max(mainH, sideH)
+  const extraH = extraWidgets.reduce((s, w) => s + WIDGET_HEIGHT_PX[w.type], 0)
+  const maxH = Math.max(mainH, sideH, extraH)
   const usagePct = Math.min(Math.round((maxH / bodyAvailable) * 100), 120)
   const overflowing = usagePct > 100
+  const hasClock = widgets.some(w => w.type === 'clock')
 
   return (
     <div className="flex flex-col gap-2">
-      {/* Height indicator */}
+      {/* Header row */}
       <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-gray-500 font-medium">Vista previa (1920×1080)</span>
+        <span className="text-gray-500 font-medium">
+          Vista previa (1920×1080) {isThreeCol && <span className="ml-1.5 text-indigo-500 font-semibold">· 3 columnas</span>}
+        </span>
         <span className={`font-semibold px-2 py-0.5 rounded-full ${overflowing ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
           {overflowing ? `⚠ ${usagePct}% — desborda 1080px` : `${usagePct}% de 1080px`}
         </span>
@@ -316,68 +461,33 @@ function TvPreview({ widgets, bgColor, accentColor, fontColor }: { widgets: Widg
               <div className="font-black text-[11px]">Marca</div>
               <div className="opacity-60 text-[8px]">Sucursal</div>
             </div>
-            {sideWidgets.some(w => w.type === 'clock') && (
-              <div className="font-mono font-bold text-sm opacity-80">12:00:00</div>
-            )}
+            {hasClock && <div className="font-mono font-bold text-sm opacity-80">12:00:00</div>}
           </div>
 
           {/* Body */}
           <div className="flex-1 flex gap-0 overflow-hidden">
-            {/* Main col */}
-            <div className="flex-1 p-2 flex flex-col gap-1.5 overflow-hidden">
-              {mainWidgets.length === 0 && (
-                <div className="opacity-20 text-[7px] text-center mt-4 border-2 border-dashed border-white/20 rounded p-3">
-                  Sin widgets en columna principal
-                </div>
-              )}
-              {mainWidgets.map(w => {
-                if (w.type === 'queue_now') return (
-                  <div key={w.id} className="shrink-0">
-                    {w.config.title && <div className="opacity-40 uppercase tracking-widest text-[5px] mb-0.5">{w.config.title}</div>}
-                    <div className="rounded-lg p-1.5 flex items-center gap-1.5" style={{ backgroundColor: accentColor }}>
-                      <div className="text-[13px] font-black">001</div>
-                      <div className="text-[7px] font-bold leading-tight">Cliente de<br/>demostración</div>
-                    </div>
-                  </div>
-                )
-                if (w.type === 'queue_waiting') return (
-                  <div key={w.id} className="shrink-0">
-                    {w.config.title && <div className="opacity-40 uppercase tracking-widest text-[5px] mb-0.5">{w.config.title}</div>}
-                    <div className="grid grid-cols-4 gap-0.5">
-                      {[2,3,4,5].map(n => (
-                        <div key={n} className="rounded p-1 text-center" style={{ backgroundColor: 'rgba(255,255,255,0.1)' }}>
-                          <div className="font-black text-[8px]">00{n}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )
-                const meta = WIDGET_META[w.type]
-                return (
-                  <div key={w.id} className="rounded p-1.5 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
-                    <div className="flex items-center gap-1 opacity-70 text-[7px]">{meta.icon} {meta.label}</div>
-                  </div>
-                )
-              })}
+            {/* Col 1 — main */}
+            <div className={`flex-1 p-2 flex flex-col gap-1.5 overflow-hidden`}>
+              <MiniWidgetList widgets={mainWidgets} accentColor={accentColor} />
             </div>
 
-            {/* Side col */}
+            {/* Col 2 — side */}
             {sideWidgets.length > 0 && (
-              <div className="w-16 border-l border-white/10 p-2 flex flex-col gap-1.5 overflow-hidden" style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}>
-                {sideWidgets.map(w => {
-                  if (w.type === 'clock') return (
-                    <div key={w.id} className="text-center shrink-0">
-                      <div className="font-mono font-bold text-[11px]">12:00</div>
-                      <div className="opacity-40 text-[6px] capitalize">lunes 31 ene</div>
-                    </div>
-                  )
-                  const meta = WIDGET_META[w.type]
-                  return (
-                    <div key={w.id} className="rounded p-1 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.07)' }}>
-                      <div className="flex items-center gap-0.5 opacity-70 text-[6px]">{meta.icon} {meta.label}</div>
-                    </div>
-                  )
-                })}
+              <div
+                className={`${isThreeCol ? 'flex-1' : 'w-16'} border-l border-white/10 p-1.5 flex flex-col gap-1.5 overflow-hidden`}
+                style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}
+              >
+                <MiniWidgetList widgets={sideWidgets} accentColor={accentColor} />
+              </div>
+            )}
+
+            {/* Col 3 — extra (3-column layouts only) */}
+            {isThreeCol && (
+              <div
+                className="flex-1 border-l border-white/10 p-1.5 flex flex-col gap-1.5 overflow-hidden"
+                style={{ backgroundColor: 'rgba(0,0,0,0.1)' }}
+              >
+                <MiniWidgetList widgets={extraWidgets} accentColor={accentColor} />
               </div>
             )}
           </div>
@@ -687,11 +797,16 @@ export function DisplayConfig({ brands, establishments, displayConfigs, defaultB
             </div>
             <div className="flex gap-3 text-xs text-gray-400">
               <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-sm bg-indigo-200" /> Principal ({mainWidgets.length})
+                <span className="inline-block w-3 h-3 rounded-sm bg-indigo-200" /> Col 1 ({mainWidgets.length})
               </span>
               <span className="flex items-center gap-1">
-                <span className="inline-block w-3 h-3 rounded-sm bg-purple-200" /> Lateral ({sideWidgets.length})
+                <span className="inline-block w-3 h-3 rounded-sm bg-purple-200" /> Col 2 ({sideWidgets.length})
               </span>
+              {widgets.some(w => w.col === 'extra') && (
+                <span className="flex items-center gap-1">
+                  <span className="inline-block w-3 h-3 rounded-sm bg-teal-200" /> Col 3 ({widgets.filter(w => w.col === 'extra').length})
+                </span>
+              )}
             </div>
           </div>
           {widgets.length === 0 ? (

@@ -13,7 +13,7 @@ interface Ticket {
 interface Widget {
   id: string
   type: 'queue_now' | 'queue_waiting' | 'clock' | 'text' | 'youtube' | 'image'
-  col: 'main' | 'side'
+  col: 'main' | 'side' | 'extra'
   config: {
     title?: string
     content?: string
@@ -22,6 +22,7 @@ interface Widget {
     maxItems?: number
     textAlign?: 'left' | 'center' | 'right'
     fontSize?: 'sm' | 'md' | 'lg' | 'xl'
+    fitVideo?: boolean
   }
 }
 
@@ -161,6 +162,21 @@ function TextWidget({ config }: { config: Widget['config'] }) {
 }
 
 function YoutubeWidget({ config }: { config: Widget['config'] }) {
+  if (config.fitVideo) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0">
+        <SectionTitle title={config.title} />
+        <div className="flex-1 flex items-center justify-center min-h-0">
+          <iframe
+            src={config.youtubeUrl}
+            allow="autoplay; fullscreen"
+            style={{ border: 0 }}
+            className="w-full h-full rounded-xl"
+          />
+        </div>
+      </div>
+    )
+  }
   return (
     <div>
       <SectionTitle title={config.title} />
@@ -228,6 +244,8 @@ export function DisplayScreen({ establishment, config }: Props) {
   const rawWidgets = config?.widgets && config.widgets.length > 0 ? config.widgets : DEFAULT_WIDGETS
   const mainWidgets = rawWidgets.filter(w => w.col === 'main')
   const sideWidgets = rawWidgets.filter(w => w.col === 'side')
+  const extraWidgets = rawWidgets.filter(w => w.col === 'extra')
+  const isThreeCol = extraWidgets.length > 0
 
   const hasClockInConfig = rawWidgets.some(w => w.type === 'clock')
 
@@ -304,7 +322,7 @@ export function DisplayScreen({ establishment, config }: Props) {
 
       {/* Body */}
       <div className="flex-1 flex gap-0 overflow-hidden">
-        {/* Main column */}
+        {/* Col 1 — main */}
         <div className="flex-1 p-8 flex flex-col gap-8 overflow-y-auto">
           {mainWidgets.map(widget => (
             <WidgetRenderer
@@ -316,13 +334,30 @@ export function DisplayScreen({ establishment, config }: Props) {
           ))}
         </div>
 
-        {/* Side column */}
+        {/* Col 2 — side (fixed width in 2-col, flex in 3-col) */}
         {sideWidgets.length > 0 && (
           <div
-            className="w-80 p-6 border-l border-white/10 flex flex-col gap-6 overflow-y-auto"
+            className={`${isThreeCol ? 'flex-1' : 'w-80'} p-6 border-l border-white/10 flex flex-col gap-6 overflow-y-auto`}
             style={{ backgroundColor: 'rgba(0,0,0,0.2)' }}
           >
             {sideWidgets.map(widget => (
+              <WidgetRenderer
+                key={widget.id}
+                widget={widget}
+                tickets={tickets}
+                accentColor={accentColor}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Col 3 — extra (only in 3-column layouts) */}
+        {isThreeCol && (
+          <div
+            className="flex-1 p-6 border-l border-white/10 flex flex-col gap-6 overflow-y-auto"
+            style={{ backgroundColor: 'rgba(0,0,0,0.15)' }}
+          >
+            {extraWidgets.map(widget => (
               <WidgetRenderer
                 key={widget.id}
                 widget={widget}
