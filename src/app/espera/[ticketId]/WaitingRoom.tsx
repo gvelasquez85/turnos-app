@@ -1,7 +1,6 @@
 'use client'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import { Bell, BellOff, Clock, CheckCircle, XCircle, Users } from 'lucide-react'
+import { Bell, BellOff, Clock, CheckCircle, XCircle, Users, Wifi, WifiOff } from 'lucide-react'
 
 type TicketStatus = 'waiting' | 'in_progress' | 'done' | 'cancelled'
 
@@ -21,13 +20,13 @@ interface Props {
   initialAhead: number
 }
 
-// ── Audio: beeps ascendentes con Web Audio API (funciona en todos los navegadores) ──
+// ── Audio: beeps ascendentes con Web Audio API ────────────────────────────────
 function playAlert(times = 1) {
   let played = 0
-  const playOnce = () => {
+  const once = () => {
     try {
       const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
-      const notes = [523, 659, 784, 1047] // C5 E5 G5 C6
+      const notes = [523, 659, 784, 1047]
       notes.forEach((freq, i) => {
         const osc = ctx.createOscillator()
         const gain = ctx.createGain()
@@ -43,10 +42,17 @@ function playAlert(times = 1) {
         osc.stop(t + 0.15)
       })
       played++
-      if (played < times) setTimeout(playOnce, 900)
+      if (played < times) setTimeout(once, 900)
     } catch {}
   }
-  playOnce()
+  once()
+}
+
+// ── Polling interval ─────────────────────────────────────────────────────────
+// 4s cuando el turno está próximo (0-2 personas adelante), 8s en espera normal
+function pollInterval(ahead: number, status: TicketStatus) {
+  if (status !== 'waiting') return null   // dejar de hacer polling
+  return ahead <= 2 ? 4000 : 8000
 }
 
 export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
@@ -55,67 +61,87 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
   const [soundEnabled, setSoundEnabled] = useState(true)
   const [calledAt, setCalledAt] = useState<Date | null>(null)
   const [pulse, setPulse] = useState(false)
+  const [connected, setConnected] = useState(true)
   const alertFired = useRef(false)
   const primaryColor = initialTicket.brand_color || '#6366f1'
 
-  // ── Supabase Realtime ───────────────────────────────────────────────────────
+  const handleCalled = useCallback(() => {
+    if (alertFired.current) return
+    alertFired.current = true
+    if (soundEnabled) playAlert(2)
+    setPulse(true)
+    setCalledAt(new Date())
+    try { navigator.vibrate?.([200, 100, 200, 100, 400]) } catch {}
+  }, [soundEnabled])
+
+  // ── Polling principal (funciona en Safari, Chrome, Firefox, sin RLS issues) ──
   useEffect(() => {
-    const supabase = createClient()
+    if (status === 'done' || status === 'cancelled') return
 
-    // 1. Escuchar cambios en ESTE ticket (status)
-    const ticketChannel = supabase
-      .channel(`ticket-status-${initialTicket.id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'tickets', filter: `id=eq.${initialTicket.id}` },
-        (payload) => {
-          const newStatus = (payload.new as any).status as TicketStatus
-          setStatus(newStatus)
-          if ((newStatus === 'in_progress') && !alertFired.current) {
-            alertFired.current = true
-            if (soundEnabled) playAlert(2)
-            setPulse(true)
-            setCalledAt(new Date())
-            // Vibrar el dispositivo si está disponible (mobile)
-            try { navigator.vibrate?.([200, 100, 200, 100, 400]) } catch {}
+    let timeoutId: ReturnType<typeof setTimeout>
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/espera/${initialTicket.id}`, { cache: 'no-store' })
+        if (!res.ok) { setConnected(false); return }
+        const data = await res.json() as { status: TicketStatus; ahead: number }
+        setConnected(true)
+
+        // Actualizar posición en cola
+        setAhead(data.ahead)
+
+        // Detectar cambio de estado
+        setStatus(prev => {
+          if (prev !== data.status) {
+            if (data.status === 'in_progress') handleCalled()
           }
-        }
-      )
-      .subscribe()
+          return data.status
+        })
 
-    // 2. Escuchar todos los tickets del establecimiento para actualizar posición
-    const queueChannel = supabase
-      .channel(`queue-position-${initialTicket.establishment_id}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'tickets', filter: `establishment_id=eq.${initialTicket.establishment_id}` },
-        async () => {
-          // Recalcular posición
-          const { count } = await supabase
-            .from('tickets')
-            .select('*', { count: 'exact', head: true })
-            .eq('establishment_id', initialTicket.establishment_id)
-            .eq('status', 'waiting')
-            .lt('queue_number', initialTicket.queue_number)
-          setAhead(count ?? 0)
-        }
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(ticketChannel)
-      supabase.removeChannel(queueChannel)
+        // Reprogramar solo si sigue en espera
+        const delay = pollInterval(data.ahead, data.status)
+        if (delay) timeoutId = setTimeout(poll, delay)
+      } catch {
+        setConnected(false)
+        timeoutId = setTimeout(poll, 10000) // retry en 10s si falla
+      }
     }
-  }, [initialTicket.id, initialTicket.establishment_id, initialTicket.queue_number, soundEnabled])
 
-  // ── Rendered UI ─────────────────────────────────────────────────────────────
+    // Primera consulta a los 2s para no bloquear el render inicial
+    timeoutId = setTimeout(poll, 2000)
 
+    return () => clearTimeout(timeoutId)
+  }, [initialTicket.id, status, handleCalled])
+
+  // ── Visibilidad: polling inmediato al volver al tab ───────────────────────
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && status === 'waiting') {
+        // Forzar consulta inmediata refrescando el estado
+        fetch(`/api/espera/${initialTicket.id}`, { cache: 'no-store' })
+          .then(r => r.json())
+          .then((data: { status: TicketStatus; ahead: number }) => {
+            setAhead(data.ahead)
+            setStatus(prev => {
+              if (prev !== data.status && data.status === 'in_progress') handleCalled()
+              return data.status
+            })
+          })
+          .catch(() => {})
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [initialTicket.id, status, handleCalled])
+
+  // ── UI: turno llamado ─────────────────────────────────────────────────────
   if (status === 'in_progress') {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center p-6 animate-in fade-in"
-        style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, #7c3aed 100%)` }}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center p-6"
+        style={{ background: `linear-gradient(135deg, ${primaryColor} 0%, #7c3aed 100%)` }}
+      >
         <div className={`w-full max-w-sm text-center ${pulse ? 'animate-bounce' : ''}`}>
-          {/* Icono de llamada */}
           <div className="text-7xl mb-4 animate-pulse">📣</div>
           <h1 className="text-white text-3xl font-black mb-2">¡Es tu turno!</h1>
           <p className="text-white/80 mb-8">Por favor acércate a la ventanilla</p>
@@ -133,7 +159,9 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
             )}
           </div>
 
-          <p className="text-white/60 text-xs mt-6">{initialTicket.brand_name} · {initialTicket.establishment_name}</p>
+          <p className="text-white/60 text-xs mt-6">
+            {initialTicket.brand_name} · {initialTicket.establishment_name}
+          </p>
         </div>
       </div>
     )
@@ -146,7 +174,7 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
           <CheckCircle size={72} className="text-white mx-auto mb-4" />
           <h1 className="text-white text-2xl font-bold mb-2">Turno completado</h1>
           <p className="text-white/70">Gracias por tu visita</p>
-          <p className="text-white/60 text-xs mt-8">{initialTicket.brand_name}</p>
+          <p className="text-white/50 text-xs mt-8">{initialTicket.brand_name}</p>
         </div>
       </div>
     )
@@ -164,17 +192,29 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
     )
   }
 
-  // ── En espera ───────────────────────────────────────────────────────────────
+  // ── UI: en espera ─────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: `linear-gradient(180deg, ${primaryColor}22 0%, #f9fafb 40%)` }}>
+    <div
+      className="min-h-screen flex flex-col"
+      style={{ background: `linear-gradient(180deg, ${primaryColor}22 0%, #f9fafb 40%)` }}
+    >
       {/* Header */}
-      <div className="text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
-        <p className="text-white/80 text-sm">{initialTicket.brand_name}</p>
-        <h1 className="text-white font-bold text-lg">{initialTicket.establishment_name}</h1>
+      <div className="text-center py-6 px-4 flex items-center justify-between" style={{ backgroundColor: primaryColor }}>
+        <div className="w-8" />
+        <div>
+          <p className="text-white/80 text-sm">{initialTicket.brand_name}</p>
+          <h1 className="text-white font-bold text-lg">{initialTicket.establishment_name}</h1>
+        </div>
+        {/* Indicador de conexión */}
+        <div className="w-8 flex justify-end">
+          {connected
+            ? <Wifi size={16} className="text-white/60" />
+            : <WifiOff size={16} className="text-white/60 animate-pulse" />}
+        </div>
       </div>
 
-      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-6">
-        {/* Ticket number */}
+      <div className="flex-1 flex flex-col items-center justify-center p-6 gap-5">
+        {/* Número de turno */}
         <div className="bg-white rounded-3xl shadow-xl p-8 w-full max-w-xs text-center">
           <p className="text-gray-400 text-sm mb-1">Tu turno</p>
           <div className="text-8xl font-black leading-none mb-3" style={{ color: primaryColor }}>
@@ -183,10 +223,11 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
           <p className="text-gray-700 font-medium">{initialTicket.customer_name}</p>
         </div>
 
-        {/* Queue position */}
+        {/* Posición en cola */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 w-full max-w-xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${primaryColor}22` }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${primaryColor}22` }}>
               <Users size={20} style={{ color: primaryColor }} />
             </div>
             <div>
@@ -200,43 +241,41 @@ export function WaitingRoom({ ticket: initialTicket, initialAhead }: Props) {
                   <p className="font-bold text-gray-900">
                     {ahead === 1 ? '1 persona antes que tú' : `${ahead} personas antes que tú`}
                   </p>
-                  <p className="text-xs text-gray-400">La pantalla se actualizará en tiempo real</p>
+                  <p className="text-xs text-gray-400">Se actualiza cada pocos segundos</p>
                 </>
               )}
             </div>
           </div>
         </div>
 
-        {/* Waiting indicator */}
+        {/* Indicador de espera */}
         <div className="flex items-center gap-2 text-gray-400 text-sm">
           <Clock size={15} className="animate-pulse" />
           <span>Esperando tu turno…</span>
         </div>
 
-        {/* Dots animation */}
+        {/* Puntos animados */}
         <div className="flex gap-2">
           {[0, 1, 2].map(i => (
-            <div
-              key={i}
-              className="w-2 h-2 rounded-full"
+            <div key={i} className="w-2.5 h-2.5 rounded-full"
               style={{
                 backgroundColor: primaryColor,
-                opacity: 0.4,
-                animation: `pulse 1.4s ease-in-out ${i * 0.2}s infinite`,
+                animation: `pulse 1.4s ease-in-out ${i * 0.25}s infinite`,
+                opacity: 0.5,
               }}
             />
           ))}
         </div>
 
-        {/* Instructions */}
+        {/* Instrucción */}
         <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 w-full max-w-xs text-center">
           <p className="text-amber-800 text-xs font-medium">
-            Mantén esta pantalla abierta para recibir el aviso cuando sea tu turno
+            Mantén esta pantalla abierta — sonará y vibrará cuando sea tu turno
           </p>
         </div>
       </div>
 
-      {/* Footer sound toggle */}
+      {/* Footer: toggle de sonido */}
       <div className="p-4 flex justify-center">
         <button
           onClick={() => setSoundEnabled(s => !s)}
