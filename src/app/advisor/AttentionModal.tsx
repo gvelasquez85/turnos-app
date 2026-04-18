@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
 import type { Ticket, AdvisorField } from '@/types/database'
-import { X, User, Phone, Mail, CheckCircle } from 'lucide-react'
+import { X, User, Phone, Mail, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface TicketRow extends Ticket {
   visit_reasons: { name: string } | null
@@ -22,9 +22,22 @@ interface Props {
 export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onComplete }: Props) {
   const [fieldsData, setFieldsData] = useState<Record<string, string>>({})
   const [notes, setNotes] = useState('')
+  const [errors, setErrors] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
 
+  function validate(): boolean {
+    const errs: Record<string, string> = {}
+    advisorFields.forEach(field => {
+      if (field.required && !fieldsData[field.id]?.trim()) {
+        errs[field.id] = `${field.label} es obligatorio`
+      }
+    })
+    setErrors(errs)
+    return Object.keys(errs).length === 0
+  }
+
   async function handleComplete() {
+    if (!validate()) return
     setLoading(true)
     const supabase = createClient()
 
@@ -48,21 +61,28 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
 
   function renderField(field: AdvisorField) {
     const value = fieldsData[field.id] || ''
-    const onChange = (val: string) => setFieldsData(d => ({ ...d, [field.id]: val }))
+    const error = errors[field.id]
+    const onChange = (val: string) => {
+      setFieldsData(d => ({ ...d, [field.id]: val }))
+      // Limpiar error al escribir
+      if (errors[field.id]) setErrors(e => { const n = { ...e }; delete n[field.id]; return n })
+    }
 
     if (field.field_type === 'select' && field.options) {
       return (
-        <Select
-          key={field.id}
-          label={`${field.label}${field.required ? ' *' : ''}`}
-          value={value}
-          onChange={e => onChange(e.target.value)}
-        >
-          <option value="">Seleccionar...</option>
-          {(field.options as string[]).map(opt => (
-            <option key={opt} value={opt}>{opt}</option>
-          ))}
-        </Select>
+        <div key={field.id}>
+          <Select
+            label={`${field.label}${field.required ? ' *' : ''}`}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+          >
+            <option value="">Seleccionar...</option>
+            {(field.options as string[]).map(opt => (
+              <option key={opt} value={opt}>{opt}</option>
+            ))}
+          </Select>
+          {error && <p className="text-xs text-red-600 mt-1 flex items-center gap-1"><AlertCircle size={11} />{error}</p>}
+        </div>
       )
     }
 
@@ -76,8 +96,11 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
             value={value}
             onChange={e => onChange(e.target.value)}
             rows={3}
-            className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className={`block w-full rounded-lg border bg-white px-3 py-2 text-sm text-gray-900 focus:outline-none focus:ring-1 ${
+              error ? 'border-red-400 focus:border-red-400 focus:ring-red-400' : 'border-gray-300 focus:border-indigo-500 focus:ring-indigo-500'
+            }`}
           />
+          {error && <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1"><AlertCircle size={11} />{error}</p>}
         </div>
       )
     }
@@ -89,9 +112,12 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
         type={field.field_type === 'number' ? 'number' : field.field_type === 'date' ? 'date' : 'text'}
         value={value}
         onChange={e => onChange(e.target.value)}
+        error={error}
       />
     )
   }
+
+  const hasErrors = Object.keys(errors).length > 0
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4">
@@ -139,10 +165,22 @@ export function AttentionModal({ ticket, advisorId, advisorFields, onClose, onCo
           {/* Campos del asesor */}
           {advisorFields.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Información de la atención</h3>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                Información de la atención
+              </h3>
               <div className="flex flex-col gap-3">
                 {advisorFields.map(renderField)}
               </div>
+
+              {/* Resumen de errores si intentó guardar con campos vacíos */}
+              {hasErrors && (
+                <div className="mt-3 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 flex items-start gap-2">
+                  <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+                  <p className="text-xs text-red-700">
+                    Completa los campos obligatorios antes de cerrar el turno.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
