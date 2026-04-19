@@ -102,7 +102,14 @@ export function WompiCardForm({ amountCents, currency = 'COP', onSuccess, onCanc
 
       const tokenJson = await tokenRes.json()
       if (!tokenRes.ok || !tokenJson.data?.id) {
-        const msg = tokenJson?.error?.messages?.join(', ') ?? 'Datos de tarjeta inválidos'
+        const msgs = tokenJson?.error?.messages
+        const msg = msgs == null
+          ? 'Datos de tarjeta inválidos'
+          : Array.isArray(msgs)
+            ? msgs.join(', ')
+            : typeof msgs === 'object'
+              ? Object.values(msgs as Record<string, string[]>).flat().join(', ')
+              : String(msgs)
         throw new Error(msg)
       }
 
