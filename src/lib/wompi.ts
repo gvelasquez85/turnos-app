@@ -49,6 +49,34 @@ export interface WompiTransaction {
   finalized_at: string | null
 }
 
+// ─── Extrae mensaje legible de cualquier estructura de error Wompi ────────────
+function wompiExtractError(json: unknown, status: number): string {
+  const err = (json as any)?.error
+  if (!err) return `Wompi HTTP ${status}`
+
+  const msgs = err.messages
+  if (msgs != null) {
+    const items: unknown[] = Array.isArray(msgs)
+      ? msgs
+      : typeof msgs === 'object'
+        ? Object.values(msgs as Record<string, unknown>).flat()
+        : [msgs]
+
+    const parts = items.map(v => {
+      if (typeof v === 'string') return v
+      if (typeof v === 'object' && v !== null) {
+        const o = v as Record<string, unknown>
+        return String(o.message ?? o.reason ?? o.code ?? JSON.stringify(v))
+      }
+      return String(v)
+    }).filter(Boolean)
+
+    if (parts.length) return parts.join(' · ')
+  }
+
+  return err.reason ?? err.type ?? `Wompi HTTP ${status}`
+}
+
 // ─── Helper de request ────────────────────────────────────────────────────────
 
 async function wompiRequest<T>(
@@ -68,16 +96,8 @@ async function wompiRequest<T>(
   const json = await res.json()
 
   if (!res.ok) {
-    const msgs = json?.error?.messages
-    const msgFromMessages = msgs == null
-      ? null
-      : Array.isArray(msgs)
-        ? msgs.join(', ')
-        : typeof msgs === 'object'
-          ? Object.values(msgs as Record<string, string[]>).flat().join(', ')
-          : String(msgs)
-    const msg = msgFromMessages ?? json?.error?.reason ?? json?.error?.type ?? `Wompi HTTP ${res.status}`
-    throw new Error(msg)
+    console.error(`[Wompi] ${options.method ?? 'GET'} ${path} → ${res.status}`, JSON.stringify(json))
+    throw new Error(wompiExtractError(json, res.status))
   }
 
   return (json.data ?? json) as T

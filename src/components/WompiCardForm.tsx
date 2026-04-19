@@ -15,6 +15,35 @@ interface Props {
   newAdv?: number
 }
 
+// ─── Extrae mensaje de error legible de la respuesta de Wompi ─────────────────
+// Wompi puede devolver messages como:
+//   string[], { field: string[] }, { field: {message:string}[] }, string, etc.
+function wompiExtractError(json: unknown, fallback: string): string {
+  const err = (json as any)?.error
+  if (!err) return fallback
+
+  const msgs = err.messages
+  if (msgs == null) return err.reason ?? err.type ?? fallback
+
+  // Aplanar cualquier estructura a un array de strings
+  const items: unknown[] = Array.isArray(msgs)
+    ? msgs
+    : typeof msgs === 'object'
+      ? Object.values(msgs as Record<string, unknown>).flat()
+      : [msgs]
+
+  const parts = items.map(v => {
+    if (typeof v === 'string') return v
+    if (typeof v === 'object' && v !== null) {
+      const o = v as Record<string, unknown>
+      return String(o.message ?? o.reason ?? o.code ?? JSON.stringify(v))
+    }
+    return String(v)
+  })
+
+  return parts.filter(Boolean).join(' · ') || fallback
+}
+
 // ─── Detectar marca de tarjeta ─────────────────────────────────────────────────
 function detectCardBrand(num: string): 'visa' | 'mastercard' | 'amex' | null {
   const n = num.replace(/\s/g, '')
@@ -103,15 +132,8 @@ export function WompiCardForm({ amountCents, currency = 'COP', onSuccess, onCanc
 
       const tokenJson = await tokenRes.json()
       if (!tokenRes.ok || !tokenJson.data?.id) {
-        const msgs = tokenJson?.error?.messages
-        const msg = msgs == null
-          ? 'Datos de tarjeta inválidos'
-          : Array.isArray(msgs)
-            ? msgs.join(', ')
-            : typeof msgs === 'object'
-              ? Object.values(msgs as Record<string, string[]>).flat().join(', ')
-              : String(msgs)
-        throw new Error(msg)
+        console.error('[Wompi tokenize] raw error response:', JSON.stringify(tokenJson, null, 2))
+        throw new Error(wompiExtractError(tokenJson, 'Datos de tarjeta inválidos'))
       }
 
       const cardToken: string = tokenJson.data.id
