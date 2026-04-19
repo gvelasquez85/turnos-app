@@ -174,9 +174,9 @@ export async function createTransaction(opts: {
       body: JSON.stringify({
         amount_in_cents: opts.amountCents,
         currency: opts.currency,
+        // payment_source_id va al nivel raíz, NO dentro de payment_method
+        payment_source_id: opts.paymentSourceId,
         payment_method: {
-          type: 'PAYMENT_SOURCE',
-          payment_source_id: opts.paymentSourceId,
           installments: 1,
         },
         reference: opts.reference,
