@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
   Building2, CreditCard, Check, CheckCircle,
-  X, AlertTriangle, Key, Webhook, Copy, Trash2, Plus,
-  Globe, Lock, RefreshCw,
+  X, AlertTriangle, Key, Webhook, Copy, Trash2, Plus, Minus,
+  Globe, Lock, RefreshCw, Store, Users,
 } from 'lucide-react'
 import { useEffect, useCallback } from 'react'
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
@@ -84,13 +84,8 @@ interface Props {
   currentAdvisors?: number
 }
 
-const PLAN_LABELS: Record<string, string> = {
-  free: 'Gratis',
-  standard: 'Estándar',
-  basic: 'Básico',
-  professional: 'Profesional',
-  enterprise: 'Empresarial',
-  enterprise_plus: 'Empresarial Plus',
+function getPlanLabel(plan: string): string {
+  return plan === 'free' ? 'Gratuito' : 'Activo'
 }
 
 const MODULE_LABELS: Record<string, string> = {
@@ -159,6 +154,14 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [localHasCard, setLocalHasCard] = useState(!!membership?.wompi_payment_source_id)
   const [localNextBillingAt, setLocalNextBillingAt] = useState(membership?.next_billing_at ?? null)
   const [localLastBillingAmount, setLocalLastBillingAmount] = useState(membership?.last_billing_amount ?? null)
+
+  // ── Seat cart ─────────────────────────────────────────────────────────────
+  const _initPlan = membership?.plan ?? 'free'
+  const [cartEst, setCartEst] = useState(_initPlan === 'free' ? 1 : (membership?.max_establishments ?? 1))
+  const [cartAdv, setCartAdv] = useState(_initPlan === 'free' ? 2 : (membership?.max_advisors ?? 2))
+  const [seatSaving, setSeatSaving] = useState(false)
+  const [seatSaved, setSeatSaved] = useState(false)
+  const [seatError, setSeatError] = useState('')
 
   // Read ?tab= URL param to open the correct tab on load (e.g. links from limit banners)
   useEffect(() => {
@@ -286,7 +289,6 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   }
 
   const currentPlan = membership?.plan ?? 'free'
-  const currentPlanLabel = PLAN_LABELS[currentPlan] ?? currentPlan
   // Free plan is capped at fixed limits regardless of what's in the membership record
   const FREE_EST_LIMIT = 1
   const FREE_ADV_LIMIT = 2
@@ -299,12 +301,16 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
   // COP billing — uses billing-cop.ts pricing
   const currency: BillingCurrency = (membership?.billing_currency as BillingCurrency) ?? 'COP'
-  const currentTotal = calcMonthlyTotalBilling(maxEst, maxAdv, numPaidModules, currency)
-  const currentTotalCents = toCents(currentTotal)
-  // Free plan: genuinely free when within the fixed free-tier limits (1 est, 2 advisors, no paid modules)
-  const isFreeWithinLimits = currentPlan === 'free' && maxEst <= 1 && maxAdv <= 2 && numPaidModules === 0
-
   const pricing = currency === 'COP' ? PRICING_COP : { perEstablishment: 15, perAdditionalAdvisor: 5, moduleFlat: 20 }
+  // Cart total — uses cartEst/cartAdv (what the user has configured)
+  const cartTotal = calcMonthlyTotalBilling(cartEst, cartAdv, numPaidModules, currency)
+  const cartTotalCents = toCents(cartTotal)
+  // Current total — based on saved membership values
+  const currentTotal = calcMonthlyTotalBilling(maxEst, maxAdv, numPaidModules, currency)
+  // Free plan: genuinely free when within the fixed free-tier limits (1 est, 2 advisors, no paid modules)
+  const isFreeWithinLimits = cartEst <= 1 && cartAdv <= 2 && numPaidModules === 0
+  // Has the user changed seat counts from the saved values?
+  const seatsChanged = cartEst !== maxEst || cartAdv !== maxAdv
 
   function getModulePrice(moduleKey: string): number {
     const mod = availableModules.find(m => m.module_key === moduleKey)
@@ -316,8 +322,29 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     setLocalHasCard(true)
     setLocalBillingStatus('active')
     setLocalNextBillingAt(nextBillingAt)
-    setLocalLastBillingAmount(currentTotalCents)
+    setLocalLastBillingAmount(cartTotalCents)
     setShowCardForm(false)
+  }
+
+  async function handleUpdateSeats() {
+    if (!seatsChanged) return
+    setSeatSaving(true)
+    setSeatError('')
+    try {
+      const res = await fetch('/api/billing/update-seats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEst: cartEst, newAdv: cartAdv }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Error al actualizar')
+      setSeatSaved(true)
+      setTimeout(() => setSeatSaved(false), 3000)
+    } catch (err: unknown) {
+      setSeatError(err instanceof Error ? err.message : 'Error inesperado')
+    } finally {
+      setSeatSaving(false)
+    }
   }
 
   return (
@@ -452,10 +479,15 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             <div className="flex items-center gap-3">
               <CreditCard size={22} className="text-indigo-600" />
               <div>
-                <p className="text-xs text-gray-500 uppercase tracking-wider">Plan actual</p>
+                <p className="text-xs text-gray-500 uppercase tracking-wider">Membresía</p>
                 <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-lg font-bold text-gray-900">{currentPlanLabel}</span>
-                  {membership && (
+                  <span className="text-lg font-bold text-gray-900">{getPlanLabel(currentPlan)}</span>
+                  {localBillingStatus && localBillingStatus !== 'none' && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${BILLING_STATUS_COLORS[localBillingStatus] ?? 'bg-gray-100 text-gray-500'}`}>
+                      {BILLING_STATUS_LABELS[localBillingStatus]}
+                    </span>
+                  )}
+                  {membership && !localBillingStatus && (
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[membership.status] ?? ''}`}>
                       {STATUS_LABELS[membership.status] ?? membership.status}
                     </span>
@@ -472,13 +504,114 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 <p className="font-bold text-gray-900">{maxAdv}</p>
                 <p className="text-gray-500 text-xs">Usuarios</p>
               </div>
-              {membership?.expires_at && (
-                <div className="text-center">
-                  <p className="font-bold text-gray-900">{new Date(membership.expires_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}</p>
-                  <p className="text-gray-500 text-xs">Vencimiento</p>
-                </div>
+              <div className="text-center">
+                <p className="font-bold text-gray-900">{currentTotal === 0 ? 'Gratis' : formatCurrency(currentTotal, currency)}</p>
+                <p className="text-gray-500 text-xs">por mes</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Seat capacity adjustment */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-semibold text-gray-700">Capacidad contratada</h3>
+              {seatsChanged && !seatSaved && (
+                <span className="text-xs text-indigo-600 font-medium">
+                  Nuevo total: {formatCurrency(cartTotal, currency)}/mes
+                </span>
+              )}
+              {seatSaved && (
+                <span className="text-xs text-green-600 font-medium flex items-center gap-1">
+                  <Check size={11} /> Cambios guardados
+                </span>
               )}
             </div>
+            <div className="flex flex-col gap-3">
+              {/* Establishments */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Store size={14} className="text-indigo-500" />
+                  <span className="text-sm font-medium text-gray-700">Sucursales</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{formatCurrency(pricing.perEstablishment, currency)}/mes c/u</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCartEst(v => Math.max(currentEstablishments, v - 1))}
+                    disabled={cartEst <= currentEstablishments}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold text-gray-900">{cartEst}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCartEst(v => v + 1)}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                  >
+                    <Plus size={12} />
+                  </button>
+                  <span className="text-xs text-gray-400 w-24 text-right font-medium">{formatCurrency(cartEst * pricing.perEstablishment, currency)}/mes</span>
+                </div>
+              </div>
+              {/* Advisors */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users size={14} className="text-indigo-500" />
+                  <span className="text-sm font-medium text-gray-700">Usuarios totales</span>
+                  <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                    {cartAdv > cartEst
+                      ? `${cartEst} incluidos + ${cartAdv - cartEst} adicionales`
+                      : `${cartAdv} incluidos`}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCartAdv(v => Math.max(Math.max(currentAdvisors, cartEst), v - 1))}
+                    disabled={cartAdv <= Math.max(currentAdvisors, cartEst)}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span className="w-8 text-center text-sm font-bold text-gray-900">{cartAdv}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCartAdv(v => v + 1)}
+                    className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
+                  >
+                    <Plus size={12} />
+                  </button>
+                  <span className="text-xs text-gray-400 w-24 text-right font-medium">
+                    {cartAdv > cartEst
+                      ? `+${formatCurrency((cartAdv - cartEst) * pricing.perAdditionalAdvisor, currency)}/mes`
+                      : 'Incluido'}
+                  </span>
+                </div>
+              </div>
+            </div>
+            {seatError && (
+              <div className="mt-3 text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                {seatError}
+              </div>
+            )}
+            {seatsChanged && localHasCard && localBillingStatus === 'active' && (
+              <div className="mt-4 flex items-center gap-3">
+                <Button onClick={handleUpdateSeats} loading={seatSaving} className="flex-1">
+                  <Check size={14} className="mr-2" /> Guardar cambios de capacidad
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setCartEst(maxEst); setCartAdv(maxAdv); setSeatError('') }}
+                  className="text-sm text-gray-400 hover:text-gray-600"
+                >
+                  Cancelar
+                </button>
+              </div>
+            )}
+            <p className="text-[10px] text-gray-400 mt-3">
+              Usando {currentEstablishments} de {maxEst} sucursal{maxEst !== 1 ? 'es' : ''} · {currentAdvisors} de {maxAdv} usuario{maxAdv !== 1 ? 's' : ''}
+            </p>
           </div>
 
           {/* Billing & modules row */}
@@ -496,13 +629,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-gray-600">
-                    <span>{maxEst} sucursal{maxEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perEstablishment, currency)}/mes</span>
-                    <span className="font-medium">{formatCurrency(maxEst * pricing.perEstablishment, currency)}</span>
+                    <span>{cartEst} sucursal{cartEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perEstablishment, currency)}/mes</span>
+                    <span className="font-medium">{formatCurrency(cartEst * pricing.perEstablishment, currency)}</span>
                   </div>
-                  {maxAdv > maxEst && (
+                  {cartAdv > cartEst && (
                     <div className="flex justify-between text-gray-600">
-                      <span>{maxAdv - maxEst} usuario{maxAdv - maxEst !== 1 ? 's' : ''} adicional{maxAdv - maxEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perAdditionalAdvisor, currency)}/mes</span>
-                      <span className="font-medium">{formatCurrency((maxAdv - maxEst) * pricing.perAdditionalAdvisor, currency)}</span>
+                      <span>{cartAdv - cartEst} usuario{cartAdv - cartEst !== 1 ? 's' : ''} adicional{cartAdv - cartEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perAdditionalAdvisor, currency)}/mes</span>
+                      <span className="font-medium">{formatCurrency((cartAdv - cartEst) * pricing.perAdditionalAdvisor, currency)}</span>
                     </div>
                   )}
                   {activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).map(sub => (
@@ -513,7 +646,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   ))}
                   <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
                     <span>Total mensual</span>
-                    <span>{currentTotal === 0 ? 'Gratis' : `${formatCurrency(currentTotal, currency)}`}</span>
+                    <span>{cartTotal === 0 ? 'Gratis' : formatCurrency(cartTotal, currency)}</span>
                   </div>
                 </div>
                 <p className="text-[10px] text-gray-400 mt-3">Precios incluyen IVA. Se cobra el día {membership?.billing_anchor_day ?? '—'} de cada mes.</p>
@@ -543,7 +676,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                     </div>
                   </div>
                   <WompiCardForm
-                    amountCents={currentTotalCents}
+                    amountCents={cartTotalCents}
                     currency={currency}
                     onSuccess={handleCardSuccess}
                   />
@@ -573,7 +706,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               {!isFreeWithinLimits && localBillingStatus === 'past_due' && showCardForm && (
                 <div className="space-y-3">
                   <WompiCardForm
-                    amountCents={currentTotalCents}
+                    amountCents={cartTotalCents}
                     currency={currency}
                     onSuccess={handleCardSuccess}
                     onCancel={() => setShowCardForm(false)}
@@ -600,7 +733,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                         <p className="font-semibold text-gray-800 mt-0.5">
                           {new Date(localNextBillingAt).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
                         </p>
-                        <p className="text-xs text-indigo-600 font-medium">{formatCurrency(currentTotal, currency)}</p>
+                        <p className="text-xs text-indigo-600 font-medium">{formatCurrency(cartTotal, currency)}</p>
                       </div>
                     )}
                     {localLastBillingAmount != null && localLastBillingAmount > 0 && (
@@ -627,7 +760,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               {/* Active — update card form */}
               {!isFreeWithinLimits && localBillingStatus === 'active' && showCardForm && (
                 <WompiCardForm
-                  amountCents={currentTotalCents}
+                  amountCents={cartTotalCents}
                   currency={currency}
                   onSuccess={handleCardSuccess}
                   onCancel={() => setShowCardForm(false)}
@@ -637,9 +770,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               {/* No card yet (billing_status is null/none) */}
               {!isFreeWithinLimits && !localHasCard && localBillingStatus !== 'active' && localBillingStatus !== 'past_due' && localBillingStatus !== 'suspended' && (
                 <WompiCardForm
-                  amountCents={currentTotalCents}
+                  amountCents={cartTotalCents}
                   currency={currency}
                   onSuccess={handleCardSuccess}
+                  newEst={cartEst !== maxEst ? cartEst : undefined}
+                  newAdv={cartAdv !== maxAdv ? cartAdv : undefined}
                 />
               )}
             </div>

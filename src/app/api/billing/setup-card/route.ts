@@ -36,11 +36,13 @@ export async function POST(req: NextRequest) {
 
   // ── Body ───────────────────────────────────────────────────────────────────
   const body = await req.json()
-  const { cardToken, acceptanceToken, personalDataToken, currency = 'COP' } = body as {
+  const { cardToken, acceptanceToken, personalDataToken, currency = 'COP', newEst, newAdv } = body as {
     cardToken: string
     acceptanceToken: string
     personalDataToken: string
     currency?: BillingCurrency
+    newEst?: number   // asientos deseados (opcional — sobreescribe los de la membresía)
+    newAdv?: number
   }
 
   if (!cardToken || !acceptanceToken || !personalDataToken)
@@ -63,6 +65,16 @@ export async function POST(req: NextRequest) {
 
   if (!membership)
     return NextResponse.json({ error: 'Sin membresía activa' }, { status: 404 })
+
+  // Si el cliente eligió más asientos antes de registrar la tarjeta, actualizar membresía primero
+  if (newEst && newAdv && (newEst !== membership.max_establishments || newAdv !== membership.max_advisors)) {
+    await service
+      .from('memberships')
+      .update({ max_establishments: newEst, max_advisors: newAdv })
+      .eq('id', membership.id)
+    membership.max_establishments = newEst
+    membership.max_advisors = newAdv
+  }
 
   // ── Módulos de pago activos ────────────────────────────────────────────────
   const { data: modSubs } = await service

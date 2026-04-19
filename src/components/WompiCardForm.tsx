@@ -10,6 +10,9 @@ interface Props {
   currency?: BillingCurrency
   onSuccess: (nextBillingAt: string) => void
   onCancel?: () => void
+  /** Asientos deseados — si el usuario cambió el cart antes de registrar tarjeta */
+  newEst?: number
+  newAdv?: number
 }
 
 // ─── Detectar marca de tarjeta ─────────────────────────────────────────────────
@@ -39,7 +42,7 @@ const WOMPI_BASE =
 
 const PUBLIC_KEY = process.env.NEXT_PUBLIC_WOMPI_PUBLIC_KEY!
 
-export function WompiCardForm({ amountCents, currency = 'COP', onSuccess, onCancel }: Props) {
+export function WompiCardForm({ amountCents, currency = 'COP', onSuccess, onCancel, newEst, newAdv }: Props) {
   const [cardNumber, setCardNumber] = useState('')
   const [expiry, setExpiry] = useState('')
   const [cvc, setCvc] = useState('')
@@ -114,6 +117,8 @@ export function WompiCardForm({ amountCents, currency = 'COP', onSuccess, onCanc
           acceptanceToken: acceptance.acceptanceToken,
           personalDataToken: acceptance.personalDataToken,
           currency,
+          ...(newEst ? { newEst } : {}),
+          ...(newAdv ? { newAdv } : {}),
         }),
       })
 
