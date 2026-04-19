@@ -25,7 +25,7 @@ export function AdvisorNav({ profile }: Props) {
     <header className="bg-white border-b border-gray-200 px-4 py-3">
       <div className="max-w-5xl mx-auto flex items-center justify-between">
         <div>
-          <h1 className="font-bold text-gray-900 text-sm">{profile.establishments?.name || profile.brands?.name || 'TurnosApp'}</h1>
+          <h1 className="font-bold text-gray-900 text-sm">{profile.establishments?.name || profile.brands?.name || 'TurnFlow'}</h1>
           <p className="text-xs text-gray-500">{profile.full_name || 'Agente'}</p>
         </div>
         <div className="flex items-center gap-2">

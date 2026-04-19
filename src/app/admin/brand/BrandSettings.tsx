@@ -1034,7 +1034,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-3">Base URL: <code className="bg-white border border-gray-200 rounded px-1">{typeof window !== 'undefined' ? window.location.origin : 'https://turnos-app-rose.vercel.app'}</code></p>
+            <p className="text-xs text-gray-400 mt-3">Base URL: <code className="bg-white border border-gray-200 rounded px-1">{typeof window !== 'undefined' ? window.location.origin : 'https://app.turnflow.co'}</code></p>
           </div>
         </div>
       )}

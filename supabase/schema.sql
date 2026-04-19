@@ -1,5 +1,5 @@
 -- ============================================================
--- TURNOS APP - Schema completo
+-- TURNFLOW - Schema completo
 -- Ejecutar en Supabase SQL Editor
 -- ============================================================
 
