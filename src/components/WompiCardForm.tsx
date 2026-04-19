@@ -83,7 +83,8 @@ export function WompiCardForm({ amountCents, currency = 'COP', onSuccess, onCanc
       // 1. Tokenizar la tarjeta directamente en Wompi (client-side, usa llave pública)
       const expParts = expiry.split('/')
       const expMonth = expParts[0]?.padStart(2, '0')
-      const expYear = expParts[1]?.length === 2 ? '20' + expParts[1] : expParts[1]
+      // Wompi exige exactamente 2 dígitos — enviar siempre los últimos 2
+      const expYear = (expParts[1] ?? '').replace(/\D/g, '').slice(-2)
 
       const tokenRes = await fetch(`${WOMPI_BASE}/tokens/cards`, {
         method: 'POST',
