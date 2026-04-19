@@ -68,11 +68,15 @@ async function wompiRequest<T>(
   const json = await res.json()
 
   if (!res.ok) {
-    const msg =
-      (json?.error?.messages as string[] | undefined)?.join(', ') ??
-      json?.error?.reason ??
-      json?.error?.type ??
-      `Wompi HTTP ${res.status}`
+    const msgs = json?.error?.messages
+    const msgFromMessages = msgs == null
+      ? null
+      : Array.isArray(msgs)
+        ? msgs.join(', ')
+        : typeof msgs === 'object'
+          ? Object.values(msgs as Record<string, string[]>).flat().join(', ')
+          : String(msgs)
+    const msg = msgFromMessages ?? json?.error?.reason ?? json?.error?.type ?? `Wompi HTTP ${res.status}`
     throw new Error(msg)
   }
 
