@@ -4,14 +4,17 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  Building2, CreditCard, Check, CheckCircle, ArrowRight,
-  X, AlertTriangle, Plus, Minus, Users, Store, Key, Webhook, Copy, Trash2,
-  RefreshCw, ExternalLink, Eye, EyeOff, Globe,
+  Building2, CreditCard, Check, CheckCircle,
+  X, AlertTriangle, Key, Webhook, Copy, Trash2, Plus,
+  Globe, Lock, RefreshCw,
 } from 'lucide-react'
 import { useEffect, useCallback } from 'react'
-import { PRICING, calcMonthlyBase, calcModuleAddon } from '@/lib/planLimits'
 import { SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
-import { PayPalButton } from '@/components/PayPalButton'
+import {
+  PRICING_COP, calcMonthlyTotalBilling, toCents, fromCents, formatCurrency,
+  type BillingCurrency,
+} from '@/lib/billing-cop'
+import { WompiCardForm } from '@/components/WompiCardForm'
 
 interface Brand {
   id: string
@@ -43,8 +46,17 @@ interface Membership {
   expires_at: string | null
   max_establishments: number
   max_advisors: number
-  paypal_subscription_id?: string | null
-  subscribed_amount?: number | null
+  // Wompi billing
+  wompi_payment_source_id?: string | null
+  wompi_customer_email?: string | null
+  billing_currency?: BillingCurrency | null
+  billing_anchor_day?: number | null
+  billing_status?: 'none' | 'active' | 'past_due' | 'suspended' | null
+  next_billing_at?: string | null
+  last_billed_at?: string | null
+  last_billing_amount?: number | null   // centavos
+  past_due_since?: string | null
+  past_due_attempts?: number | null
 }
 
 interface ModuleSub {
@@ -104,14 +116,17 @@ const STATUS_COLORS: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500',
 }
 
-function nextBillingDate(membership: Membership | null): Date {
-  const base = membership?.started_at ? new Date(membership.started_at) : new Date()
-  const next = new Date(base)
-  const today = new Date()
-  while (next <= today) {
-    next.setMonth(next.getMonth() + 1)
-  }
-  return next
+const BILLING_STATUS_LABELS: Record<string, string> = {
+  active:    'Suscripción activa',
+  past_due:  'Pago pendiente',
+  suspended: 'Cuenta suspendida',
+  none:      'Sin método de pago',
+}
+const BILLING_STATUS_COLORS: Record<string, string> = {
+  active:    'bg-green-100 text-green-700',
+  past_due:  'bg-amber-100 text-amber-700',
+  suspended: 'bg-red-100 text-red-700',
+  none:      'bg-gray-100 text-gray-500',
 }
 
 export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs, availableModules = [], currentEstablishments = 1, currentAdvisors = 0 }: Props) {
@@ -137,20 +152,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [cancellingModule, setCancellingModule] = useState<string | null>(null)
   const [confirmCancel, setConfirmCancel] = useState<string | null>(null)
   const [payingModule, setPayingModule] = useState<string | null>(null)
-  const isColombiaAccount = (brand.country ?? 'Colombia') === 'Colombia'
-  const [paypalSubLoading, setPaypalSubLoading] = useState(false)
-  const [paypalSubError, setPaypalSubError] = useState('')
-  // Cart: desired seat counts (can only increase from current)
-  const _initPlan = membership?.plan ?? 'free'
-  const [cartEst, setCartEst] = useState(_initPlan === 'free' ? 1 : (membership?.max_establishments ?? 1))
-  const [cartAdv, setCartAdv] = useState(_initPlan === 'free' ? 2 : (membership?.max_advisors ?? 2))
-  const [membershipSub, setMembershipSub] = useState<{
-    paypal_subscription_id?: string | null
-    subscribed_amount?: number | null
-  }>({
-    paypal_subscription_id: membership?.paypal_subscription_id,
-    subscribed_amount: membership?.subscribed_amount,
-  })
+
+  // ── Wompi billing local state ─────────────────────────────────────────────
+  const [showCardForm, setShowCardForm] = useState(false)
+  const [localBillingStatus, setLocalBillingStatus] = useState(membership?.billing_status ?? null)
+  const [localHasCard, setLocalHasCard] = useState(!!membership?.wompi_payment_source_id)
+  const [localNextBillingAt, setLocalNextBillingAt] = useState(membership?.next_billing_at ?? null)
+  const [localLastBillingAmount, setLocalLastBillingAmount] = useState(membership?.last_billing_amount ?? null)
 
   // Read ?tab= URL param to open the correct tab on load (e.g. links from limit banners)
   useEffect(() => {
@@ -159,33 +167,6 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     if (tabParam === 'membership' || tabParam === 'integrations' || tabParam === 'profile') {
       setTab(tabParam)
     }
-  }, [])
-
-  // Detect PayPal return after subscription approval
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const subId = params.get('subscription_id')
-    const ok = params.get('paypal_ok')
-    const amountParam = params.get('amount')
-    const newEstParam = params.get('newEst')
-    const newAdvParam = params.get('newAdv')
-    if (!ok || !subId || !amountParam) return
-    const amount = parseFloat(amountParam)
-    const newEst = newEstParam ? parseInt(newEstParam) : undefined
-    const newAdv = newAdvParam ? parseInt(newAdvParam) : undefined
-    fetch('/api/paypal/activate-subscription', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ subscriptionId: subId, amount, newEst, newAdv }),
-    }).then(() => {
-      setMembershipSub({ paypal_subscription_id: subId, subscribed_amount: amount })
-      if (newEst) setCartEst(newEst)
-      if (newAdv) setCartAdv(newAdv)
-      // Clean URL
-      const url = new URL(window.location.href)
-      ;['paypal_ok', 'subscription_id', 'ba_token', 'amount', 'newEst', 'newAdv'].forEach(k => url.searchParams.delete(k))
-      window.history.replaceState({}, '', url.toString())
-    }).catch(console.error)
   }, [])
 
   // ── Integrations state ───────────────────────────────────────────────────
@@ -311,27 +292,32 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const FREE_ADV_LIMIT = 2
   const maxEst = currentPlan === 'free' ? FREE_EST_LIMIT : (membership?.max_establishments ?? 1)
   const maxAdv = currentPlan === 'free' ? FREE_ADV_LIMIT : (membership?.max_advisors ?? 2)
-  const basePrice = calcMonthlyBase(maxEst, maxAdv)
   // For billing calculations: only active/trial modules count
   const activeModuleSubs = moduleSubs.filter(s => s.status === 'active' || s.status === 'trial')
   // For display in membership tab: also show expired/cancelled so user sees what they had
   const allModuleSubs = moduleSubs.filter(s => ['active', 'trial', 'expired', 'cancelled'].includes(s.status))
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
-  const modulesAddon = calcModuleAddon(maxEst, maxAdv, numPaidModules)
-  const nextBilling = nextBillingDate(membership)
-  // Use cart values (desired seats) to compute the total for payment
-  const cartBase = calcMonthlyBase(cartEst, cartAdv)
-  // activeModuleTotal uses cartAdv so per-user fees reflect the desired advisor count
-  const activeModuleTotal = activeModuleSubs.reduce((sum, sub) => sum + getModulePrice(sub.module_key, cartAdv), 0)
-  const currentTotal = cartBase + activeModuleTotal
+  // COP billing — uses billing-cop.ts pricing
+  const currency: BillingCurrency = (membership?.billing_currency as BillingCurrency) ?? 'COP'
+  const currentTotal = calcMonthlyTotalBilling(maxEst, maxAdv, numPaidModules, currency)
+  const currentTotalCents = toCents(currentTotal)
   // Free plan: genuinely free when within the fixed free-tier limits (1 est, 2 advisors, no paid modules)
-  const isFreeWithinLimits = currentPlan === 'free' && cartEst <= 1 && cartAdv <= 2 && activeModuleTotal === 0
+  const isFreeWithinLimits = currentPlan === 'free' && maxEst <= 1 && maxAdv <= 2 && numPaidModules === 0
 
-  // advisorCount defaults to current maxAdv for display; pass cartAdv for payment calculations
-  function getModulePrice(moduleKey: string, advisorCount = maxAdv): number {
+  const pricing = currency === 'COP' ? PRICING_COP : { perEstablishment: 15, perAdditionalAdvisor: 5, moduleFlat: 20 }
+
+  function getModulePrice(moduleKey: string): number {
     const mod = availableModules.find(m => m.module_key === moduleKey)
     if (!mod) return 0
-    return (mod.price_monthly ?? 0) + (mod.price_per_user ? (mod.price_per_user_amount ?? 0) * advisorCount : 0)
+    return mod.price_monthly ?? 0
+  }
+
+  function handleCardSuccess(nextBillingAt: string) {
+    setLocalHasCard(true)
+    setLocalBillingStatus('active')
+    setLocalNextBillingAt(nextBillingAt)
+    setLocalLastBillingAmount(currentTotalCents)
+    setShowCardForm(false)
   }
 
   return (
@@ -497,204 +483,165 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
 
           {/* Billing & modules row */}
           <div className={`grid grid-cols-1 ${!isFreeWithinLimits ? 'md:grid-cols-2' : ''} gap-4 mb-8`}>
-            {/* Próxima factura — oculta en plan gratuito dentro de límites */}
+            {/* Próxima factura — oculta en plan gratuito */}
             {!isFreeWithinLimits && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-semibold text-gray-700">Próxima factura</h3>
-                <span className="text-xs text-gray-400">
-                  {nextBilling.toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </span>
-              </div>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-gray-600">
-                  <span>{maxEst} sucursal{maxEst !== 1 ? 'es' : ''} × ${PRICING.perEstablishment}/mes</span>
-                  <span className="font-medium">${maxEst * PRICING.perEstablishment}</span>
+              <div className="bg-white rounded-xl border border-gray-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-gray-700">Próxima factura</h3>
+                  {localNextBillingAt && (
+                    <span className="text-xs text-gray-400">
+                      {new Date(localNextBillingAt).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    </span>
+                  )}
                 </div>
-                {maxAdv > maxEst && (
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between text-gray-600">
-                    <span>{maxAdv - maxEst} usuario{maxAdv - maxEst !== 1 ? 's' : ''} adicional{maxAdv - maxEst !== 1 ? 'es' : ''} × ${PRICING.perAdditionalAdvisor}/mes</span>
-                    <span className="font-medium">${(maxAdv - maxEst) * PRICING.perAdditionalAdvisor}</span>
+                    <span>{maxEst} sucursal{maxEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perEstablishment, currency)}/mes</span>
+                    <span className="font-medium">{formatCurrency(maxEst * pricing.perEstablishment, currency)}</span>
                   </div>
-                )}
-                {activeModuleSubs.map(sub => (
-                  <div key={sub.id} className="flex justify-between text-gray-600">
-                    <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
-                    <span className="font-medium">{sub.price_monthly ? `$${sub.price_monthly}` : 'Incluido'}</span>
+                  {maxAdv > maxEst && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>{maxAdv - maxEst} usuario{maxAdv - maxEst !== 1 ? 's' : ''} adicional{maxAdv - maxEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perAdditionalAdvisor, currency)}/mes</span>
+                      <span className="font-medium">{formatCurrency((maxAdv - maxEst) * pricing.perAdditionalAdvisor, currency)}</span>
+                    </div>
+                  )}
+                  {activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).map(sub => (
+                    <div key={sub.id} className="flex justify-between text-gray-600">
+                      <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
+                      <span className="font-medium">{formatCurrency(pricing.moduleFlat, currency)}/mes</span>
+                    </div>
+                  ))}
+                  <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
+                    <span>Total mensual</span>
+                    <span>{currentTotal === 0 ? 'Gratis' : `${formatCurrency(currentTotal, currency)}`}</span>
                   </div>
-                ))}
-                <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
-                  <span>Total estimado</span>
-                  <span>{basePrice + modulesAddon === 0 ? 'Gratis' : `$${(basePrice + modulesAddon).toFixed(2)}`}</span>
                 </div>
+                <p className="text-[10px] text-gray-400 mt-3">Precios incluyen IVA. Se cobra el día {membership?.billing_anchor_day ?? '—'} de cada mes.</p>
               </div>
-            </div>
             )}
 
             {/* Medio de pago */}
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <h3 className="text-sm font-semibold text-gray-700 mb-4">Medio de pago</h3>
 
-              {/* Seat cart: adjust establishments and advisors */}
-              <div className="bg-gray-50 rounded-lg border border-gray-200 p-3 mb-4 space-y-2">
-                <p className="text-xs font-medium text-gray-600 mb-2">Ajustar capacidad</p>
-                {/* Establishments */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">Sucursales</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCartEst(v => Math.max(currentEstablishments, v - 1))}
-                      disabled={cartEst <= currentEstablishments}
-                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-6 text-center text-sm font-semibold text-gray-900">{cartEst}</span>
-                    <button
-                      onClick={() => setCartEst(v => v + 1)}
-                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                    >
-                      <Plus size={12} />
-                    </button>
-                    <span className="text-xs text-gray-400 w-16 text-right">${cartEst * PRICING.perEstablishment}/mes</span>
-                  </div>
-                </div>
-                {/* Advisors */}
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700">Usuarios</span>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setCartAdv(v => Math.max(Math.max(currentAdvisors, cartEst), v - 1))}
-                      disabled={cartAdv <= Math.max(currentAdvisors, cartEst)}
-                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                    >
-                      <Minus size={12} />
-                    </button>
-                    <span className="w-6 text-center text-sm font-semibold text-gray-900">{cartAdv}</span>
-                    <button
-                      onClick={() => setCartAdv(v => v + 1)}
-                      className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100"
-                    >
-                      <Plus size={12} />
-                    </button>
-                    <span className="text-xs text-gray-400 w-16 text-right">
-                      {cartAdv > cartEst ? `+$${(cartAdv - cartEst) * PRICING.perAdditionalAdvisor}/mes` : 'Incluido'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Price breakdown */}
-              {!isFreeWithinLimits && (
-                <div className="space-y-1.5 text-sm mb-4">
-                  <div className="flex justify-between text-gray-600">
-                    <span>{cartEst} sucursal{cartEst !== 1 ? 'es' : ''} × ${PRICING.perEstablishment}</span>
-                    <span>${cartEst * PRICING.perEstablishment}</span>
-                  </div>
-                  {cartAdv > cartEst && (
-                    <div className="flex justify-between text-gray-600">
-                      <span>{cartAdv - cartEst} usuario{cartAdv - cartEst !== 1 ? 's' : ''} adicional{cartAdv - cartEst !== 1 ? 'es' : ''} × ${PRICING.perAdditionalAdvisor}</span>
-                      <span>${(cartAdv - cartEst) * PRICING.perAdditionalAdvisor}</span>
-                    </div>
-                  )}
-                  {activeModuleSubs.map(sub => {
-                    const p = getModulePrice(sub.module_key)
-                    return p > 0 ? (
-                      <div key={sub.id} className="flex justify-between text-gray-600">
-                        <span>{MODULE_LABELS[sub.module_key] ?? sub.module_key}</span>
-                        <span>${p}</span>
-                      </div>
-                    ) : null
-                  })}
-                  <div className="border-t border-gray-100 pt-2 flex justify-between font-bold text-gray-900">
-                    <span>Total mensual</span>
-                    <span>${currentTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-
+              {/* Free plan */}
               {isFreeWithinLimits && (
-                <div className="text-sm text-gray-500 bg-green-50 border border-green-200 rounded-lg px-3 py-2 mb-4 text-center">
-                  Plan gratuito — sin costo mientras estés en los límites incluidos
+                <div className="text-sm text-gray-500 bg-green-50 border border-green-200 rounded-lg px-3 py-3 text-center">
+                  <p className="font-medium text-green-700">Plan gratuito</p>
+                  <p className="text-xs mt-1">Sin costo mientras estés dentro de los límites incluidos</p>
                 </div>
               )}
 
-              {paypalSubError && (
-                <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3">
-                  {paypalSubError}
-                </div>
-              )}
-
-              {!isFreeWithinLimits && (() => {
-                const returnUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/admin/brand?tab=membership&paypal_ok=1&amount=${currentTotal}&newEst=${cartEst}&newAdv=${cartAdv}`
-                const cancelUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/admin/brand?tab=membership`
-                const doSubscribe = async () => {
-                  setPaypalSubLoading(true)
-                  setPaypalSubError('')
-                  try {
-                    if (membershipSub.paypal_subscription_id) {
-                      await fetch('/api/paypal/cancel-subscription', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ subscriptionId: membershipSub.paypal_subscription_id }),
-                      })
-                    }
-                    const res = await fetch('/api/paypal/create-subscription', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ amount: currentTotal, currency: 'USD', returnUrl, cancelUrl }),
-                    })
-                    const data = await res.json()
-                    if (!res.ok || !data.approvalUrl) throw new Error(data.error ?? 'Error creando suscripción')
-                    window.location.href = data.approvalUrl
-                  } catch (err: unknown) {
-                    setPaypalSubError(err instanceof Error ? err.message : 'Error de PayPal')
-                    setPaypalSubLoading(false)
-                  }
-                }
-
-                return (
-                  <div className="space-y-2">
-                    {/* State B: active, same amount */}
-                    {membershipSub.paypal_subscription_id && currentTotal === (membershipSub.subscribed_amount ?? 0) && cartEst === maxEst && cartAdv === maxAdv && (
-                      <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg mb-2">
-                        <Check size={15} className="text-green-600 shrink-0" />
-                        <div>
-                          <p className="text-sm font-medium text-green-800">Suscripción activa</p>
-                          <p className="text-xs text-green-600 font-mono break-all">{membershipSub.paypal_subscription_id}</p>
-                        </div>
-                      </div>
-                    )}
-                    {/* State C: amount or seats changed */}
-                    {membershipSub.paypal_subscription_id && (currentTotal !== (membershipSub.subscribed_amount ?? 0) || cartEst !== maxEst || cartAdv !== maxAdv) && (
-                      <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg mb-2">
-                        <AlertTriangle size={15} className="text-amber-600 mt-0.5 shrink-0" />
-                        <p className="text-xs text-amber-800">
-                          A partir de tu próxima renovación se cobrará{' '}
-                          <strong>${currentTotal.toFixed(2)}/mes</strong>{' '}
-                          (actualmente suscrito: ${(membershipSub.subscribed_amount ?? 0).toFixed(2)}/mes).{' '}
-                          No aplican reembolsos.
-                        </p>
-                      </div>
-                    )}
-                    <Button className="w-full" loading={paypalSubLoading} onClick={doSubscribe}>
-                      {membershipSub.paypal_subscription_id
-                        ? `Actualizar suscripción — $${currentTotal.toFixed(2)}/mes`
-                        : `Suscribirse con PayPal — $${currentTotal.toFixed(2)}/mes`}
-                    </Button>
-                    {isColombiaAccount && (
-                      <Button
-                        variant="secondary"
-                        className="w-full"
-                        onClick={() => window.open('mailto:soporte@turnflow.co?subject=Solicitud%20de%20suscripci%C3%B3n', '_blank')}
-                      >
-                        Contactar a soporte
-                      </Button>
-                    )}
-                    <p className="text-xs text-gray-400 text-center">No aplican reembolsos.</p>
+              {/* Suspended */}
+              {!isFreeWithinLimits && localBillingStatus === 'suspended' && (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 bg-red-50 border border-red-200 rounded-xl px-3 py-3">
+                    <AlertTriangle size={16} className="text-red-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-red-700">Cuenta suspendida</p>
+                      <p className="text-xs text-red-600 mt-0.5">El acceso está restringido por falta de pago. Actualiza tu tarjeta para reactivar.</p>
+                    </div>
                   </div>
-                )
-              })()}
+                  <WompiCardForm
+                    amountCents={currentTotalCents}
+                    currency={currency}
+                    onSuccess={handleCardSuccess}
+                  />
+                </div>
+              )}
+
+              {/* Past due */}
+              {!isFreeWithinLimits && localBillingStatus === 'past_due' && !showCardForm && (
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-3">
+                    <AlertTriangle size={16} className="text-amber-500 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-700">Pago pendiente</p>
+                      <p className="text-xs text-amber-600 mt-0.5">
+                        Llevamos {membership?.past_due_attempts ?? 0} intento{(membership?.past_due_attempts ?? 0) !== 1 ? 's' : ''} fallido{(membership?.past_due_attempts ?? 0) !== 1 ? 's' : ''}.
+                        {membership?.past_due_since && ` En mora desde ${new Date(membership.past_due_since).toLocaleDateString('es')}.`}
+                      </p>
+                    </div>
+                  </div>
+                  <Button className="w-full" onClick={() => setShowCardForm(true)}>
+                    <RefreshCw size={14} className="mr-2" /> Actualizar tarjeta
+                  </Button>
+                </div>
+              )}
+
+              {/* Past due — show card form */}
+              {!isFreeWithinLimits && localBillingStatus === 'past_due' && showCardForm && (
+                <div className="space-y-3">
+                  <WompiCardForm
+                    amountCents={currentTotalCents}
+                    currency={currency}
+                    onSuccess={handleCardSuccess}
+                    onCancel={() => setShowCardForm(false)}
+                  />
+                </div>
+              )}
+
+              {/* Active — card saved */}
+              {!isFreeWithinLimits && localBillingStatus === 'active' && !showCardForm && (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 bg-green-50 border border-green-200 rounded-xl px-3 py-3">
+                    <Check size={15} className="text-green-600 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-green-800">Suscripción activa</p>
+                      {membership?.wompi_customer_email && (
+                        <p className="text-xs text-green-600 truncate">Tarjeta registrada en {membership.wompi_customer_email}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-center text-sm">
+                    {localNextBillingAt && (
+                      <div className="bg-gray-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-400">Próximo cobro</p>
+                        <p className="font-semibold text-gray-800 mt-0.5">
+                          {new Date(localNextBillingAt).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+                        </p>
+                        <p className="text-xs text-indigo-600 font-medium">{formatCurrency(currentTotal, currency)}</p>
+                      </div>
+                    )}
+                    {localLastBillingAmount != null && localLastBillingAmount > 0 && (
+                      <div className="bg-gray-50 rounded-lg px-3 py-2">
+                        <p className="text-xs text-gray-400">Último cobro</p>
+                        <p className="font-semibold text-gray-800 mt-0.5">
+                          {membership?.last_billed_at
+                            ? new Date(membership.last_billed_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })
+                            : '—'}
+                        </p>
+                        <p className="text-xs text-gray-500">{formatCurrency(fromCents(localLastBillingAmount), currency)}</p>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setShowCardForm(true)}
+                    className="w-full text-sm text-gray-400 hover:text-gray-600 text-center py-1 flex items-center justify-center gap-1.5"
+                  >
+                    <RefreshCw size={12} /> Actualizar tarjeta
+                  </button>
+                </div>
+              )}
+
+              {/* Active — update card form */}
+              {!isFreeWithinLimits && localBillingStatus === 'active' && showCardForm && (
+                <WompiCardForm
+                  amountCents={currentTotalCents}
+                  currency={currency}
+                  onSuccess={handleCardSuccess}
+                  onCancel={() => setShowCardForm(false)}
+                />
+              )}
+
+              {/* No card yet (billing_status is null/none) */}
+              {!isFreeWithinLimits && !localHasCard && localBillingStatus !== 'active' && localBillingStatus !== 'past_due' && localBillingStatus !== 'suspended' && (
+                <WompiCardForm
+                  amountCents={currentTotalCents}
+                  currency={currency}
+                  onSuccess={handleCardSuccess}
+                />
+              )}
             </div>
           </div>
 
@@ -759,30 +706,19 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                           )}
                         </div>
                       </div>
-                      {/* PayPal panel: trial "Contratar" o expired "Comprar para seguir usando" */}
+                      {/* Activar módulo — se incluye en el cobro mensual de Wompi */}
                       {payingModule === sub.id && price > 0 && (
                         <div className="px-4 pb-4 border-t border-gray-50 bg-gray-50">
-                          <p className="text-xs text-gray-500 mt-3 mb-2">
-                            {sub.status === 'expired' ? 'Comprar' : 'Activar'} por <strong>${price}/mes</strong>. Se renueva mensualmente.
+                          <p className="text-xs text-gray-500 mt-3 mb-3">
+                            Al activar este módulo, se sumará <strong>{formatCurrency(pricing.moduleFlat, currency)}/mes</strong> a tu factura mensual automática.
                           </p>
-                          <PayPalButton
-                            moduleKey={sub.module_key}
-                            amount={price}
-                            currency="USD"
-                            onSuccess={(_expiresAt) => {
-                              setModuleSubs(prev => prev.map(s =>
-                                s.id === sub.id
-                                  ? { ...s, status: 'active', price_monthly: price }
-                                  : s
-                              ))
-                              setPayingModule(null)
-                            }}
-                          />
-                          {isColombiaAccount && (
-                            <p className="text-xs text-gray-400 mt-2 text-center">
-                              Próximamente: Wompi, PSE, Nequi y más opciones para Colombia.
-                            </p>
-                          )}
+                          <a
+                            href={`mailto:soporte@turnflow.co?subject=Activar módulo ${MODULE_LABELS[sub.module_key] ?? sub.module_key}&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero activar el módulo ${MODULE_LABELS[sub.module_key] ?? sub.module_key}.`}
+                            className="block w-full py-2 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors text-center"
+                          >
+                            Solicitar activación →
+                          </a>
+                          <p className="text-[10px] text-gray-400 mt-2 text-center">El equipo de soporte lo activa en minutos.</p>
                         </div>
                       )}
                       {payingModule === sub.id && price === 0 && (
@@ -804,8 +740,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="bg-indigo-50 rounded-xl p-4">
-                <p className="text-2xl font-black text-indigo-700">${PRICING.perEstablishment}<span className="text-sm font-normal text-indigo-400">/sucursal/mes</span></p>
-                <p className="text-xs text-indigo-600 mt-1">Incluye 1 usuario por sucursal</p>
+                <p className="text-2xl font-black text-indigo-700">
+                  {formatCurrency(PRICING_COP.perEstablishment, 'COP')}
+                  <span className="text-sm font-normal text-indigo-400">/sucursal/mes</span>
+                </p>
+                <p className="text-xs text-indigo-600 mt-1">Incluye hasta {PRICING_COP.freeAdvisors} usuarios — IVA incluido</p>
                 <ul className="mt-3 space-y-1">
                   {['Cola de espera', 'Pantalla TV', 'Formulario de clientes', 'Promociones', 'Campos de asesor', 'Autorizaciones'].map(f => (
                     <li key={f} className="flex items-center gap-1.5 text-xs text-indigo-700">
@@ -816,15 +755,23 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               </div>
               <div className="flex flex-col gap-3">
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-xl font-black text-gray-800">+${PRICING.perAdditionalAdvisor}<span className="text-sm font-normal text-gray-400">/usuario adicional/mes</span></p>
-                  <p className="text-xs text-gray-500 mt-1">A partir del 2.º usuario por sucursal</p>
+                  <p className="text-xl font-black text-gray-800">
+                    +{formatCurrency(PRICING_COP.perAdditionalAdvisor, 'COP')}
+                    <span className="text-sm font-normal text-gray-400">/usuario adicional/mes</span>
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">A partir del {PRICING_COP.freeAdvisors + 1}.º usuario por sucursal</p>
                 </div>
                 <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-1">Módulos adicionales</p>
-                  <p className="text-xs text-gray-500">Cada módulo tiene su propio precio mensual — visible en el Marketplace.</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-1">
+                    +{formatCurrency(PRICING_COP.moduleFlat, 'COP')}<span className="text-xs font-normal text-gray-400">/módulo adicional/mes</span>
+                  </p>
+                  <p className="text-xs text-gray-500">Módulos opcionales como Citas, Encuestas y más — disponibles en el Marketplace.</p>
                   <p className="text-xs text-gray-400 mt-1">Todos incluyen 7 días de prueba gratuita.</p>
                 </div>
               </div>
+            </div>
+            <div className="flex items-center gap-1.5 mt-3 text-[10px] text-gray-400">
+              <Lock size={10} /> Cobros automáticos procesados por Wompi · Visa · Mastercard
             </div>
           </div>
         </div>
@@ -984,7 +931,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
       )}
 
       {/* Upgrade modal */}
-      {upgradeModal && upgradeModal !== 'payment' && (
+      {upgradeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
             <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -1007,30 +954,6 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               className="block w-full py-2.5 px-4 bg-green-500 text-white rounded-xl font-medium text-sm hover:bg-green-600 transition-colors mb-3"
             >
               Escribir por WhatsApp
-            </a>
-            <button onClick={() => setUpgradeModal(null)} className="text-sm text-gray-400 hover:text-gray-600">
-              Cerrar
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Payment method modal */}
-      {upgradeModal === 'payment' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center">
-            <div className="w-14 h-14 bg-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <CreditCard size={24} className="text-indigo-600" />
-            </div>
-            <h2 className="text-lg font-bold text-gray-900 mb-2">Configurar pago</h2>
-            <p className="text-sm text-gray-500 mb-5">
-              Estamos integrando el proceso de pago en línea. Por ahora, contáctanos para coordinar el método de pago:
-            </p>
-            <a
-              href={`mailto:soporte@turnflow.co?subject=Configurar pago TurnFlow&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero configurar un método de pago.`}
-              className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
-            >
-              Contactar soporte →
             </a>
             <button onClick={() => setUpgradeModal(null)} className="text-sm text-gray-400 hover:text-gray-600">
               Cerrar
