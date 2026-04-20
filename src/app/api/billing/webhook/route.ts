@@ -4,12 +4,25 @@ import { verifyWompiWebhook } from '@/lib/wompi'
 import { nextBillingDate } from '@/lib/billing-cop'
 
 /**
+ * GET /api/billing/webhook
+ * Wompi verifica la URL con un GET antes de enviar eventos.
+ * Responder 200 OK es suficiente.
+ */
+export async function GET() {
+  return NextResponse.json({ ok: true })
+}
+
+/**
  * POST /api/billing/webhook
  * Recibe eventos de Wompi y actualiza el estado de las transacciones
  * y membresías en consecuencia.
  *
  * Eventos manejados:
  *   transaction.updated → APPROVED, DECLINED, VOIDED, ERROR
+ *
+ * URL a registrar en el dashboard de Wompi:
+ *   Fase 1 (dominio único):  https://www.turnflow.com.co/api/billing/webhook
+ *   Fase 2 (subdominio app): https://app.turnflow.com.co/api/billing/webhook
  */
 export async function POST(req: NextRequest) {
   const rawBody = await req.text()
@@ -57,7 +70,6 @@ export async function POST(req: NextRequest) {
       wompi_transaction_id: txnData.id,
       status: ourStatus,
       error_reason: txnData.status_message ?? null,
-      updated_at: new Date().toISOString(),
     })
     .eq('wompi_reference', txnData.reference)
     .select('id, brand_id, membership_id, amount')

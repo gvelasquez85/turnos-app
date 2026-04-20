@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `No puedes bajar a ${newEst} sucursal${newEst !== 1 ? 'es' : ''} — tienes ${estCount} activas` }, { status: 400 })
   if (newAdv < (advCount ?? 0))
     return NextResponse.json({ error: `No puedes bajar a ${newAdv} usuarios — tienes ${advCount} activos` }, { status: 400 })
-  if (newAdv < newEst)
-    return NextResponse.json({ error: 'Los usuarios no pueden ser menos que las sucursales' }, { status: 400 })
+  if (newAdv < newEst * 2)
+    return NextResponse.json({ error: `Cada sucursal incluye 2 usuarios (mínimo ${newEst * 2} para ${newEst} sucursal${newEst !== 1 ? 'es' : ''})` }, { status: 400 })
 
   const { data: membership } = await service
     .from('memberships')

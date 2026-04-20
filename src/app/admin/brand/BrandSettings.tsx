@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -125,6 +126,7 @@ const BILLING_STATUS_COLORS: Record<string, string> = {
 }
 
 export function BrandSettings({ brand: initialBrand, membership, moduleSubscriptions: initialModuleSubs, availableModules = [], currentEstablishments = 1, currentAdvisors = 0 }: Props) {
+  const router = useRouter()
   const [tab, setTab] = useState<'profile' | 'membership' | 'integrations'>('profile')
   const [brand, setBrand] = useState(initialBrand)
   const [form, setForm] = useState({
@@ -162,6 +164,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   const [seatSaving, setSeatSaving] = useState(false)
   const [seatSaved, setSeatSaved] = useState(false)
   const [seatError, setSeatError] = useState('')
+
+  // Cuando el usuario sube sucursales, auto-ajustar usuarios para que sean ≥ est × 2
+  useEffect(() => {
+    setCartAdv(v => Math.max(v, cartEst * 2))
+  }, [cartEst])
 
   // Read ?tab= URL param to open the correct tab on load (e.g. links from limit banners)
   useEffect(() => {
@@ -289,25 +296,30 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
   }
 
   const currentPlan = membership?.plan ?? 'free'
-  // Free plan is capped at fixed limits regardless of what's in the membership record
+  const isFreePlan = currentPlan === 'free'
+  // Free plan caps
   const FREE_EST_LIMIT = 1
   const FREE_ADV_LIMIT = 2
-  const maxEst = currentPlan === 'free' ? FREE_EST_LIMIT : (membership?.max_establishments ?? 1)
-  const maxAdv = currentPlan === 'free' ? FREE_ADV_LIMIT : (membership?.max_advisors ?? 2)
-  // For billing calculations: only active/trial modules count
-  const activeModuleSubs = moduleSubs.filter(s => s.status === 'active' || s.status === 'trial')
-  // For display in membership tab: also show expired/cancelled so user sees what they had
+  const maxEst = isFreePlan ? FREE_EST_LIMIT : (membership?.max_establishments ?? 1)
+  const maxAdv = isFreePlan ? FREE_ADV_LIMIT : (membership?.max_advisors ?? 2)
+  // For billing calculations: only 'active' modules — trial = free period, not billed
+  const activeModuleSubs = moduleSubs.filter(s => s.status === 'active')
+  // For display in membership tab: also show trial/expired/cancelled so user sees what they had
   const allModuleSubs = moduleSubs.filter(s => ['active', 'trial', 'expired', 'cancelled'].includes(s.status))
   const numPaidModules = activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).length
   // COP billing — uses billing-cop.ts pricing
   const currency: BillingCurrency = (membership?.billing_currency as BillingCurrency) ?? 'COP'
   const pricing = currency === 'COP' ? PRICING_COP : { perEstablishment: 15, perAdditionalAdvisor: 5, moduleFlat: 20 }
+  // Each establishment includes 2 advisors; 1st establishment is free
+  const cartPaidEst = Math.max(0, cartEst - 1)
+  const cartIncludedAdv = cartEst * 2
+  const cartExtraAdv = Math.max(0, cartAdv - cartIncludedAdv)
   // Cart total — uses cartEst/cartAdv (what the user has configured)
   const cartTotal = calcMonthlyTotalBilling(cartEst, cartAdv, numPaidModules, currency)
   const cartTotalCents = toCents(cartTotal)
   // Current total — based on saved membership values
   const currentTotal = calcMonthlyTotalBilling(maxEst, maxAdv, numPaidModules, currency)
-  // Free plan: genuinely free when within the fixed free-tier limits (1 est, 2 advisors, no paid modules)
+  // Free plan: genuinely free when within the free-tier limits (1 est, 2 advisors, no paid modules)
   const isFreeWithinLimits = cartEst <= 1 && cartAdv <= 2 && numPaidModules === 0
   // Has the user changed seat counts from the saved values?
   const seatsChanged = cartEst !== maxEst || cartAdv !== maxAdv
@@ -324,6 +336,8 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     setLocalNextBillingAt(nextBillingAt)
     setLocalLastBillingAmount(cartTotalCents)
     setShowCardForm(false)
+    // Recargar datos del servidor para reflejar plan='standard' y maxEst/maxAdv actualizados
+    router.refresh()
   }
 
   async function handleUpdateSeats() {
@@ -492,32 +506,47 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                       {STATUS_LABELS[membership.status] ?? membership.status}
                     </span>
                   )}
+                  {isFreePlan && (
+                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-green-100 text-green-700">
+                      Sin costo
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
-            <div className="flex gap-6 text-sm">
-              <div className="text-center">
-                <p className="font-bold text-gray-900">{maxEst}</p>
-                <p className="text-gray-500 text-xs">Sucursales</p>
+            {/* Solo mostrar capacidad y monto cuando hay un plan de pago activo */}
+            {!isFreePlan && (
+              <div className="flex gap-6 text-sm">
+                <div className="text-center">
+                  <p className="font-bold text-gray-900">{maxEst}</p>
+                  <p className="text-gray-500 text-xs">Sucursales</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-gray-900">{maxAdv}</p>
+                  <p className="text-gray-500 text-xs">Usuarios</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-gray-900">{formatCurrency(currentTotal, currency)}</p>
+                  <p className="text-gray-500 text-xs">por mes</p>
+                </div>
               </div>
-              <div className="text-center">
-                <p className="font-bold text-gray-900">{maxAdv}</p>
-                <p className="text-gray-500 text-xs">Usuarios</p>
-              </div>
-              <div className="text-center">
-                <p className="font-bold text-gray-900">{currentTotal === 0 ? 'Gratis' : formatCurrency(currentTotal, currency)}</p>
-                <p className="text-gray-500 text-xs">por mes</p>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Seat capacity adjustment */}
           <div className="bg-white rounded-xl border border-gray-200 p-5 mb-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-gray-700">Capacidad contratada</h3>
-              {seatsChanged && !seatSaved && (
+              <h3 className="text-sm font-semibold text-gray-700">
+                {isFreePlan ? 'Ampliar capacidad' : 'Capacidad contratada'}
+              </h3>
+              {seatsChanged && !seatSaved && !isFreePlan && (
                 <span className="text-xs text-indigo-600 font-medium">
                   Nuevo total: {formatCurrency(cartTotal, currency)}/mes
+                </span>
+              )}
+              {seatsChanged && !seatSaved && isFreePlan && cartTotal > 0 && (
+                <span className="text-xs text-indigo-600 font-medium">
+                  {formatCurrency(cartTotal, currency)}/mes
                 </span>
               )}
               {seatSaved && (
@@ -526,13 +555,26 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </span>
               )}
             </div>
+
+            {/* Banner informativo en plan gratuito */}
+            {isFreePlan && (
+              <div className="mb-3 bg-green-50 border border-green-200 rounded-lg px-3 py-2.5 text-xs text-green-700">
+                <span className="font-semibold">Plan gratuito:</span> incluye 1 sucursal y 2 usuarios sin costo.
+                Cada sucursal adicional incluye 2 usuarios y tiene un costo de {formatCurrency(pricing.perEstablishment, currency)}/mes.
+              </div>
+            )}
+
             <div className="flex flex-col gap-3">
               {/* Establishments */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Store size={14} className="text-indigo-500" />
                   <span className="text-sm font-medium text-gray-700">Sucursales</span>
-                  <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{formatCurrency(pricing.perEstablishment, currency)}/mes c/u</span>
+                  {!isFreePlan && (
+                    <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                      {formatCurrency(pricing.perEstablishment, currency)}/mes c/u adicional
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <button
@@ -551,7 +593,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   >
                     <Plus size={12} />
                   </button>
-                  <span className="text-xs text-gray-400 w-24 text-right font-medium">{formatCurrency(cartEst * pricing.perEstablishment, currency)}/mes</span>
+                  {!isFreePlan && (
+                    <span className="text-xs text-gray-400 w-24 text-right font-medium">
+                      {cartPaidEst > 0
+                        ? `${formatCurrency(cartPaidEst * pricing.perEstablishment, currency)}/mes`
+                        : 'Gratis'}
+                    </span>
+                  )}
                 </div>
               </div>
               {/* Advisors */}
@@ -560,16 +608,16 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   <Users size={14} className="text-indigo-500" />
                   <span className="text-sm font-medium text-gray-700">Usuarios totales</span>
                   <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                    {cartAdv > cartEst
-                      ? `${cartEst} incluidos + ${cartAdv - cartEst} adicionales`
+                    {cartExtraAdv > 0
+                      ? `${cartIncludedAdv} incluidos + ${cartExtraAdv} adicionales`
                       : `${cartAdv} incluidos`}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setCartAdv(v => Math.max(Math.max(currentAdvisors, cartEst), v - 1))}
-                    disabled={cartAdv <= Math.max(currentAdvisors, cartEst)}
+                    onClick={() => setCartAdv(v => Math.max(Math.max(currentAdvisors, cartEst * 2), v - 1))}
+                    disabled={cartAdv <= Math.max(currentAdvisors, cartEst * 2)}
                     className="w-7 h-7 rounded-lg border border-gray-300 flex items-center justify-center text-gray-600 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
                   >
                     <Minus size={12} />
@@ -582,11 +630,13 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   >
                     <Plus size={12} />
                   </button>
-                  <span className="text-xs text-gray-400 w-24 text-right font-medium">
-                    {cartAdv > cartEst
-                      ? `+${formatCurrency((cartAdv - cartEst) * pricing.perAdditionalAdvisor, currency)}/mes`
-                      : 'Incluido'}
-                  </span>
+                  {!isFreePlan && (
+                    <span className="text-xs text-gray-400 w-24 text-right font-medium">
+                      {cartExtraAdv > 0
+                        ? `+${formatCurrency(cartExtraAdv * pricing.perAdditionalAdvisor, currency)}/mes`
+                        : 'Incluido'}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -595,7 +645,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 {seatError}
               </div>
             )}
-            {seatsChanged && localHasCard && localBillingStatus === 'active' && (
+            {seatsChanged && !isFreePlan && localHasCard && localBillingStatus === 'active' && (
               <div className="mt-4 flex items-center gap-3">
                 <Button onClick={handleUpdateSeats} loading={seatSaving} className="flex-1">
                   <Check size={14} className="mr-2" /> Guardar cambios de capacidad
@@ -609,9 +659,11 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </button>
               </div>
             )}
-            <p className="text-[10px] text-gray-400 mt-3">
-              Usando {currentEstablishments} de {maxEst} sucursal{maxEst !== 1 ? 'es' : ''} · {currentAdvisors} de {maxAdv} usuario{maxAdv !== 1 ? 's' : ''}
-            </p>
+            {!isFreePlan && (
+              <p className="text-[10px] text-gray-400 mt-3">
+                Usando {currentEstablishments} de {maxEst} sucursal{maxEst !== 1 ? 'es' : ''} · {currentAdvisors} de {maxAdv} usuario{maxAdv !== 1 ? 's' : ''}
+              </p>
+            )}
           </div>
 
           {/* Billing & modules row */}
@@ -628,14 +680,16 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                   )}
                 </div>
                 <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-gray-600">
-                    <span>{cartEst} sucursal{cartEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perEstablishment, currency)}/mes</span>
-                    <span className="font-medium">{formatCurrency(cartEst * pricing.perEstablishment, currency)}</span>
-                  </div>
-                  {cartAdv > cartEst && (
+                  {cartPaidEst > 0 && (
                     <div className="flex justify-between text-gray-600">
-                      <span>{cartAdv - cartEst} usuario{cartAdv - cartEst !== 1 ? 's' : ''} adicional{cartAdv - cartEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perAdditionalAdvisor, currency)}/mes</span>
-                      <span className="font-medium">{formatCurrency((cartAdv - cartEst) * pricing.perAdditionalAdvisor, currency)}</span>
+                      <span>{cartPaidEst} sucursal{cartPaidEst !== 1 ? 'es' : ''} adicional{cartPaidEst !== 1 ? 'es' : ''} × {formatCurrency(pricing.perEstablishment, currency)}/mes</span>
+                      <span className="font-medium">{formatCurrency(cartPaidEst * pricing.perEstablishment, currency)}</span>
+                    </div>
+                  )}
+                  {cartExtraAdv > 0 && (
+                    <div className="flex justify-between text-gray-600">
+                      <span>{cartExtraAdv} usuario{cartExtraAdv !== 1 ? 's' : ''} adicional{cartExtraAdv !== 1 ? 'es' : ''} × {formatCurrency(pricing.perAdditionalAdvisor, currency)}/mes</span>
+                      <span className="font-medium">{formatCurrency(cartExtraAdv * pricing.perAdditionalAdvisor, currency)}</span>
                     </div>
                   )}
                   {activeModuleSubs.filter(s => (s.price_monthly ?? 0) > 0).map(sub => (

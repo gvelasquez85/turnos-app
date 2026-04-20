@@ -77,11 +77,12 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Módulos de pago activos ────────────────────────────────────────────────
+  // Solo 'active' — trial = período gratuito, no se factura
   const { data: modSubs } = await service
     .from('module_subscriptions')
     .select('module_key, price_monthly')
     .eq('brand_id', brandId)
-    .in('status', ['active', 'trial'])
+    .eq('status', 'active')
 
   const numPaidModules = (modSubs ?? []).filter(m => (m.price_monthly ?? 0) > 0).length
 
@@ -186,6 +187,7 @@ export async function POST(req: NextRequest) {
   await service
     .from('memberships')
     .update({
+      plan: 'standard',                                   // ya no es plan gratuito
       wompi_payment_source_id: String(paymentSource.id),
       wompi_customer_email: customerEmail,
       billing_currency: currency,
@@ -193,7 +195,7 @@ export async function POST(req: NextRequest) {
       last_billed_at: now.toISOString(),
       last_billing_amount: amountCents,
       next_billing_at: nextBilling.toISOString(),
-      billing_status: wompiTxn.status === 'PENDING' ? 'active' : 'active',
+      billing_status: 'active',
       past_due_attempts: 0,
       past_due_since: null,
     })

@@ -112,12 +112,12 @@ export async function GET(req: NextRequest) {
 async function chargeAndUpdate(service: any, m: any, now: Date) {
   const currency = (m.billing_currency ?? 'COP') as BillingCurrency
 
-  // Calcular monto actual
+  // Calcular monto actual — solo módulos 'active', trial = gratis
   const { data: modSubs } = await service
     .from('module_subscriptions')
     .select('price_monthly')
     .eq('brand_id', m.brand_id)
-    .in('status', ['active', 'trial'])
+    .eq('status', 'active')
 
   const numPaidModules = (modSubs ?? []).filter((s: any) => (s.price_monthly ?? 0) > 0).length
   const amount = calcMonthlyTotalBilling(m.max_establishments ?? 1, m.max_advisors ?? 2, numPaidModules, currency)
@@ -197,11 +197,12 @@ async function retryCharge(service: any, m: any, now: Date) {
   const pastDueSince = new Date(m.past_due_since)
   const daysPastDue = Math.floor((now.getTime() - pastDueSince.getTime()) / 86_400_000)
 
+  // Solo módulos 'active', trial = gratis
   const { data: modSubs } = await service
     .from('module_subscriptions')
     .select('price_monthly')
     .eq('brand_id', m.brand_id)
-    .in('status', ['active', 'trial'])
+    .eq('status', 'active')
 
   const numPaidModules = (modSubs ?? []).filter((s: any) => (s.price_monthly ?? 0) > 0).length
   const amount = calcMonthlyTotalBilling(m.max_establishments ?? 1, m.max_advisors ?? 2, numPaidModules, currency)

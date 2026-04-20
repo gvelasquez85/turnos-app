@@ -42,8 +42,12 @@ export function calcMonthlyTotalBilling(
   currency: BillingCurrency = 'COP',
 ): number {
   const p = getPricing(currency)
-  const base = establishments * p.perEstablishment
-  const additionalAdvisors = Math.max(0, advisors - establishments)
+  // La primera sucursal es gratuita; las demás se cobran a p.perEstablishment
+  const paidEstablishments = Math.max(0, establishments - p.freeEstablishments)
+  const base = paidEstablishments * p.perEstablishment
+  // Cada sucursal incluye 2 usuarios (incluida la gratuita)
+  const includedAdvisors = establishments * 2
+  const additionalAdvisors = Math.max(0, advisors - includedAdvisors)
   const advisorCost = additionalAdvisors * p.perAdditionalAdvisor
   const modulesCost = numPaidModules * p.moduleFlat
   return base + advisorCost + modulesCost
