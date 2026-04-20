@@ -50,12 +50,30 @@ export default async function BrandUsersPage() {
   const limits = getLimits(membership?.plan ?? 'free')
   const maxAdvisors = membership?.max_advisors ?? limits.maxAdvisors
 
+  // Contar usuarios por sucursal para mostrar límite en la UI
+  const estUserCounts: Record<string, number> = {}
+  for (const u of users ?? []) {
+    if (u.establishment_id && u.role !== 'brand_admin') {
+      estUserCounts[u.establishment_id] = (estUserCounts[u.establishment_id] ?? 0) + 1
+    }
+  }
+
+  // Calcular slots adicionales disponibles
+  const numEst = establishments?.length ?? 1
+  const includedSlots = numEst * 2
+  const extraPaidSlots = Math.max(0, maxAdvisors - includedSlots)
+  const currentAdvisors = (users ?? []).filter(u => u.role !== 'brand_admin' && u.role !== 'superadmin').length
+  const currentExtraUsers = Math.max(0, currentAdvisors - includedSlots)
+  const availableExtraSlots = Math.max(0, extraPaidSlots - currentExtraUsers)
+
   return (
     <BrandUsersManager
       users={users || []}
       establishments={establishments || []}
       brandId={brandId}
       maxAdvisors={maxAdvisors}
+      estUserCounts={estUserCounts}
+      availableExtraSlots={availableExtraSlots}
     />
   )
 }

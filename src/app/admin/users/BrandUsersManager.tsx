@@ -35,11 +35,17 @@ export function BrandUsersManager({
   establishments,
   brandId,
   maxAdvisors,
+  estUserCounts = {},
+  availableExtraSlots = 0,
 }: {
   users: ProfileRow[]
   establishments: { id: string; name: string }[]
   brandId: string
   maxAdvisors?: number
+  /** Cantidad de usuarios no-admin asignados a cada sucursal */
+  estUserCounts?: Record<string, number>
+  /** Slots adicionales disponibles (por encima de los 2 incluidos por sucursal) */
+  availableExtraSlots?: number
 }) {
   const [users, setUsers] = useState(initial)
   const [showForm, setShowForm] = useState(false)
@@ -279,14 +285,36 @@ export function BrandUsersManager({
               {BRAND_ROLES.map(r => <option key={r.value} value={r.value}>{r.label} — {r.description}</option>)}
             </Select>
             {form.role === 'advisor' && (
-              <Select
-                label="Sucursal"
-                value={form.establishment_id}
-                onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
-              >
-                <option value="">Sin sucursal asignada</option>
-                {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-              </Select>
+              <div>
+                <Select
+                  label="Sucursal"
+                  value={form.establishment_id}
+                  onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
+                >
+                  <option value="">Sin sucursal asignada</option>
+                  {establishments.map(e => {
+                    const count = estUserCounts[e.id] ?? 0
+                    const atLimit = count >= 2 && availableExtraSlots <= 0
+                    return (
+                      <option key={e.id} value={e.id} disabled={atLimit}>
+                        {e.name} — {count}/2 usuarios{count >= 2 ? ' (lleno)' : ''}
+                      </option>
+                    )
+                  })}
+                </Select>
+                {form.establishment_id && (estUserCounts[form.establishment_id] ?? 0) >= 2 && (
+                  <div className="mt-2 flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
+                    <AlertTriangle size={13} className="mt-0.5 shrink-0 text-amber-500" />
+                    <span>
+                      Esta sucursal ya tiene los 2 usuarios incluidos.{' '}
+                      {availableExtraSlots > 0
+                        ? `Tienes ${availableExtraSlots} slot${availableExtraSlots !== 1 ? 's' : ''} adicional${availableExtraSlots !== 1 ? 'es' : ''} disponible${availableExtraSlots !== 1 ? 's' : ''}.`
+                        : <><a href="/admin/brand?tab=membership" className="underline font-semibold">Amplía tu capacidad</a> para agregar más.</>
+                      }
+                    </span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
           {error && <p className="text-sm text-red-600 mt-3">{error}</p>}

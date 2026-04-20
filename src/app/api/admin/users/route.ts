@@ -77,17 +77,45 @@ export async function POST(request: Request) {
       const limits = getLimits(mem?.plan ?? 'free')
       const maxAdvisors = mem?.max_advisors ?? limits.maxAdvisors
 
-      const { count } = await admin
+      // ── Límite total de la marca ──────────────────────────────────────────────
+      const { count: totalCount } = await admin
         .from('profiles')
         .select('id', { count: 'exact', head: true })
         .eq('brand_id', brand_id)
         .neq('role', 'superadmin')
         .neq('role', 'brand_admin')
 
-      if ((count ?? 0) >= maxAdvisors) {
+      if ((totalCount ?? 0) >= maxAdvisors) {
         return NextResponse.json({
-          error: `Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu membresía.`,
+          error: `Tu plan permite hasta ${maxAdvisors} usuario${maxAdvisors === 1 ? '' : 's'} (el administrador no cuenta). Actualiza tu capacidad en Mi marca → Membresía.`,
+          upgradeRequired: true,
         }, { status: 403 })
+      }
+
+      // ── Límite por sucursal: máximo 2 usuarios incluidos por sucursal ─────────
+      // Para agregar un 3er usuario a una sucursal se necesitan slots adicionales
+      // (max_advisors > num_establecimientos × 2).
+      if (establishment_id) {
+        const [{ count: estAdvisors }, { count: estCount }] = await Promise.all([
+          admin.from('profiles')
+            .select('id', { count: 'exact', head: true })
+            .eq('establishment_id', establishment_id)
+            .neq('role', 'brand_admin'),
+          admin.from('establishments')
+            .select('id', { count: 'exact', head: true })
+            .eq('brand_id', brand_id)
+            .eq('active', true),
+        ])
+        const includedSlots = (estCount ?? 1) * 2
+        const extraPaidSlots = Math.max(0, maxAdvisors - includedSlots)
+        const currentExtraUsers = Math.max(0, (totalCount ?? 0) - includedSlots)
+
+        if ((estAdvisors ?? 0) >= 2 && currentExtraUsers >= extraPaidSlots) {
+          return NextResponse.json({
+            error: 'Esta sucursal ya tiene los 2 usuarios incluidos. Para agregar más, amplía la capacidad en Mi marca → Membresía.',
+            upgradeRequired: true,
+          }, { status: 403 })
+        }
       }
     }
 
