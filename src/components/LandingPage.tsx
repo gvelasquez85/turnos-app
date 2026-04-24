@@ -31,9 +31,9 @@ function Navbar() {
           <Link href="/login" className="text-sm font-medium text-gray-700 hover:text-indigo-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
             Iniciar sesión
           </Link>
-          <Link href="/login" className="text-sm font-semibold bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition-colors">
-            Empezar gratis
-          </Link>
+          <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow" className="text-sm font-semibold bg-indigo-600 text-white px-5 py-2 rounded-xl hover:bg-indigo-700 transition-colors">
+            Solicitar acceso
+          </a>
         </div>
 
         {/* Mobile toggle */}
@@ -50,7 +50,7 @@ function Navbar() {
           <a href="#precios" onClick={() => setOpen(false)} className="py-2 text-gray-700">Precios</a>
           <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
             <Link href="/login" className="py-2.5 text-center text-gray-700 border border-gray-200 rounded-xl">Iniciar sesión</Link>
-            <Link href="/login" className="py-2.5 text-center font-semibold bg-indigo-600 text-white rounded-xl">Empezar gratis</Link>
+            <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow" className="py-2.5 text-center font-semibold bg-indigo-600 text-white rounded-xl">Solicitar acceso</a>
           </div>
         </div>
       )}
@@ -74,16 +74,16 @@ function Hero() {
           Tus clientes toman turno desde su celular, ven su posición en tiempo real y son llamados cuando llega su momento. Sin papel, sin desorden.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          <Link href="/login"
+          <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow"
             className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-            Empieza gratis ahora <ChevronRight size={18} />
-          </Link>
+            Solicitar acceso <ChevronRight size={18} />
+          </a>
           <a href="#como-funciona"
             className="w-full sm:w-auto px-8 py-3.5 text-gray-700 font-medium rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-center">
             Ver cómo funciona
           </a>
         </div>
-        <p className="mt-4 text-xs text-gray-400">Sin tarjeta de crédito · 1 sucursal y 2 usuarios gratis para siempre</p>
+        <p className="mt-4 text-xs text-gray-400">Escríbenos y te configuramos la plataforma en menos de 24 horas</p>
       </div>
 
       {/* Mock preview */}
@@ -245,100 +245,70 @@ function HowItWorks() {
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 function Pricing() {
   const p = PRICING_COP
-  const plans = [
-    {
-      name: 'Gratuito',
-      price: 'Gratis',
-      period: 'para siempre',
-      desc: 'Ideal para empezar y probar la plataforma.',
-      color: 'border-gray-200',
-      badge: null,
-      features: [
-        '1 sucursal',
-        '2 usuarios incluidos',
-        'Cola digital con QR',
-        'Panel de asesores',
-        'Pantalla TV básica',
-        'Reportes básicos',
-      ],
-      cta: 'Empieza gratis',
-      ctaClass: 'border border-indigo-600 text-indigo-600 hover:bg-indigo-50',
-    },
-    {
-      name: 'Por uso',
-      price: formatCurrency(p.perEstablishment, 'COP'),
-      period: 'por sucursal adicional / mes',
-      desc: 'Paga solo lo que usas. Sin planes fijos.',
-      color: 'border-indigo-500 shadow-lg shadow-indigo-100',
-      badge: 'Recomendado',
-      features: [
-        `+${formatCurrency(p.perEstablishment, 'COP')} por sucursal adicional`,
-        '2 usuarios incluidos por sucursal',
-        `+${formatCurrency(p.perAdditionalAdvisor, 'COP')} por usuario adicional`,
-        'Todo lo del plan gratuito',
-        'Multi-sucursal ilimitada',
-        'Módulos adicionales disponibles',
-      ],
-      cta: 'Ver membresía',
-      ctaClass: 'bg-indigo-600 text-white hover:bg-indigo-700',
-    },
-    {
-      name: 'Módulos',
-      price: formatCurrency(p.moduleFlat, 'COP'),
-      period: 'por módulo / mes',
-      desc: 'Funcionalidades avanzadas opcionales.',
-      color: 'border-gray-200',
-      badge: null,
-      features: [
-        'Citas programadas',
-        'Pre check-in / check-out',
-        'Encuestas de satisfacción',
-        'Menú y preorden',
-        'CRM de clientes',
-        'Pantalla TV personalizada',
-      ],
-      cta: 'Ver módulos',
-      ctaClass: 'border border-gray-300 text-gray-700 hover:bg-gray-50',
-    },
-  ]
-
   return (
     <section id="precios" className="py-20 px-4 bg-white">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-3xl mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-black text-gray-900 mb-3">Precios simples y transparentes</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">Sin contratos. Sin cobros ocultos. Empieza gratis y escala cuando lo necesites.</p>
+          <p className="text-gray-500 max-w-lg mx-auto">Sin contratos. Sin cobros ocultos. Pagas solo lo que usas.</p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {plans.map((plan, i) => (
-            <div key={i} className={`border-2 rounded-2xl p-6 flex flex-col relative ${plan.color}`}>
-              {plan.badge && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                  {plan.badge}
-                </div>
-              )}
-              <div className="mb-5">
-                <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">{plan.name}</p>
-                <p className="text-3xl font-black text-gray-900">{plan.price}</p>
-                <p className="text-sm text-gray-500 mt-0.5">{plan.period}</p>
-                <p className="text-sm text-gray-500 mt-3">{plan.desc}</p>
-              </div>
-              <ul className="flex flex-col gap-2.5 mb-6 flex-1">
-                {plan.features.map((f, j) => (
-                  <li key={j} className="flex items-start gap-2 text-sm text-gray-700">
-                    <CheckCircle size={14} className="text-indigo-500 mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link href="/login"
-                className={`w-full py-3 rounded-xl font-semibold text-sm text-center transition-colors ${plan.ctaClass}`}>
-                {plan.cta}
-              </Link>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Plan Gratuito */}
+          <div className="border-2 border-gray-200 rounded-2xl p-7 flex flex-col">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Gratuito</p>
+            <p className="text-4xl font-black text-gray-900">Gratis</p>
+            <p className="text-sm text-gray-400 mt-0.5 mb-5">para siempre</p>
+            <ul className="flex flex-col gap-3 mb-8 flex-1">
+              {[
+                '1 sucursal incluida',
+                '2 usuarios incluidos',
+                'Cola digital con QR',
+                'Panel de asesores',
+                'Pantalla TV',
+                'Reportes básicos',
+              ].map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                  <CheckCircle size={14} className="text-indigo-400 shrink-0" /> {f}
+                </li>
+              ))}
+            </ul>
+            <Link href="/login"
+              className="w-full py-3 rounded-xl font-semibold text-sm text-center border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors">
+              Iniciar sesión
+            </Link>
+          </div>
+
+          {/* Plan Por uso */}
+          <div className="border-2 border-indigo-500 rounded-2xl p-7 flex flex-col shadow-lg shadow-indigo-100 relative">
+            <div className="absolute -top-3 left-6 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+              Pago por uso
             </div>
-          ))}
+            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">Por sucursal adicional</p>
+            <p className="text-4xl font-black text-gray-900">{formatCurrency(p.perEstablishment, 'COP')}</p>
+            <p className="text-sm text-gray-400 mt-0.5 mb-5">por sucursal / mes</p>
+            <ul className="flex flex-col gap-3 mb-8 flex-1">
+              {[
+                '2 usuarios incluidos por sucursal',
+                `${formatCurrency(p.perAdditionalAdvisor, 'COP')} por usuario adicional / mes`,
+                'Todo lo del plan gratuito',
+                'Múltiples sucursales',
+                'Reportes avanzados',
+                'Soporte prioritario',
+              ].map((f, i) => (
+                <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
+                  <CheckCircle size={14} className="text-indigo-500 shrink-0" /> {f}
+                </li>
+              ))}
+            </ul>
+            <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow"
+              className="w-full py-3 rounded-xl font-semibold text-sm text-center bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
+              Solicitar acceso
+            </a>
+          </div>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-6">Precios incluyen IVA. Facturación mensual en COP.</p>
+
+        <p className="text-center text-xs text-gray-400 mt-6">Precios incluyen IVA · Facturación mensual en COP · Sin permanencia</p>
       </div>
     </section>
   )
@@ -367,15 +337,15 @@ function FinalCTA() {
     <section className="py-20 px-4 bg-white text-center">
       <div className="max-w-2xl mx-auto">
         <Shield size={32} className="text-indigo-300 mx-auto mb-4" />
-        <h2 className="text-3xl font-black text-gray-900 mb-4">Empieza hoy, gratis</h2>
+        <h2 className="text-3xl font-black text-gray-900 mb-4">¿Listo para transformar la atención de tus clientes?</h2>
         <p className="text-gray-500 mb-8">
-          Configura tu primera sucursal en menos de 5 minutos. Sin tarjeta de crédito, sin compromiso.
-          Actualiza solo cuando necesites más.
+          Escríbenos y te configuramos la plataforma en menos de 24 horas.
+          La primera sucursal es gratis, sin tarjeta de crédito, sin compromiso.
         </p>
-        <Link href="/login"
+        <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow"
           className="inline-flex items-center gap-2 px-10 py-4 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-colors text-base">
-          Crear mi cuenta gratis <ChevronRight size={20} />
-        </Link>
+          Solicitar acceso <ChevronRight size={20} />
+        </a>
       </div>
     </section>
   )

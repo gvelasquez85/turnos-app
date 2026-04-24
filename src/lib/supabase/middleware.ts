@@ -25,7 +25,13 @@ export async function updateSession(request: NextRequest) {
   const path = request.nextUrl.pathname
 
   // Public routes - no auth needed
-  const publicRoutes = ['/login', '/t/', '/espera/', '/auth/', '/forgot-password', '/reset-password', '/book/', '/order/', '/display/', '/survey/', '/api/firebase-sw', '/validar/', '/validarautorizacion']
+  // Todas las rutas /api/ manejan su propia autenticación — no redirigir
+  const publicRoutes = [
+    '/login', '/forgot-password', '/reset-password', '/auth/',
+    '/t/', '/espera/', '/book/', '/order/', '/display/', '/survey/',
+    '/validar/', '/validarautorizacion',
+    '/api/',   // ← todas las APIs se autentican solas (incl. Wompi webhook)
+  ]
   const isPublic = publicRoutes.some(r => path.startsWith(r)) || path === '/'
 
   if (!user && !isPublic) {
