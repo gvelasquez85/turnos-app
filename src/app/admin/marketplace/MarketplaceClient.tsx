@@ -14,7 +14,7 @@ import { PayPalButton } from '@/components/PayPalButton'
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
   CalendarClock, ClipboardList, UtensilsCrossed,
-  LogIn, LogOut, Coffee, UserCheck, Zap,
+  LogIn, LogOut, Coffee, UserCheck, Zap, Users, Clock,
 }
 function getIcon(name: string): LucideIcon {
   return ICON_MAP[name] ?? Zap
@@ -250,18 +250,59 @@ export function MarketplaceClient({
         </div>
       )}
 
-      {/* Catalogue */}
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Catálogo</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        {modules.map(mod => {
-          const sub = getSub(mod.module_key)
-          const status = getStatus(sub)
-          const Icon = getIcon(mod.icon ?? '')
-          const isLoading = loading === mod.module_key
-          const price = modulePrice(mod)
-          const comingSoon = mod.is_coming_soon
+      {/* Included Modules (free, no trial/payment) */}
+      {(() => {
+        const includedMod = modules.find(m => m.module_key === 'clientes')
+        if (!includedMod) return null
+        const Icon = getIcon(includedMod.icon ?? '')
+        return (
+          <div className="mb-7">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Incluido en tu plan</h2>
+            <div className="bg-white rounded-2xl border-2 border-emerald-200">
+              <div className="p-5 flex-1">
+                <div className="flex items-start justify-between mb-3">
+                  <div className={`w-11 h-11 bg-emerald-500 rounded-xl flex items-center justify-center`}>
+                    <Icon size={20} className="text-white" />
+                  </div>
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                    ✓ Incluido
+                  </span>
+                </div>
+                <h3 className="font-bold text-gray-900 mb-1">{includedMod.label}</h3>
+                <p className="text-sm text-gray-500 mb-4 leading-relaxed">{includedMod.description}</p>
+                {(includedMod.features ?? []).length > 0 && (
+                  <ul className="space-y-1.5">
+                    {(includedMod.features ?? []).map(f => (
+                      <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
+                        <CheckCircle size={12} className="text-emerald-500 shrink-0" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
-          return (
+      {/* Catalogue */}
+      {(() => {
+        const catalogueMods = modules.filter(m => m.module_key !== 'clientes')
+        if (catalogueMods.length === 0) return null
+        return (
+          <>
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos adicionales</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {catalogueMods.map(mod => {
+                const sub = getSub(mod.module_key)
+                const status = getStatus(sub)
+                const Icon = getIcon(mod.icon ?? '')
+                const isLoading = loading === mod.module_key
+                const price = modulePrice(mod)
+                const comingSoon = mod.is_coming_soon
+
+                return (
             <div
               key={mod.module_key}
               className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
@@ -348,8 +389,11 @@ export function MarketplaceClient({
               </div>
             </div>
           )
-        })}
-      </div>
+              })}
+            </div>
+          </>
+        )
+      })()}
 
       {/* Contract modal */}
       {contractModal && (() => {

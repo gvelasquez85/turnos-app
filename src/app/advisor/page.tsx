@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { QueueBoard } from './QueueBoard'
 import { EstablishmentPicker } from './EstablishmentPicker'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 
 export default async function AdvisorPage() {
   const supabase = await createClient()
@@ -13,6 +14,22 @@ export default async function AdvisorPage() {
     .select('brand_id, role, establishment_id')
     .eq('id', user.id)
     .single()
+
+  // Check queue module subscription (required for advisor access)
+  let isQueueExpired = false
+  let queueExpiredAt: string | null = null
+  if (profile?.role !== 'superadmin' && profile?.brand_id) {
+    const { data: sub } = await supabase
+      .from('module_subscriptions')
+      .select('status, trial_expires_at, expires_at')
+      .eq('brand_id', profile.brand_id)
+      .eq('module_key', 'queue')
+      .maybeSingle()
+    if (!sub || sub.status === 'expired') {
+      isQueueExpired = true
+      queueExpiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
+    }
+  }
 
   // Cargar campos personalizados si hay establecimiento asignado fijo
   if (profile?.establishment_id) {
@@ -30,12 +47,14 @@ export default async function AdvisorPage() {
     ])
 
     return (
-      <QueueBoard
-        establishmentId={profile.establishment_id}
-        establishmentSlug={establishment?.slug || ''}
-        advisorId={user.id}
-        advisorFields={advisorFields || []}
-      />
+      <TrialExpiredGate isExpired={isQueueExpired} moduleLabel="Colas de espera" expiredAt={queueExpiredAt}>
+        <QueueBoard
+          establishmentId={profile.establishment_id}
+          establishmentSlug={establishment?.slug || ''}
+          advisorId={user.id}
+          advisorFields={advisorFields || []}
+        />
+      </TrialExpiredGate>
     )
   }
 
@@ -68,11 +87,13 @@ export default async function AdvisorPage() {
     }
 
     return (
-      <EstablishmentPicker
-        establishments={(establishments || []) as any}
-        allFields={allFields}
-        advisorId={user.id}
-      />
+      <TrialExpiredGate isExpired={isQueueExpired} moduleLabel="Colas de espera" expiredAt={queueExpiredAt}>
+        <EstablishmentPicker
+          establishments={(establishments || []) as any}
+          allFields={allFields}
+          advisorId={user.id}
+        />
+      </TrialExpiredGate>
     )
   }
 

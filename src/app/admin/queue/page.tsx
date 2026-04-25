@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { BrandQueueMonitor } from './BrandQueueMonitor'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 
 export default async function QueueMonitorPage() {
   const supabase = await createClient()
@@ -14,6 +15,22 @@ export default async function QueueMonitorPage() {
     .single()
 
   if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role)) redirect('/')
+
+  // Check queue module subscription
+  let isExpired = false
+  let expiredAt: string | null = null
+  if (profile.role !== 'superadmin' && profile.brand_id) {
+    const { data: sub } = await supabase
+      .from('module_subscriptions')
+      .select('status, trial_expires_at, expires_at')
+      .eq('brand_id', profile.brand_id)
+      .eq('module_key', 'queue')
+      .maybeSingle()
+    if (!sub || sub.status === 'expired') {
+      isExpired = true
+      expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
+    }
+  }
 
   // Cargar marcas (superadmin ve todas, brand_admin solo la suya)
   const brandsQuery = supabase.from('brands').select('id, name').eq('active', true).order('name')
@@ -30,10 +47,12 @@ export default async function QueueMonitorPage() {
   const { data: establishments } = await estQuery
 
   return (
-    <BrandQueueMonitor
-      brands={brands || []}
-      establishments={establishments || []}
-      defaultBrandId={profile.brand_id || null}
-    />
+    <TrialExpiredGate isExpired={isExpired} moduleLabel="Colas de espera" expiredAt={expiredAt}>
+      <BrandQueueMonitor
+        brands={brands || []}
+        establishments={establishments || []}
+        defaultBrandId={profile.brand_id || null}
+      />
+    </TrialExpiredGate>
   )
 }

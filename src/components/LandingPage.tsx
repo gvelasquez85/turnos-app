@@ -61,17 +61,17 @@ function Navbar() {
 // ─── Hero ─────────────────────────────────────────────────────────────────────
 function Hero() {
   return (
-    <section className="pt-32 pb-20 px-4 text-center bg-gradient-to-b from-indigo-50/60 to-white">
+    <section className="pt-32 pb-20 px-4 text-center bg-gradient-to-b from-emerald-50/60 to-white">
       <div className="max-w-3xl mx-auto">
-        <div className="inline-flex items-center gap-2 bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
-          <Zap size={12} /> Gestión de turnos digital · Sin filas presenciales
+        <div className="inline-flex items-center gap-2 bg-emerald-100 text-emerald-700 text-xs font-semibold px-3 py-1.5 rounded-full mb-6">
+          <Zap size={12} /> Gestión integral de clientes · Nunca pierdas una oportunidad
         </div>
         <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-gray-900 leading-tight mb-6">
-          El turno inteligente<br />
-          <span className="text-indigo-600">para tu negocio</span>
+          Gestiona tus clientes,<br />
+          <span className="text-emerald-600">crece tu negocio</span>
         </h1>
         <p className="text-lg text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
-          Tus clientes toman turno desde su celular, ven su posición en tiempo real y son llamados cuando llega su momento. Sin papel, sin desorden.
+          Nunca más pierdas un cliente por falta de seguimiento. Ten todo su historial de compras, visitas, intereses y recordatorios en un solo lugar.
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow"
@@ -88,30 +88,30 @@ function Hero() {
 
       {/* Mock preview */}
       <div className="mt-16 max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-2xl shadow-indigo-100 border border-gray-100 overflow-hidden">
-          <div className="bg-indigo-600 px-6 py-4 flex items-center justify-between">
+        <div className="bg-white rounded-2xl shadow-2xl shadow-emerald-100 border border-gray-100 overflow-hidden">
+          <div className="bg-emerald-600 px-6 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-                <Clock size={16} className="text-white" />
+                <Users size={16} className="text-white" />
               </div>
-              <span className="text-white font-bold text-sm">Panel del asesor — Banco XYZ</span>
+              <span className="text-white font-bold text-sm">Panel de Clientes — Farmacia Central</span>
             </div>
-            <span className="text-indigo-200 text-xs font-medium">● En vivo</span>
+            <span className="text-emerald-200 text-xs font-medium">● Actualizado</span>
           </div>
           <div className="p-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
-              { num: '014', name: 'Carlos Mendoza', reason: 'Apertura de cuenta', wait: '2 min', color: 'indigo' },
-              { num: '015', name: 'Ana Gómez', reason: 'Consulta de saldo', wait: '8 min', color: 'amber' },
-              { num: '016', name: 'Luis Torres', reason: 'Préstamo personal', wait: '14 min', color: 'gray' },
-            ].map((t, i) => (
-              <div key={i} className={`rounded-xl border-2 p-4 ${i === 0 ? 'border-indigo-400 bg-indigo-50' : 'border-gray-100 bg-gray-50'}`}>
+              { name: 'María Rodríguez', last: 'Ayer', tags: 'Cliente frecuente', note: '5 compras este mes', color: 'emerald' },
+              { name: 'Juan Pérez', last: 'Hace 15 días', tags: 'Inactivo', note: 'Compró medicinas', color: 'amber' },
+              { name: 'Laura González', last: 'Hace 1 mes', tags: 'Cumpleaños (5 feb)', note: 'Premium', color: 'gray' },
+            ].map((c, i) => (
+              <div key={i} className={`rounded-xl border-2 p-4 ${i === 0 ? 'border-emerald-400 bg-emerald-50' : 'border-gray-100 bg-gray-50'}`}>
                 <div className="flex items-center justify-between mb-3">
-                  <span className={`text-2xl font-black ${i === 0 ? 'text-indigo-700' : 'text-gray-400'}`}>#{t.num}</span>
-                  {i === 0 && <span className="text-xs bg-indigo-600 text-white px-2 py-0.5 rounded-full font-medium">Atendiendo</span>}
+                  <span className={`font-semibold ${i === 0 ? 'text-emerald-700' : 'text-gray-600'}`}>{c.name}</span>
+                  {i === 0 && <span className="text-xs bg-emerald-600 text-white px-2 py-0.5 rounded-full font-medium">Hoy</span>}
                 </div>
-                <p className="font-semibold text-gray-900 text-sm">{t.name}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{t.reason}</p>
-                <p className="text-xs text-gray-400 mt-2">Espera: ~{t.wait}</p>
+                <p className="text-xs text-gray-500 mb-2">Última visita: {c.last}</p>
+                <p className="text-xs font-medium text-gray-700 mb-1">{c.tags}</p>
+                <p className="text-xs text-gray-400">{c.note}</p>
               </div>
             ))}
           </div>
@@ -147,42 +147,42 @@ function Stats() {
 function Features() {
   const features = [
     {
-      icon: Clock,
-      title: 'Cola digital en segundos',
-      desc: 'El cliente escanea un QR o entra al link. Ingresa su nombre, elige el motivo de visita y ya está en la fila — desde cualquier celular, sin app.',
-    },
-    {
-      icon: Monitor,
-      title: 'Pantalla de llamado para TV',
-      desc: 'Conecta un televisor o monitor y muestra en tiempo real el turno que está siendo atendido. Diseño personalizable con los colores de tu marca.',
-    },
-    {
       icon: Users,
-      title: 'Panel de asesores',
-      desc: 'Cada asesor ve la cola de su sucursal, llama al siguiente, registra la atención y captura datos adicionales con formularios personalizables.',
+      title: 'Directorio completo de clientes',
+      desc: 'Centraliza toda la información: teléfono, canal de contacto, intereses, historial de compras y visitas. Todo en un único lugar accesible.',
     },
     {
       icon: BarChart2,
-      title: 'Reportes y analítica',
-      desc: 'Mide tiempos de espera, volúmenes por hora, rendimiento por asesor y motivos de visita. Todo exportable para tus procesos.',
+      title: 'Historial y análisis',
+      desc: 'Registra cada interacción, compra y visita. Entiende patrones de comportamiento, identifica oportunidades de venta y seguimiento.',
+    },
+    {
+      icon: Tag,
+      title: 'Segmentación con etiquetas',
+      desc: 'Organiza clientes con etiquetas personalizadas: "Cliente frecuente", "Inactivo", "Premium", "Debe volver en 30 días".',
     },
     {
       icon: MessageSquare,
-      title: 'Notificaciones al cliente',
-      desc: 'Avisa al cliente por push notification cuando su turno está próximo. Reduce abandonos y mejora la experiencia.',
+      title: 'Recordatorios automáticos',
+      desc: 'Cumpleaños, aniversarios, compras pendientes. Envía recordatorios por WhatsApp, email o SMS. Nunca olvides un cliente importante.',
+    },
+    {
+      icon: Clock,
+      title: 'Cola de espera digital (add-on)',
+      desc: 'Opcional: Clientes toman turnos por QR, ven su posición en tiempo real. Panel TV y reportes de espera incluidos.',
     },
     {
       icon: Globe,
-      title: 'Multi-sucursal',
-      desc: 'Gestiona varias sedes desde un solo panel. Cada sucursal tiene su propia cola, asesores y configuración independiente.',
+      title: 'Multi-sucursal ilimitada',
+      desc: 'Gestiona múltiples sedes con un único panel. Cada sucursal con sus clientes, configuración y equipo independientes.',
     },
   ]
   return (
     <section id="funcionalidades" className="py-20 px-4 bg-white">
       <div className="max-w-5xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-black text-gray-900 mb-3">Todo lo que necesitas</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">Una plataforma completa para gestionar la atención presencial de tus clientes sin complicaciones.</p>
+          <h2 className="text-3xl font-black text-gray-900 mb-3">Una plataforma integral</h2>
+          <p className="text-gray-500 max-w-lg mx-auto">Todas las herramientas para no perder nunca un cliente y hacer crecer tu negocio.</p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((f, i) => (
@@ -205,18 +205,18 @@ function HowItWorks() {
   const steps = [
     {
       n: '01',
-      title: 'El cliente toma su turno',
-      desc: 'Escanea el código QR en la entrada, abre el link en su celular o usa el kiosko. Ingresa sus datos y selecciona el motivo de visita. Listo — ya está en la fila.',
+      title: 'Registra cada cliente',
+      desc: 'Cada vez que alguien entra a tu tienda, toma un turno o hace una compra, TurnFlow registra su información. Teléfono, intereses, historial — todo automático.',
     },
     {
       n: '02',
-      title: 'Espera donde quiera',
-      desc: 'Puede esperar en la sala, en el café de al lado o en su carro. Ve su posición en tiempo real y recibe una notificación cuando es su turno.',
+      title: 'Analiza y segmenta',
+      desc: 'Entiende quiénes son tus clientes frecuentes, quién está inactivo, cuáles gastaron más. Crea etiquetas para segmentar y estrategias claras.',
     },
     {
       n: '03',
-      title: 'El asesor lo llama y registra',
-      desc: 'El asesor ve la cola en su panel, llama al siguiente con un clic y al finalizar registra la atención. Los datos quedan en el historial de reportes.',
+      title: 'No pierdas oportunidades',
+      desc: 'Envía recordatorios de cumpleaños, recompras pendientes, ofertas especiales. Mantén a tus clientes comprometidos y aumenta la lealtad.',
     },
   ]
   return (
@@ -224,7 +224,7 @@ function HowItWorks() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-14">
           <h2 className="text-3xl font-black text-gray-900 mb-3">Cómo funciona</h2>
-          <p className="text-gray-500">Simple para el cliente. Poderoso para tu equipo.</p>
+          <p className="text-gray-500">Tres pasos para convertir visitantes en clientes leales.</p>
         </div>
         <div className="flex flex-col gap-8">
           {steps.map((s, i) => (
@@ -249,61 +249,61 @@ function Pricing() {
     <section id="precios" className="py-20 px-4 bg-white">
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-black text-gray-900 mb-3">Precios simples y transparentes</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">Sin contratos. Sin cobros ocultos. Pagas solo lo que usas.</p>
+          <h2 className="text-3xl font-black text-gray-900 mb-3">Planes simples y transparentes</h2>
+          <p className="text-gray-500 max-w-lg mx-auto">Clientes es gratis y para siempre. Las colas digitales y reportes avanzados son un módulo opcional.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Plan Gratuito */}
-          <div className="border-2 border-gray-200 rounded-2xl p-7 flex flex-col">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Gratuito</p>
+          <div className="border-2 border-emerald-200 rounded-2xl p-7 flex flex-col bg-emerald-50/50">
+            <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">Para empezar</p>
             <p className="text-4xl font-black text-gray-900">Gratis</p>
             <p className="text-sm text-gray-400 mt-0.5 mb-5">para siempre</p>
             <ul className="flex flex-col gap-3 mb-8 flex-1">
               {[
-                '1 sucursal incluida',
-                '2 usuarios incluidos',
-                'Cola digital con QR',
-                'Panel de asesores',
-                'Pantalla TV',
-                'Reportes básicos',
+                '✓ Módulo Clientes completo',
+                '✓ 1 sucursal incluida',
+                '✓ 2 usuarios incluidos',
+                '✓ Cola de espera lite (QR)',
+                '✓ Historial de clientes',
+                '✓ Tags y recordatorios',
               ].map((f, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle size={14} className="text-indigo-400 shrink-0" /> {f}
+                  <CheckCircle size={14} className="text-emerald-500 shrink-0" /> {f}
                 </li>
               ))}
             </ul>
             <Link href="/login"
-              className="w-full py-3 rounded-xl font-semibold text-sm text-center border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 transition-colors">
-              Iniciar sesión
+              className="w-full py-3 rounded-xl font-semibold text-sm text-center border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-100 transition-colors">
+              Comienza ahora
             </Link>
           </div>
 
-          {/* Plan Por uso */}
+          {/* Plan Profesional */}
           <div className="border-2 border-indigo-500 rounded-2xl p-7 flex flex-col shadow-lg shadow-indigo-100 relative">
             <div className="absolute -top-3 left-6 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-              Pago por uso
+              Recomendado
             </div>
-            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">Por sucursal adicional</p>
-            <p className="text-4xl font-black text-gray-900">{formatCurrency(p.perEstablishment, 'COP')}</p>
-            <p className="text-sm text-gray-400 mt-0.5 mb-5">por sucursal / mes</p>
+            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">Profesional</p>
+            <p className="text-4xl font-black text-gray-900">Plan base</p>
+            <p className="text-sm text-gray-400 mt-0.5 mb-5">+ colas y reportes avanzados</p>
             <ul className="flex flex-col gap-3 mb-8 flex-1">
               {[
-                '2 usuarios incluidos por sucursal',
-                `${formatCurrency(p.perAdditionalAdvisor, 'COP')} por usuario adicional / mes`,
-                'Todo lo del plan gratuito',
-                'Múltiples sucursales',
-                'Reportes avanzados',
-                'Soporte prioritario',
+                '✓ Todo del plan gratuito',
+                '✓ Panel de asesores en tiempo real',
+                '✓ Pantalla TV de llamado',
+                '✓ Reportes de espera y analítica',
+                '✓ Múltiples sucursales',
+                '✓ Soporte prioritario',
               ].map((f, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
                   <CheckCircle size={14} className="text-indigo-500 shrink-0" /> {f}
                 </li>
               ))}
             </ul>
-            <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow"
+            <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow%20Profesional"
               className="w-full py-3 rounded-xl font-semibold text-sm text-center bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
-              Solicitar acceso
+              Solicitar demo
             </a>
           </div>
         </div>
@@ -317,15 +317,15 @@ function Pricing() {
 // ─── Testimonial / Social proof ───────────────────────────────────────────────
 function SocialProof() {
   return (
-    <section className="py-16 px-4 bg-indigo-600">
+    <section className="py-16 px-4 bg-emerald-600">
       <div className="max-w-3xl mx-auto text-center">
         <div className="flex justify-center gap-1 mb-4">
           {[...Array(5)].map((_, i) => <Star key={i} size={18} className="text-yellow-300 fill-yellow-300" />)}
         </div>
         <blockquote className="text-xl font-semibold text-white mb-4 leading-relaxed">
-          &ldquo;Redujimos el tiempo de espera percibido en un 40% solo con mostrarle al cliente su posición en la cola. La implementación tardó menos de una hora.&rdquo;
+          &ldquo;Aumentamos las compras recurrentes en un 35% simplemente haciendo seguimiento inteligente con recordatorios de cumpleaños y recompras. Fue más fácil que esperábamos.&rdquo;
         </blockquote>
-        <p className="text-indigo-200 text-sm">— Gerente de operaciones, red de farmacias, Bogotá</p>
+        <p className="text-emerald-200 text-sm">— Gerente comercial, cadena de tiendas, Medellín</p>
       </div>
     </section>
   )

@@ -39,15 +39,14 @@ const BRAND_MGMT_ITEMS: NavItem[] = [
 ]
 
 const OPERATION_ITEMS: NavItem[] = [
-  { href: '/admin/queue', label: 'Monitor de colas', icon: MonitorPlay },
   { href: '/admin/display', label: 'Pantalla TV', icon: Monitor },
-  { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
 ]
 
 const MODULE_ITEMS: NavItem[] = [
+  { href: '/admin/queue', label: 'Colas de espera', icon: MonitorPlay },
   { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
   { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
-  { href: '/admin/crm', label: 'Clientes CRM', icon: UserCheck },
+  { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
 ]
 
@@ -101,7 +100,7 @@ const navByRole: Record<AppRole, NavSection[]> = {
     { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
   ],
   advisor: [
-    { section: 'Operación', items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }] },
+    // Queue is now a paid module — shown via MODULE_ITEMS filtering in isModuleAllowed()
   ],
   reporting: [
     { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
@@ -214,6 +213,14 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     if (href.startsWith('/admin/marketplace')) return true
     if (href.startsWith('/superadmin/marketplace')) return true
 
+    // Clientes (formerly CRM) is now ALWAYS visible — it's the core module
+    if (href.startsWith('/admin/clientes')) return true
+
+    // Queue and Advisor routes require queue subscription
+    if (href.startsWith('/admin/queue') || href.startsWith('/advisor')) {
+      return activeModules?.queue === true
+    }
+
     // Módulos de marketplace: SOLO visibles cuando están activos (trial o pago).
     // active_modules[key] === true  → trial activo o pago activo → MOSTRAR
     // active_modules[key] === false → trial vencido / cancelado  → OCULTAR del nav
@@ -221,7 +228,6 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     // Si el usuario accede por URL directa (bookmark), TrialExpiredGate bloquea la página.
     if (href.startsWith('/admin/appointments')) return activeModules?.appointments === true
     if (href.startsWith('/admin/surveys')) return activeModules?.surveys === true
-    if (href.startsWith('/admin/crm')) return activeModules?.crm === true
     if (href.startsWith('/admin/menu')) return activeModules?.menu === true
     // Pantalla TV es función core — siempre visible independiente del flag
 
