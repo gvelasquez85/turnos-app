@@ -252,7 +252,7 @@ export function MarketplaceClient({
 
       {/* Included Modules (free, no trial/payment) */}
       {(() => {
-        const includedMod = modules.find(m => m.module_key === 'clientes')
+        const includedMod = modules.find(m => m.module_key === 'clientes' || m.module_key === 'crm')
         if (!includedMod) return null
         const Icon = getIcon(includedMod.icon ?? '')
         return (
@@ -288,7 +288,7 @@ export function MarketplaceClient({
 
       {/* Catalogue */}
       {(() => {
-        const catalogueMods = modules.filter(m => m.module_key !== 'clientes')
+        const catalogueMods = modules.filter(m => m.module_key !== 'clientes' && m.module_key !== 'crm')
         if (catalogueMods.length === 0) return null
         return (
           <>

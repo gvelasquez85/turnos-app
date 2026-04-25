@@ -6,10 +6,10 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import {
   Building2, MessageSquare, FileText, Tag, BarChart2,
-  Users, Store, Menu, ChevronLeft, ChevronRight,
-  LogOut, LayoutDashboard, X, MonitorPlay, Eye, EyeOff,
+  Users, Store, Menu, ChevronLeft, ChevronRight, ChevronDown,
+  LogOut, LayoutDashboard, X, Eye, EyeOff,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
-  Settings, Shield, UserCircle, CreditCard, UserCheck, Zap,
+  Settings, Shield, UserCircle, CreditCard, Zap, Clock,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -26,86 +26,116 @@ interface NavItem {
 }
 
 interface NavSection {
-  section?: string
+  key: string
+  section: string
   items: NavItem[]
 }
 
-const BRAND_MGMT_ITEMS: NavItem[] = [
+// ─── Item definitions ──────────────────────────────────────────────────────────
+
+const BRAND_ITEMS: NavItem[] = [
+  { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
-  { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
-  { href: '/admin/advisor-fields', label: 'Campos asesor', icon: FileText },
-  { href: '/admin/brand/form-config', label: 'Formulario cliente', icon: ClipboardList },
+  { href: '/admin/users', label: 'Equipo', icon: Users },
+  { href: '/reports', label: 'Reportes', icon: BarChart2 },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },
 ]
 
-const OPERATION_ITEMS: NavItem[] = [
-  { href: '/admin/display', label: 'Pantalla TV', icon: Monitor },
-]
-
-const MODULE_ITEMS: NavItem[] = [
-  { href: '/admin/queue', label: 'Colas de espera', icon: MonitorPlay },
-  { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
-  { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
-  { href: '/admin/clientes', label: 'Clientes', icon: Users },
-  { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
-]
-
-const REPORT_ITEMS: NavItem[] = [
+const MANAGER_BRAND_ITEMS: NavItem[] = [
+  { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
+  { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/reports', label: 'Reportes', icon: BarChart2 },
+  { href: '/admin/promotions', label: 'Promociones', icon: Tag },
+]
+
+const CLIENTES_ITEMS: NavItem[] = [
+  { href: '/admin/clientes', label: 'Clientes', icon: Users },
   { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
 ]
 
-const MARKETPLACE_ITEM: NavItem = { href: '/admin/marketplace', label: 'Marketplace', icon: Zap }
-const SUPERADMIN_MARKETPLACE_ITEM: NavItem = { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap }
+const QUEUE_ITEMS: NavItem[] = [
+  { href: '/admin/queue', label: 'Monitor de colas', icon: Clock },
+  { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
+  { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
+  { href: '/admin/advisor-fields', label: 'Campos asesor', icon: FileText },
+  { href: '/admin/brand/form-config', label: 'Formulario cliente', icon: ClipboardList },
+  { href: '/admin/display', label: 'Pantalla TV', icon: Monitor },
+]
 
-const navByRole: Record<AppRole, NavSection[]> = {
-  superadmin: [
-    {
-      section: 'Administración',
-      items: [
-        { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
-        { href: '/superadmin/memberships', label: 'Membresías', icon: CreditCard },
-        { href: '/superadmin/users', label: 'Usuarios', icon: Users },
-        SUPERADMIN_MARKETPLACE_ITEM,
-        { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
-      ],
-    },
-    { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
-    { section: 'Operación', items: OPERATION_ITEMS },
-    { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: MODULE_ITEMS },
-  ],
-  brand_admin: [
-    {
-      section: 'Marca',
-      items: [{ href: '/admin/brand', label: 'Mi marca', icon: Building2 }],
-    },
-    {
-      section: 'Administración',
-      items: [{ href: '/admin/users', label: 'Equipo', icon: Users }],
-    },
-    { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
-    { section: 'Operación', items: OPERATION_ITEMS },
-    { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
-  ],
-  manager: [
-    {
-      section: 'Marca',
-      items: [{ href: '/admin/brand', label: 'Mi marca', icon: Building2 }],
-    },
-    { section: 'Gestión de marca', items: BRAND_MGMT_ITEMS },
-    { section: 'Operación', items: OPERATION_ITEMS },
-    { section: 'Reportes', items: REPORT_ITEMS },
-    { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
-  ],
-  advisor: [
-    // Always show Cola de espera — TrialExpiredGate handles access if Queue not subscribed
-    { section: 'Operación', items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }] },
-  ],
-  reporting: [
-    { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
-  ],
+const APPOINTMENTS_ITEMS: NavItem[] = [
+  { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
+]
+
+const SURVEYS_ITEMS: NavItem[] = [
+  { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
+]
+
+const MENU_ITEMS: NavItem[] = [
+  { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
+]
+
+// ─── Section builder ────────────────────────────────────────────────────────────
+
+function buildSections(
+  role: AppRole,
+  activeModules?: Record<string, boolean>,
+): NavSection[] {
+  if (role === 'reporting') {
+    return [{ key: 'reportes', section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] }]
+  }
+
+  if (role === 'advisor') {
+    return [{
+      key: 'colas',
+      section: 'Colas de espera',
+      items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }],
+    }]
+  }
+
+  if (role === 'superadmin') {
+    return [
+      {
+        key: 'admin',
+        section: 'Administración',
+        items: [
+          { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
+          { href: '/superadmin/memberships', label: 'Membresías', icon: CreditCard },
+          { href: '/superadmin/users', label: 'Usuarios', icon: Users },
+          { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
+          { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
+        ],
+      },
+      { key: 'marca', section: 'Mi Marca', items: BRAND_ITEMS },
+      { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
+      { key: 'colas', section: 'Colas de espera', items: QUEUE_ITEMS },
+      { key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS },
+      { key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS },
+      { key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS },
+    ]
+  }
+
+  // brand_admin / manager
+  const brandItems = role === 'brand_admin' ? BRAND_ITEMS : MANAGER_BRAND_ITEMS
+  const sections: NavSection[] = [
+    { key: 'marca', section: 'Mi Marca', items: brandItems },
+    { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
+  ]
+
+  if (activeModules?.queue) {
+    sections.push({ key: 'colas', section: 'Colas de espera', items: QUEUE_ITEMS })
+  }
+  if (activeModules?.appointments) {
+    sections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
+  }
+  if (activeModules?.surveys) {
+    sections.push({ key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS })
+  }
+  if (activeModules?.menu) {
+    sections.push({ key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS })
+  }
+
+  sections.push({ key: 'marketplace', section: 'Más', items: [{ href: '/admin/marketplace', label: 'Marketplace', icon: Zap }] })
+  return sections
 }
 
 const roleLabel: Record<AppRole, string> = {
@@ -132,11 +162,15 @@ export interface AppShellProps {
 
 const CAN_IMPERSONATE: AppRole[] = ['superadmin', 'brand_admin']
 
-function AppShellInner({ children, role, fullName, email, brandName, establishmentName, establishmentSlug, brands: initialBrands, activeModules, plan }: AppShellProps) {
+function AppShellInner({
+  children, role, fullName, email, brandName, establishmentName, establishmentSlug,
+  brands: initialBrands, activeModules, plan,
+}: AppShellProps) {
   const { t, lang, setLang } = useT()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({})
   const pathname = usePathname()
   const router = useRouter()
   const { selectedBrandId, setSelectedBrandId } = useBrandStore()
@@ -152,8 +186,6 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
   }, [role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    // Superadmin defaults to "Todas las marcas" (empty string = all brands).
-    // Other roles with exactly one brand auto-select it on first load.
     if (!brandInitialized.current && brands.length > 0 && !selectedBrandId) {
       brandInitialized.current = true
       if (role !== 'superadmin') setSelectedBrandId(brands[0].id)
@@ -166,12 +198,15 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
       const saved = localStorage.getItem('sidebar-collapsed')
       if (saved !== null) setCollapsed(saved === 'true')
     } catch {}
-    // Leer cookie de impersonación (validar que sea un rol conocido)
+    try {
+      const savedSections = localStorage.getItem('sidebar-sections-collapsed')
+      if (savedSections) setCollapsedSections(JSON.parse(savedSections))
+    } catch {}
     try {
       const m = document.cookie.match(/ta_view_as=([^;]+)/)
       const validRoles: AppRole[] = ['superadmin', 'brand_admin', 'manager', 'advisor', 'reporting']
       if (m && validRoles.includes(m[1] as AppRole)) setViewAs(m[1] as AppRole)
-      else if (m) document.cookie = 'ta_view_as=; path=/; max-age=0' // limpiar cookie inválida
+      else if (m) document.cookie = 'ta_view_as=; path=/; max-age=0'
     } catch {}
   }, [])
 
@@ -195,6 +230,14 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     })
   }
 
+  function toggleSectionCollapsed(key: string) {
+    setCollapsedSections(prev => {
+      const next = { ...prev, [key]: !prev[key] }
+      try { localStorage.setItem('sidebar-sections-collapsed', JSON.stringify(next)) } catch {}
+      return next
+    })
+  }
+
   async function handleLogout() {
     const supabase = createClient()
     await supabase.auth.signOut()
@@ -206,44 +249,14 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     return pathname.startsWith(href)
   }
 
-  function isModuleAllowed(href: string): boolean {
-    // superadmin always sees everything
-    if (role === 'superadmin') return true
-
-    // Marketplace is always visible for all brand roles
-    if (href.startsWith('/admin/marketplace')) return true
-    if (href.startsWith('/superadmin/marketplace')) return true
-
-    // Clientes (formerly CRM) is now ALWAYS visible — it's the core module
-    if (href.startsWith('/admin/clientes')) return true
-
-    // Queue admin panel requires subscription — gated in nav
-    // /advisor is always visible in nav (TrialExpiredGate on the page handles access control)
-    if (href.startsWith('/admin/queue')) {
-      return activeModules?.queue === true
-    }
-
-    // Módulos de marketplace: SOLO visibles cuando están activos (trial o pago).
-    // active_modules[key] === true  → trial activo o pago activo → MOSTRAR
-    // active_modules[key] === false → trial vencido / cancelado  → OCULTAR del nav
-    // active_modules[key] === undefined → nunca activado          → OCULTAR del nav
-    // Si el usuario accede por URL directa (bookmark), TrialExpiredGate bloquea la página.
-    if (href.startsWith('/admin/appointments')) return activeModules?.appointments === true
-    if (href.startsWith('/admin/surveys')) return activeModules?.surveys === true
-    if (href.startsWith('/admin/menu')) return activeModules?.menu === true
-    // Pantalla TV es función core — siempre visible independiente del flag
-
-    return true
-  }
-
-  const activeRole = (viewAs && navByRole[viewAs] ? viewAs : null) || role
-  const sections = navByRole[activeRole] ?? []
+  // Determine which sections to show based on viewAs (impersonation)
+  const activeRole = (viewAs && ['superadmin', 'brand_admin', 'manager', 'advisor', 'reporting'].includes(viewAs) ? viewAs : null) || role
+  const sections = buildSections(activeRole, activeModules)
   const subtitle = brandName
     ? establishmentName ? `${brandName} · ${establishmentName}` : brandName
     : null
 
   function SidebarContent({ mobile = false }: { mobile?: boolean }) {
-    // On mobile, always show expanded (text labels visible) regardless of desktop collapsed state
     const isCollapsed = collapsed && !mobile
     return (
       <>
@@ -259,14 +272,12 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
             </div>
           )}
           {isCollapsed && <TurnFlowLogo size={26} />}
-          {/* Desktop toggle */}
           <button
             onClick={toggleCollapsed}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 hidden md:flex items-center justify-center shrink-0"
           >
             {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
-          {/* Mobile close */}
           <button
             onClick={() => setMobileOpen(false)}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 md:hidden shrink-0"
@@ -296,41 +307,61 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
         )}
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2">
+        <nav className="flex-1 overflow-y-auto py-2 px-2">
           {sections.map((section, si) => {
-            const allowedItems = section.items.filter(item => isModuleAllowed(item.href))
-            if (allowedItems.length === 0) return null
+            const isSectionCollapsed = !isCollapsed && !!collapsedSections[section.key]
+
             return (
-            <div key={si} className={cn('flex flex-col gap-0.5', si > 0 && 'mt-4')}>
-              {!isCollapsed && section.section && (
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 px-2 mb-1.5">
-                  {section.section}
-                </p>
-              )}
-              {isCollapsed && si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />}
-              {allowedItems.map(item => {
-                const active = isActive(item.href, item.exact)
-                const Icon = item.icon
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    title={isCollapsed ? item.label : undefined}
-                    className={cn(
-                      'flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors',
-                      isCollapsed && 'justify-center',
-                      active
-                        ? 'bg-indigo-50 text-indigo-700 font-medium'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-                    )}
+              <div key={section.key} className={cn('flex flex-col', si > 0 && 'mt-1')}>
+                {/* Section header with collapse toggle */}
+                {!isCollapsed ? (
+                  <button
+                    onClick={() => toggleSectionCollapsed(section.key)}
+                    className="flex items-center justify-between w-full px-2 pt-3 pb-1 group"
                   >
-                    <Icon size={17} className="shrink-0" />
-                    {!isCollapsed && <span>{item.label}</span>}
-                  </Link>
-                )
-              })}
-            </div>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-600 transition-colors">
+                      {section.section}
+                    </span>
+                    <ChevronDown
+                      size={12}
+                      className={cn(
+                        'text-gray-300 group-hover:text-gray-500 transition-all',
+                        isSectionCollapsed ? '-rotate-90' : 'rotate-0',
+                      )}
+                    />
+                  </button>
+                ) : (
+                  si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />
+                )}
+
+                {/* Section items */}
+                {!isSectionCollapsed && (
+                  <div className="flex flex-col gap-0.5">
+                    {section.items.map(item => {
+                      const active = isActive(item.href, item.exact)
+                      const Icon = item.icon
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          title={isCollapsed ? item.label : undefined}
+                          className={cn(
+                            'flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors',
+                            isCollapsed && 'justify-center',
+                            active
+                              ? 'bg-indigo-50 text-indigo-700 font-medium'
+                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                          )}
+                        >
+                          <Icon size={17} className="shrink-0" />
+                          {!isCollapsed && <span>{item.label}</span>}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           })}
         </nav>
@@ -397,7 +428,7 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
                 isCollapsed && 'justify-center',
               )}
             >
-              <EyeOff size={15} />
+              <Eye size={15} />
               {!isCollapsed && <span>Salir de vista asesor</span>}
             </button>
           )}
@@ -450,49 +481,28 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
         />
       )}
 
-      {/* Mobile drawer */}
+      {/* Mobile sidebar */}
       <aside className={cn(
-        'fixed left-0 top-0 h-full w-56 bg-white border-r border-gray-200 flex flex-col z-30 transition-transform duration-200 md:hidden',
+        'fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex-col z-30 transition-transform duration-200 w-64 md:hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
       )}>
-        <SidebarContent mobile={true} />
+        <SidebarContent mobile />
       </aside>
-
-      {/* Mobile top bar */}
-      <div className="md:hidden fixed top-0 left-0 right-0 h-13 bg-white border-b border-gray-200 flex items-center px-4 z-10 gap-3">
-        <button
-          onClick={() => setMobileOpen(true)}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-600"
-        >
-          <Menu size={20} />
-        </button>
-        <TurnFlowLogo size={26} />
-        <span className="font-bold text-gray-900 tracking-tight">TurnFlow</span>
-      </div>
 
       {/* Main content */}
       <main className={cn(
-        'flex-1 transition-all duration-200 min-h-screen',
+        'flex-1 min-h-screen transition-all duration-200',
         collapsed ? 'md:ml-16' : 'md:ml-56',
-        'pt-13 md:pt-0',
       )}>
-        {/* Banner de impersonación */}
-        {viewAs && (
-          <div className="bg-amber-50 border-b border-amber-200 px-4 py-2 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Eye size={14} className="text-amber-600" />
-              <span className="text-sm text-amber-800 font-medium">Vista como Asesor</span>
-              <span className="text-xs text-amber-600">— estás viendo la experiencia del asesor. Tu rol real no ha cambiado.</span>
-            </div>
-            <button
-              onClick={stopImpersonate}
-              className="text-xs text-amber-700 underline hover:text-amber-900 font-medium"
-            >
-              Volver a mi vista
-            </button>
-          </div>
-        )}
-        <div className="p-4 md:p-6 max-w-5xl mx-auto">
+        {/* Mobile topbar */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 md:hidden">
+          <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+            <Menu size={20} />
+          </button>
+          <TurnFlowLogo size={24} />
+          <span className="font-bold text-gray-900 text-sm">TurnFlow</span>
+        </div>
+        <div className="p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </main>
@@ -502,7 +512,7 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
 
 export function AppShell(props: AppShellProps) {
   return (
-    <I18nProvider initialLang={props.lang ?? 'es'}>
+    <I18nProvider initialLang={props.lang}>
       <AppShellInner {...props} />
     </I18nProvider>
   )
