@@ -13,13 +13,20 @@ export default async function ClientesPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile?.brand_id || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) {
+  // Role check
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) {
     redirect('/admin')
   }
 
-  const brandId = profile.brand_id
+  // Superadmin without a specific brand context → send to superadmin panel
+  // (they manage brands from /superadmin, not from the brand-level pages)
+  if (profile.role === 'superadmin' && !profile.brand_id) {
+    redirect('/superadmin')
+  }
 
-  // Load customers
+  const brandId = profile.brand_id as string
+
+  // Load customers for this brand
   const { data: customers } = await supabase
     .from('customers')
     .select('id, name, phone, email, document_id, first_visit_at, last_visit_at, total_visits, establishment_ids')

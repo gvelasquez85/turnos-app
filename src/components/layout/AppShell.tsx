@@ -100,7 +100,8 @@ const navByRole: Record<AppRole, NavSection[]> = {
     { section: 'Módulos adicionales', items: [...MODULE_ITEMS, MARKETPLACE_ITEM] },
   ],
   advisor: [
-    // Queue is now a paid module — shown via MODULE_ITEMS filtering in isModuleAllowed()
+    // Always show Cola de espera — TrialExpiredGate handles access if Queue not subscribed
+    { section: 'Operación', items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }] },
   ],
   reporting: [
     { section: 'Reportes', items: [{ href: '/reports', label: 'Reportes', icon: BarChart2 }] },
@@ -216,8 +217,9 @@ function AppShellInner({ children, role, fullName, email, brandName, establishme
     // Clientes (formerly CRM) is now ALWAYS visible — it's the core module
     if (href.startsWith('/admin/clientes')) return true
 
-    // Queue and Advisor routes require queue subscription
-    if (href.startsWith('/admin/queue') || href.startsWith('/advisor')) {
+    // Queue admin panel requires subscription — gated in nav
+    // /advisor is always visible in nav (TrialExpiredGate on the page handles access control)
+    if (href.startsWith('/admin/queue')) {
       return activeModules?.queue === true
     }
 
