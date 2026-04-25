@@ -3,7 +3,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import {
   Clock, Users, Monitor, BarChart2, MessageSquare, CheckCircle,
-  ChevronRight, Menu, X, Star, Zap, Shield, Globe,
+  ChevronRight, Menu, X, Star, Zap, Shield, Globe, Tag,
 } from 'lucide-react'
 import { PRICING_COP, formatCurrency } from '@/lib/billing-cop'
 
