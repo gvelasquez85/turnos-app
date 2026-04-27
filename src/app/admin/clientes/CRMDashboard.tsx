@@ -6,7 +6,7 @@ import {
   Phone, Mail, Building2, Calendar, TrendingUp, Star,
   ChevronDown, ChevronUp, X, Plus, Edit2, Check,
   MessageSquare, Tag, Clock, FileText, ChevronRight,
-  Cake, Wifi, Smartphone, Save, Loader2,
+  Cake, Wifi, Smartphone, Save, Loader2, ShoppingCart, CalendarCheck,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -130,6 +130,7 @@ function CustomerSlideOver({
     if (tab === 'etiquetas' || tab === 'historial' || tab === 'notas') {
       setLoadingTabs(true)
       const supabase = createClient()
+
       if (tab === 'etiquetas') {
         const { data } = await supabase
           .from('customer_tags')
@@ -137,13 +138,77 @@ function CustomerSlideOver({
           .eq('customer_id', customer.id)
         setTags(data ?? [])
       } else {
-        const { data } = await supabase
+        // Load from customer_history table (manual notes/history)
+        const { data: manualHistory } = await supabase
           .from('customer_history')
           .select('*')
           .eq('customer_id', customer.id)
           .order('fecha', { ascending: false })
           .limit(30)
-        setHistory(data ?? [])
+
+        // Load queue tickets for this customer
+        const { data: tickets } = await supabase
+          .from('queue_tickets')
+          .select('id, created_at, status, visit_reason_id, visit_reasons(name), establishment_id, establishments(name)')
+          .eq('customer_id', customer.id)
+          .order('created_at', { ascending: false })
+          .limit(20)
+
+        // Load appointments for this customer
+        const { data: appointments } = await supabase
+          .from('appointments')
+          .select('id, scheduled_at, status, service_name, establishment_id, establishments(name)')
+          .eq('customer_id', customer.id)
+          .order('scheduled_at', { ascending: false })
+          .limit(20)
+
+        // Load sales for this customer
+        const { data: sales } = await supabase
+          .from('sales')
+          .select('id, total, created_at, type, status, establishment_id, establishments(name)')
+          .eq('customer_id', customer.id)
+          .eq('type', 'sale')
+          .order('created_at', { ascending: false })
+          .limit(20)
+
+        // Normalize all into CustomerHistoryItem format
+        const normalized: CustomerHistoryItem[] = [
+          ...(manualHistory ?? []),
+          ...(tickets ?? []).filter((t: any) => t.status === 'attended').map((t: any) => ({
+            id: `ticket_${t.id}`,
+            customer_id: customer.id,
+            tipo: 'cola',
+            fecha: t.created_at,
+            detalles: [
+              t.visit_reasons?.name ? `Motivo: ${t.visit_reasons.name}` : null,
+              t.establishments?.name ? `Sucursal: ${t.establishments.name}` : null,
+            ].filter(Boolean).join(' · ') || 'Atención en cola de espera',
+          })),
+          ...(appointments ?? []).filter((a: any) => a.status !== 'cancelled').map((a: any) => ({
+            id: `appt_${a.id}`,
+            customer_id: customer.id,
+            tipo: 'cita',
+            fecha: a.scheduled_at,
+            detalles: [
+              a.service_name ? `Servicio: ${a.service_name}` : null,
+              a.establishments?.name ? `Sucursal: ${a.establishments.name}` : null,
+            ].filter(Boolean).join(' · ') || 'Cita agendada',
+          })),
+          ...(sales ?? []).filter((s: any) => s.status === 'completed').map((s: any) => ({
+            id: `sale_${s.id}`,
+            customer_id: customer.id,
+            tipo: 'venta',
+            fecha: s.created_at,
+            detalles: [
+              `Total: ${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(s.total)}`,
+              s.establishments?.name ? `Sucursal: ${s.establishments.name}` : null,
+            ].filter(Boolean).join(' · '),
+          })),
+        ]
+
+        // Sort by fecha desc
+        normalized.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
+        setHistory(normalized)
       }
       setLoadingTabs(false)
     }
@@ -507,14 +572,21 @@ function CustomerSlideOver({
                   {history.map(item => (
                     <div key={item.id} className="flex gap-3 p-3 rounded-xl border border-gray-100">
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                        item.tipo === 'visita' ? 'bg-green-100 text-green-600'
-                        : item.tipo === 'compra' ? 'bg-purple-100 text-purple-600'
+                        item.tipo === 'visita' || item.tipo === 'cola' ? 'bg-green-100 text-green-600'
+                        : item.tipo === 'compra' || item.tipo === 'venta' ? 'bg-emerald-100 text-emerald-600'
+                        : item.tipo === 'cita' ? 'bg-blue-100 text-blue-600'
                         : 'bg-gray-100 text-gray-500'
                       }`}>
-                        {item.tipo === 'visita' ? <UserCheck size={13} /> : item.tipo === 'compra' ? <Star size={13} /> : <MessageSquare size={13} />}
+                        {item.tipo === 'visita' || item.tipo === 'cola' ? <UserCheck size={13} />
+                          : item.tipo === 'compra' || item.tipo === 'venta' ? <ShoppingCart size={13} />
+                          : item.tipo === 'cita' ? <CalendarCheck size={13} />
+                          : <MessageSquare size={13} />}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-gray-700 capitalize">{item.tipo}</p>
+                        <p className="text-xs font-semibold text-gray-700 capitalize">{{
+                          visita: 'Visita', cola: 'Cola de espera', compra: 'Compra',
+                          venta: 'Venta', cita: 'Cita', nota: 'Nota'
+                        }[item.tipo] ?? item.tipo}</p>
                         {item.detalles && <p className="text-xs text-gray-500 mt-0.5">{item.detalles}</p>}
                         <p className="text-[10px] text-gray-400 mt-1">{fmt(item.fecha)}</p>
                       </div>

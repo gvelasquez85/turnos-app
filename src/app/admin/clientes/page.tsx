@@ -29,7 +29,7 @@ export default async function ClientesPage() {
   // Load customers for this brand
   const { data: customers } = await supabase
     .from('customers')
-    .select('id, name, phone, email, document_id, first_visit_at, last_visit_at, total_visits, establishment_ids')
+    .select('id, name, phone, email, document_id, first_visit_at, last_visit_at, total_visits, establishment_ids, celular, canal_contacto, ultima_compra, intereses, cumpleanos')
     .eq('brand_id', brandId)
     .order('last_visit_at', { ascending: false })
 

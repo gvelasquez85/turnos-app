@@ -7,9 +7,10 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Building2, MessageSquare, FileText, Tag, BarChart2,
   Users, Store, Menu, ChevronLeft, ChevronRight, ChevronDown,
-  LogOut, LayoutDashboard, X, Eye, EyeOff,
+  LogOut, LayoutDashboard, X, Eye,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
+  ShoppingCart, Package, FileCheck, PieChart, TrendingUp,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -74,6 +75,21 @@ const MENU_ITEMS: NavItem[] = [
   { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
 ]
 
+const VENTAS_ITEMS: NavItem[] = [
+  { href: '/admin/ventas', label: 'Dashboard ventas', icon: ShoppingCart, exact: true },
+  { href: '/admin/ventas/inventario', label: 'Inventario', icon: Package },
+  { href: '/admin/ventas/cotizaciones', label: 'Cotizaciones', icon: FileCheck },
+]
+
+const REPORTES_ITEMS_BASE: NavItem[] = [
+  { href: '/admin/reportes/clientes', label: 'Clientes', icon: Users },
+]
+
+const REPORTES_QUEUE_ITEM: NavItem = { href: '/admin/reportes/atencion', label: 'Atención', icon: Clock }
+const REPORTES_VENTAS_ITEM: NavItem = { href: '/admin/reportes/ventas', label: 'Ventas', icon: TrendingUp }
+const REPORTES_PRODUCTOS_ITEM: NavItem = { href: '/admin/reportes/productos', label: 'Productos', icon: Package }
+const REPORTES_COTIZACIONES_ITEM: NavItem = { href: '/admin/reportes/cotizaciones', label: 'Cotizaciones', icon: FileCheck }
+
 // ─── Section builder ────────────────────────────────────────────────────────────
 
 function buildSections(
@@ -105,19 +121,33 @@ function buildSections(
           { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
         ],
       },
-      { key: 'marca', section: 'Mi Marca', items: BRAND_ITEMS },
+      { key: 'marca', section: 'Mi Marca', items: BRAND_ITEMS.filter(i => i.href !== '/reports') },
       { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
       { key: 'colas', section: 'Colas de espera', items: QUEUE_ITEMS },
       { key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS },
       { key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS },
       { key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS },
+      { key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS },
+      {
+        key: 'reportes', section: 'Reportes', items: [
+          ...REPORTES_ITEMS_BASE,
+          REPORTES_QUEUE_ITEM,
+          REPORTES_VENTAS_ITEM,
+          REPORTES_PRODUCTOS_ITEM,
+          REPORTES_COTIZACIONES_ITEM,
+        ],
+      },
     ]
   }
 
   // brand_admin / manager
   const brandItems = role === 'brand_admin' ? BRAND_ITEMS : MANAGER_BRAND_ITEMS
+
+  // Mi Marca items WITHOUT the old /reports link (reports moved to own section)
+  const brandItemsFiltered = brandItems.filter(i => i.href !== '/reports')
+
   const sections: NavSection[] = [
-    { key: 'marca', section: 'Mi Marca', items: brandItems },
+    { key: 'marca', section: 'Mi Marca', items: brandItemsFiltered },
     { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
   ]
 
@@ -133,6 +163,19 @@ function buildSections(
   if (activeModules?.menu) {
     sections.push({ key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS })
   }
+  if (activeModules?.sales) {
+    sections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
+  }
+
+  // Reportes: always show, sub-items depend on active modules
+  const reportesItems: NavItem[] = [...REPORTES_ITEMS_BASE]
+  if (activeModules?.queue) reportesItems.push(REPORTES_QUEUE_ITEM)
+  if (activeModules?.sales) {
+    reportesItems.push(REPORTES_VENTAS_ITEM)
+    reportesItems.push(REPORTES_PRODUCTOS_ITEM)
+    reportesItems.push(REPORTES_COTIZACIONES_ITEM)
+  }
+  sections.push({ key: 'reportes', section: 'Reportes', items: reportesItems })
 
   sections.push({ key: 'marketplace', section: 'Más', items: [{ href: '/admin/marketplace', label: 'Marketplace', icon: Zap }] })
   return sections
