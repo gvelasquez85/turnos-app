@@ -127,6 +127,7 @@ function buildSections(
       { key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS },
       { key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS },
       { key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS },
+      // For superadmin, show Ventas + full Reportes always (they act in brand context via brand selector)
       { key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS },
       {
         key: 'reportes', section: 'Reportes', items: [

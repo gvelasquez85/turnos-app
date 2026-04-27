@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { NoBrandContext } from '@/components/NoBrandContext'
 import { ReporteVentas } from './ReporteVentas'
 
 export default async function ReporteVentasPage() {
@@ -11,8 +12,10 @@ export default async function ReporteVentasPage() {
   const { data: profile } = await supabase
     .from('profiles').select('role, brand_id').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) redirect('/admin')
-  if (profile.role === 'superadmin' && !profile.brand_id) redirect('/superadmin')
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
+    redirect('/admin')
+
+  if (!profile.brand_id) return <NoBrandContext />
 
   const brandId = profile.brand_id as string
 
@@ -24,22 +27,19 @@ export default async function ReporteVentasPage() {
     isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
   }
 
-  const [{ data: sales }, { data: establishments }] = await Promise.all([
-    supabase
-      .from('sales')
+  const [salesRes, estRes] = await Promise.allSettled([
+    supabase.from('sales')
       .select('id, type, status, total, subtotal, discount, created_at, establishment_id, customer_id, customers(name)')
-      .eq('brand_id', brandId)
-      .eq('type', 'sale')
-      .order('created_at', { ascending: false }),
+      .eq('brand_id', brandId).eq('type', 'sale').order('created_at', { ascending: false }),
     supabase.from('establishments').select('id, name').eq('brand_id', brandId).eq('active', true).order('name'),
   ])
 
+  const sales = salesRes.status === 'fulfilled' ? (salesRes.value.data ?? []) : []
+  const establishments = estRes.status === 'fulfilled' ? (estRes.value.data ?? []) : []
+
   return (
     <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <ReporteVentas
-        sales={(sales ?? []) as any[]}
-        establishments={establishments ?? []}
-      />
+      <ReporteVentas sales={sales as any[]} establishments={establishments} />
     </TrialExpiredGate>
   )
 }

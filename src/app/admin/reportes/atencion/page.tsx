@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { NoBrandContext } from '@/components/NoBrandContext'
 import { ReportsDashboard } from '@/app/reports/ReportsDashboard'
 
 export default async function ReporteAtencionPage() {
@@ -9,17 +10,15 @@ export default async function ReporteAtencionPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, brand_id, establishment_id, brands(active_modules)')
-    .eq('id', user.id)
-    .single()
+    .from('profiles').select('role, brand_id, establishment_id, brands(active_modules)').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) redirect('/admin')
-  if (profile.role === 'superadmin' && !profile.brand_id) redirect('/superadmin')
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
+    redirect('/admin')
+
+  if (!profile.brand_id) return <NoBrandContext />
 
   const brandId = profile.brand_id as string
 
-  // Check queue module
   let isExpired = false, expiredAt: string | null = null
   const { data: sub } = await supabase.from('module_subscriptions')
     .select('status, trial_expires_at, expires_at')
@@ -32,8 +31,7 @@ export default async function ReporteAtencionPage() {
   const activeModules = Object.keys(moduleObj).filter(k => moduleObj[k] === true)
 
   const { data: establishments } = await supabase
-    .from('establishments').select('id, name, brand_id')
-    .eq('brand_id', brandId).eq('active', true)
+    .from('establishments').select('id, name, brand_id').eq('brand_id', brandId).eq('active', true)
 
   return (
     <TrialExpiredGate isExpired={isExpired} moduleLabel="Colas de espera" expiredAt={expiredAt}>

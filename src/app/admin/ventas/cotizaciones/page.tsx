@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { NoBrandContext } from '@/components/NoBrandContext'
 import { CotizacionesManager } from './CotizacionesManager'
 
 export default async function CotizacionesPage() {
@@ -9,13 +10,12 @@ export default async function CotizacionesPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, brand_id')
-    .eq('id', user.id)
-    .single()
+    .from('profiles').select('role, brand_id').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) redirect('/admin')
-  if (profile.role === 'superadmin' && !profile.brand_id) redirect('/superadmin')
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
+    redirect('/admin')
+
+  if (!profile.brand_id) return <NoBrandContext />
 
   const brandId = profile.brand_id as string
 
@@ -27,24 +27,20 @@ export default async function CotizacionesPage() {
     isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
   }
 
-  const [{ data: quotes }, { data: establishments }] = await Promise.all([
-    supabase
-      .from('sales')
+  const [quotesRes, estRes] = await Promise.allSettled([
+    supabase.from('sales')
       .select('id, status, total, created_at, establishment_id, customer_id, notes, customers(name)')
-      .eq('brand_id', brandId)
-      .eq('type', 'quote')
-      .order('created_at', { ascending: false })
-      .limit(100),
+      .eq('brand_id', brandId).eq('type', 'quote')
+      .order('created_at', { ascending: false }).limit(100),
     supabase.from('establishments').select('id, name').eq('brand_id', brandId).eq('active', true).order('name'),
   ])
 
+  const quotes = quotesRes.status === 'fulfilled' ? (quotesRes.value.data ?? []) : []
+  const establishments = estRes.status === 'fulfilled' ? (estRes.value.data ?? []) : []
+
   return (
     <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <CotizacionesManager
-        brandId={brandId}
-        quotes={(quotes ?? []) as any[]}
-        establishments={establishments ?? []}
-      />
+      <CotizacionesManager brandId={brandId} quotes={quotes as any[]} establishments={establishments} />
     </TrialExpiredGate>
   )
 }

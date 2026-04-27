@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { NoBrandContext } from '@/components/NoBrandContext'
 import { VentasDashboard } from './VentasDashboard'
 
 export default async function VentasPage() {
@@ -9,58 +10,38 @@ export default async function VentasPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, brand_id')
-    .eq('id', user.id)
-    .single()
+    .from('profiles').select('role, brand_id').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) {
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
     redirect('/admin')
-  }
-  if (profile.role === 'superadmin' && !profile.brand_id) redirect('/superadmin')
+
+  if (!profile.brand_id) return <NoBrandContext />
 
   const brandId = profile.brand_id as string
 
-  // Check sales module subscription
-  let isExpired = false
-  let expiredAt: string | null = null
+  let isExpired = false, expiredAt: string | null = null
   const { data: sub } = await supabase
-    .from('module_subscriptions')
-    .select('status, trial_expires_at, expires_at')
-    .eq('brand_id', brandId)
-    .eq('module_key', 'sales')
-    .maybeSingle()
+    .from('module_subscriptions').select('status, trial_expires_at, expires_at')
+    .eq('brand_id', brandId).eq('module_key', 'sales').maybeSingle()
   if (!sub || sub.status === 'expired' || sub.status === 'cancelled') {
-    isExpired = true
-    expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
+    isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
   }
 
-  // Load recent sales (last 30 days)
   const since = new Date(Date.now() - 30 * 86400000).toISOString()
-  const [{ data: recentSales }, { data: establishments }] = await Promise.all([
-    supabase
-      .from('sales')
+  const [salesRes, estRes] = await Promise.allSettled([
+    supabase.from('sales')
       .select('id, type, status, total, created_at, establishment_id, customer_id, customers(name)')
-      .eq('brand_id', brandId)
-      .eq('type', 'sale')
-      .gte('created_at', since)
-      .order('created_at', { ascending: false })
-      .limit(50),
-    supabase
-      .from('establishments')
-      .select('id, name')
-      .eq('brand_id', brandId)
-      .eq('active', true)
-      .order('name'),
+      .eq('brand_id', brandId).eq('type', 'sale').gte('created_at', since)
+      .order('created_at', { ascending: false }).limit(50),
+    supabase.from('establishments').select('id, name').eq('brand_id', brandId).eq('active', true).order('name'),
   ])
+
+  const recentSales = salesRes.status === 'fulfilled' ? (salesRes.value.data ?? []) : []
+  const establishments = estRes.status === 'fulfilled' ? (estRes.value.data ?? []) : []
 
   return (
     <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <VentasDashboard
-        brandId={brandId}
-        recentSales={(recentSales ?? []) as any[]}
-        establishments={establishments ?? []}
-      />
+      <VentasDashboard brandId={brandId} recentSales={recentSales as any[]} establishments={establishments} />
     </TrialExpiredGate>
   )
 }

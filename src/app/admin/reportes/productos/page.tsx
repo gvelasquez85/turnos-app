@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { NoBrandContext } from '@/components/NoBrandContext'
 import { ReporteProductos } from './ReporteProductos'
 
 export default async function ReporteProductosPage() {
@@ -11,8 +12,10 @@ export default async function ReporteProductosPage() {
   const { data: profile } = await supabase
     .from('profiles').select('role, brand_id').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) redirect('/admin')
-  if (profile.role === 'superadmin' && !profile.brand_id) redirect('/superadmin')
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
+    redirect('/admin')
+
+  if (!profile.brand_id) return <NoBrandContext />
 
   const brandId = profile.brand_id as string
 
@@ -24,7 +27,12 @@ export default async function ReporteProductosPage() {
     isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
   }
 
-  // Get sale items joined with products
+  const [productsRes] = await Promise.allSettled([
+    supabase.from('products').select('id, name, stock, min_stock, price, category').eq('brand_id', brandId).eq('active', true),
+  ])
+
+  const products = productsRes.status === 'fulfilled' ? (productsRes.value.data ?? []) : []
+  // Sale items query gracefully falls back to empty if table doesn't exist
   const { data: saleItems } = await supabase
     .from('sale_items')
     .select('product_id, product_name, qty, line_total, sales!inner(brand_id, type, status, created_at)')
@@ -32,15 +40,9 @@ export default async function ReporteProductosPage() {
     .eq('sales.type', 'sale')
     .eq('sales.status', 'completed')
 
-  const { data: products } = await supabase
-    .from('products').select('id, name, stock, min_stock, price, category').eq('brand_id', brandId).eq('active', true)
-
   return (
     <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <ReporteProductos
-        saleItems={(saleItems ?? []) as any[]}
-        products={products ?? []}
-      />
+      <ReporteProductos saleItems={(saleItems ?? []) as any[]} products={products as any[]} />
     </TrialExpiredGate>
   )
 }

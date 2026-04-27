@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { NoBrandContext } from '@/components/NoBrandContext'
 import { InventarioManager } from './InventarioManager'
 
 export default async function InventarioPage() {
@@ -9,52 +10,34 @@ export default async function InventarioPage() {
   if (!user) redirect('/login')
 
   const { data: profile } = await supabase
-    .from('profiles')
-    .select('role, brand_id')
-    .eq('id', user.id)
-    .single()
+    .from('profiles').select('role, brand_id').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? '')) {
+  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
     redirect('/admin')
-  }
-  if (profile.role === 'superadmin' && !profile.brand_id) redirect('/superadmin')
+
+  if (!profile.brand_id) return <NoBrandContext />
 
   const brandId = profile.brand_id as string
 
-  let isExpired = false
-  let expiredAt: string | null = null
-  const { data: sub } = await supabase
-    .from('module_subscriptions')
+  let isExpired = false, expiredAt: string | null = null
+  const { data: sub } = await supabase.from('module_subscriptions')
     .select('status, trial_expires_at, expires_at')
-    .eq('brand_id', brandId)
-    .eq('module_key', 'sales')
-    .maybeSingle()
+    .eq('brand_id', brandId).eq('module_key', 'sales').maybeSingle()
   if (!sub || sub.status === 'expired' || sub.status === 'cancelled') {
-    isExpired = true
-    expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
+    isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
   }
 
-  const [{ data: products }, { data: establishments }] = await Promise.all([
-    supabase
-      .from('products')
-      .select('*')
-      .eq('brand_id', brandId)
-      .order('name'),
-    supabase
-      .from('establishments')
-      .select('id, name')
-      .eq('brand_id', brandId)
-      .eq('active', true)
-      .order('name'),
+  const [productsRes, estRes] = await Promise.allSettled([
+    supabase.from('products').select('*').eq('brand_id', brandId).order('name'),
+    supabase.from('establishments').select('id, name').eq('brand_id', brandId).eq('active', true).order('name'),
   ])
+
+  const products = productsRes.status === 'fulfilled' ? (productsRes.value.data ?? []) : []
+  const establishments = estRes.status === 'fulfilled' ? (estRes.value.data ?? []) : []
 
   return (
     <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <InventarioManager
-        brandId={brandId}
-        products={products ?? []}
-        establishments={establishments ?? []}
-      />
+      <InventarioManager brandId={brandId} products={products as any[]} establishments={establishments} />
     </TrialExpiredGate>
   )
 }
