@@ -18,9 +18,16 @@ export default async function QuoteDesignerPage() {
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
   if (!brandId) return <NoBrandContext />
 
-  // Load brand info for defaults
+  // Load brand info including saved template
   const { data: brand } = await supabase
-    .from('brands').select('id, name, logo_url').eq('id', brandId).single()
+    .from('brands').select('id, name, logo_url, quote_template').eq('id', brandId).single()
 
-  return <QuoteDesigner brandId={brandId} brandName={brand?.name ?? ''} brandLogoUrl={brand?.logo_url ?? null} />
+  return (
+    <QuoteDesigner
+      brandId={brandId}
+      brandName={brand?.name ?? ''}
+      brandLogoUrl={(brand as any)?.logo_url ?? null}
+      savedTemplate={(brand as any)?.quote_template ?? null}
+    />
+  )
 }

@@ -3,108 +3,10 @@ import { useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Palette, Type, Layout, Eye, Save, RotateCcw,
-  Building2, Phone, Mail, Globe, Hash, Calendar,
+  Phone, Mail, Globe, Hash, Calendar,
   Check,
 } from 'lucide-react'
-
-// ─── Types ────────────────────────────────────────────────────────────────────
-
-interface QuoteTemplate {
-  // Brand / company section
-  showLogo: boolean
-  logoPosition: 'left' | 'center' | 'right'
-  showCompanyName: boolean
-  showCompanyPhone: boolean
-  showCompanyEmail: boolean
-  showCompanyAddress: boolean
-  showCompanyWebsite: boolean
-  showCompanyNIT: boolean
-
-  // Colors
-  primaryColor: string
-  accentColor: string
-  textColor: string
-  bgColor: string
-  tableBg: string
-  tableHeaderBg: string
-
-  // Typography
-  fontFamily: 'sans' | 'serif' | 'mono'
-  headerSize: 'sm' | 'md' | 'lg'
-  bodySize: 'xs' | 'sm' | 'md'
-
-  // Layout
-  headerLayout: 'logo-left' | 'logo-right' | 'logo-center' | 'no-logo'
-  showBorder: boolean
-  borderRadius: 'none' | 'sm' | 'md' | 'lg'
-  showWatermark: boolean
-
-  // Quote fields shown
-  showQuoteNumber: boolean
-  showDate: boolean
-  showDueDate: boolean
-  showCustomerSection: boolean
-  showNotes: boolean
-  showBankInfo: boolean
-  showPaymentTerms: boolean
-  showSignatureLine: boolean
-  showTaxes: boolean
-
-  // Custom texts
-  headerTitle: string
-  footerText: string
-  bankInfo: string
-  paymentTerms: string
-  closingMessage: string
-
-  // Table columns
-  showSKU: boolean
-  showDescription: boolean
-  showUnitPrice: boolean
-  showDiscount: boolean
-}
-
-const DEFAULTS: QuoteTemplate = {
-  showLogo: true,
-  logoPosition: 'left',
-  showCompanyName: true,
-  showCompanyPhone: true,
-  showCompanyEmail: true,
-  showCompanyAddress: true,
-  showCompanyWebsite: false,
-  showCompanyNIT: true,
-  primaryColor: '#4F46E5',
-  accentColor: '#10B981',
-  textColor: '#111827',
-  bgColor: '#FFFFFF',
-  tableBg: '#F9FAFB',
-  tableHeaderBg: '#4F46E5',
-  fontFamily: 'sans',
-  headerSize: 'lg',
-  bodySize: 'sm',
-  headerLayout: 'logo-left',
-  showBorder: true,
-  borderRadius: 'md',
-  showWatermark: false,
-  showQuoteNumber: true,
-  showDate: true,
-  showDueDate: true,
-  showCustomerSection: true,
-  showNotes: true,
-  showBankInfo: false,
-  showPaymentTerms: true,
-  showSignatureLine: false,
-  showTaxes: false,
-  headerTitle: 'COTIZACIÓN',
-  footerText: 'Gracias por su preferencia.',
-  bankInfo: '',
-  paymentTerms: 'Válido por 30 días a partir de la fecha de emisión.',
-  closingMessage: '',
-  showSKU: false,
-  showDescription: true,
-  showUnitPrice: true,
-  showDiscount: false,
-}
+import { QuoteTemplate, QUOTE_TEMPLATE_DEFAULTS as DEFAULTS, resolveTemplate } from '@/lib/quoteTemplate'
 
 const COLOR_PRESETS = [
   { name: 'Índigo', primary: '#4F46E5', accent: '#10B981' },
@@ -371,12 +273,13 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ─── Main Designer ─────────────────────────────────────────────────────────────
 
-export function QuoteDesigner({ brandId, brandName, brandLogoUrl }: {
+export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate }: {
   brandId: string
   brandName: string
   brandLogoUrl: string | null
+  savedTemplate?: Partial<QuoteTemplate> | null
 }) {
-  const [template, setTemplate] = useState<QuoteTemplate>(DEFAULTS)
+  const [template, setTemplate] = useState<QuoteTemplate>(() => resolveTemplate(savedTemplate))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [activeTab, setActiveTab] = useState<'design' | 'content' | 'fields'>('design')
