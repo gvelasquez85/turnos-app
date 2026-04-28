@@ -12,13 +12,23 @@ export const PRICING = {
 
 /** Core features always included — no extra charge */
 export const CORE_MODULES = [
-  'queue',
+  'clientes',
+  'sales',
   'display',
   'consents',
-  'promotions',
   'advisor_fields',
   'forms',
 ]
+
+/**
+ * Calculate queue module price.
+ * Base: $80,000/month. Each additional establishment beyond the first: +$20,000.
+ */
+export function calcQueuePrice(establishments: number): number {
+  const BASE = 80000
+  const PER_EXTRA_EST = 20000
+  return BASE + Math.max(0, establishments - 1) * PER_EXTRA_EST
+}
 
 /**
  * Calculate base monthly cost.

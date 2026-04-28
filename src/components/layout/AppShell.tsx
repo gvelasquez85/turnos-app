@@ -38,16 +38,14 @@ const BRAND_ITEMS: NavItem[] = [
   { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/users', label: 'Equipo', icon: Users },
-  { href: '/reports', label: 'Reportes', icon: BarChart2 },
-  { href: '/admin/promotions', label: 'Promociones', icon: Tag },
 ]
 
 const MANAGER_BRAND_ITEMS: NavItem[] = [
   { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
-  { href: '/reports', label: 'Reportes', icon: BarChart2 },
-  { href: '/admin/promotions', label: 'Promociones', icon: Tag },
 ]
+
+const PROMOTIONS_ITEM: NavItem = { href: '/admin/promotions', label: 'Promociones', icon: Tag }
 
 const CLIENTES_ITEMS: NavItem[] = [
   { href: '/admin/clientes', label: 'Clientes', icon: Users },
@@ -121,9 +119,9 @@ function buildSections(
           { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
         ],
       },
-      { key: 'marca', section: 'Mi Marca', items: BRAND_ITEMS.filter(i => i.href !== '/reports') },
+      { key: 'marca', section: 'Mi Marca', items: BRAND_ITEMS },
       { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
-      { key: 'colas', section: 'Colas de espera', items: QUEUE_ITEMS },
+      { key: 'colas', section: 'Colas de espera', items: [...QUEUE_ITEMS, PROMOTIONS_ITEM] },
       { key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS },
       { key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS },
       { key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS },
@@ -144,16 +142,15 @@ function buildSections(
   // brand_admin / manager
   const brandItems = role === 'brand_admin' ? BRAND_ITEMS : MANAGER_BRAND_ITEMS
 
-  // Mi Marca items WITHOUT the old /reports link (reports moved to own section)
-  const brandItemsFiltered = brandItems.filter(i => i.href !== '/reports')
-
   const sections: NavSection[] = [
-    { key: 'marca', section: 'Mi Marca', items: brandItemsFiltered },
+    { key: 'marca', section: 'Mi Marca', items: brandItems },
     { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
   ]
 
+  // Queue module — paid, includes Promotions when active
   if (activeModules?.queue) {
-    sections.push({ key: 'colas', section: 'Colas de espera', items: QUEUE_ITEMS })
+    const queueItems = [...QUEUE_ITEMS, PROMOTIONS_ITEM]
+    sections.push({ key: 'colas', section: 'Colas de espera', items: queueItems })
   }
   if (activeModules?.appointments) {
     sections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
@@ -164,18 +161,17 @@ function buildSections(
   if (activeModules?.menu) {
     sections.push({ key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS })
   }
-  if (activeModules?.sales) {
-    sections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
-  }
 
-  // Reportes: always show, sub-items depend on active modules
+  // Ventas — always free, always visible
+  sections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
+
+  // Reportes — always visible; sub-items depend on active modules
   const reportesItems: NavItem[] = [...REPORTES_ITEMS_BASE]
   if (activeModules?.queue) reportesItems.push(REPORTES_QUEUE_ITEM)
-  if (activeModules?.sales) {
-    reportesItems.push(REPORTES_VENTAS_ITEM)
-    reportesItems.push(REPORTES_PRODUCTOS_ITEM)
-    reportesItems.push(REPORTES_COTIZACIONES_ITEM)
-  }
+  // Ventas reports always included (sales is free)
+  reportesItems.push(REPORTES_VENTAS_ITEM)
+  reportesItems.push(REPORTES_PRODUCTOS_ITEM)
+  reportesItems.push(REPORTES_COTIZACIONES_ITEM)
   sections.push({ key: 'reportes', section: 'Reportes', items: reportesItems })
 
   sections.push({ key: 'marketplace', section: 'Más', items: [{ href: '/admin/marketplace', label: 'Marketplace', icon: Zap }] })

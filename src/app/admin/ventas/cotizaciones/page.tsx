@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import { NoBrandContext } from '@/components/NoBrandContext'
 import { CotizacionesManager } from './CotizacionesManager'
 
@@ -19,14 +18,6 @@ export default async function CotizacionesPage() {
 
   const brandId = profile.brand_id as string
 
-  let isExpired = false, expiredAt: string | null = null
-  const { data: sub } = await supabase.from('module_subscriptions')
-    .select('status, trial_expires_at, expires_at')
-    .eq('brand_id', brandId).eq('module_key', 'sales').maybeSingle()
-  if (!sub || sub.status === 'expired' || sub.status === 'cancelled') {
-    isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
-  }
-
   const [quotesRes, estRes] = await Promise.allSettled([
     supabase.from('sales')
       .select('id, status, total, created_at, establishment_id, customer_id, notes, customers(name)')
@@ -38,9 +29,5 @@ export default async function CotizacionesPage() {
   const quotes = quotesRes.status === 'fulfilled' ? (quotesRes.value.data ?? []) : []
   const establishments = estRes.status === 'fulfilled' ? (estRes.value.data ?? []) : []
 
-  return (
-    <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <CotizacionesManager brandId={brandId} quotes={quotes as any[]} establishments={establishments} />
-    </TrialExpiredGate>
-  )
+  return <CotizacionesManager brandId={brandId} quotes={quotes as any[]} establishments={establishments} />
 }

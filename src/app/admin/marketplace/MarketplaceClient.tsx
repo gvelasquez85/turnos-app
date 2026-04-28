@@ -8,8 +8,11 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { calcMonthlyBase, PRICING } from '@/lib/planLimits'
+import { calcMonthlyBase, calcQueuePrice, PRICING } from '@/lib/planLimits'
 import { PayPalButton } from '@/components/PayPalButton'
+
+// Free modules — always included, shown in "Incluido" section
+const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales']
 
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -119,6 +122,8 @@ export function MarketplaceClient({
 
   function getSub(key: string) { return subs.find(s => s.module_key === key) }
   function modulePrice(mod: MarketplaceModule) {
+    // Queue has dynamic pricing: $80k base + $20k per extra establishment
+    if (mod.module_key === 'queue') return calcQueuePrice(maxEstablishments)
     const base = mod.price_monthly ?? 0
     const perUser = mod.price_per_user ? (mod.price_per_user_amount ?? 0) * maxAdvisors : 0
     return base + perUser
@@ -252,35 +257,41 @@ export function MarketplaceClient({
 
       {/* Included Modules (free, no trial/payment) */}
       {(() => {
-        const includedMod = modules.find(m => m.module_key === 'clientes' || m.module_key === 'crm')
-        if (!includedMod) return null
+        const includedMods = modules.filter(m => FREE_MODULE_KEYS.includes(m.module_key))
+        if (includedMods.length === 0) return null
+        const includedMod = includedMods[0] // representative (show first, usually 'clientes')
         const Icon = getIcon(includedMod.icon ?? '')
         return (
           <div className="mb-7">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Incluido en tu plan</h2>
-            <div className="bg-white rounded-2xl border-2 border-emerald-200">
-              <div className="p-5 flex-1">
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-11 h-11 bg-emerald-500 rounded-xl flex items-center justify-center`}>
-                    <Icon size={20} className="text-white" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {includedMods.map(mod => {
+                const ModIcon = getIcon(mod.icon ?? '')
+                return (
+                  <div key={mod.module_key} className="bg-white rounded-2xl border-2 border-emerald-200 p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="w-11 h-11 bg-emerald-500 rounded-xl flex items-center justify-center">
+                        <ModIcon size={20} className="text-white" />
+                      </div>
+                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
+                        ✓ Incluido gratis
+                      </span>
+                    </div>
+                    <h3 className="font-bold text-gray-900 mb-1">{mod.label}</h3>
+                    <p className="text-sm text-gray-500 mb-3 leading-relaxed">{mod.description}</p>
+                    {(mod.features ?? []).length > 0 && (
+                      <ul className="space-y-1.5">
+                        {(mod.features ?? []).map(f => (
+                          <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
+                            <CheckCircle size={12} className="text-emerald-500 shrink-0" />
+                            {f}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
                   </div>
-                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
-                    ✓ Incluido
-                  </span>
-                </div>
-                <h3 className="font-bold text-gray-900 mb-1">{includedMod.label}</h3>
-                <p className="text-sm text-gray-500 mb-4 leading-relaxed">{includedMod.description}</p>
-                {(includedMod.features ?? []).length > 0 && (
-                  <ul className="space-y-1.5">
-                    {(includedMod.features ?? []).map(f => (
-                      <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                        <CheckCircle size={12} className="text-emerald-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+                )
+              })}
             </div>
           </div>
         )
@@ -288,7 +299,7 @@ export function MarketplaceClient({
 
       {/* Catalogue */}
       {(() => {
-        const catalogueMods = modules.filter(m => m.module_key !== 'clientes' && m.module_key !== 'crm')
+        const catalogueMods = modules.filter(m => !FREE_MODULE_KEYS.includes(m.module_key))
         if (catalogueMods.length === 0) return null
         return (
           <>
@@ -345,11 +356,16 @@ export function MarketplaceClient({
                     {price > 0 ? (
                       <>
                         <div>
-                          <span className="text-2xl font-black text-gray-900">${price}</span>
+                          <span className="text-2xl font-black text-gray-900">
+                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(price)}
+                          </span>
                           <span className="text-gray-400 text-sm">/mes</span>
                         </div>
                         <p className="text-xs text-gray-400">
-                          ${mod.price_monthly}/mes base
+                          {mod.module_key === 'queue'
+                            ? `$80.000 base + $20.000 por sucursal adicional`
+                            : `${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(mod.price_monthly)}/mes base`
+                          }
                           {mod.price_per_user && ` + $${mod.price_per_user_amount}/usuario`}
                         </p>
                       </>

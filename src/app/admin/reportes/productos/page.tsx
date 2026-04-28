@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import { NoBrandContext } from '@/components/NoBrandContext'
 import { ReporteProductos } from './ReporteProductos'
 
@@ -19,30 +18,15 @@ export default async function ReporteProductosPage() {
 
   const brandId = profile.brand_id as string
 
-  let isExpired = false, expiredAt: string | null = null
-  const { data: sub } = await supabase.from('module_subscriptions')
-    .select('status, trial_expires_at, expires_at')
-    .eq('brand_id', brandId).eq('module_key', 'sales').maybeSingle()
-  if (!sub || sub.status === 'expired' || sub.status === 'cancelled') {
-    isExpired = true; expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
-  }
-
-  const [productsRes] = await Promise.allSettled([
+  const [productsRes, saleItemsRes] = await Promise.allSettled([
     supabase.from('products').select('id, name, stock, min_stock, price, category').eq('brand_id', brandId).eq('active', true),
+    supabase.from('sale_items')
+      .select('product_id, product_name, qty, line_total, sales!inner(brand_id, type, status, created_at)')
+      .eq('sales.brand_id', brandId).eq('sales.type', 'sale').eq('sales.status', 'completed'),
   ])
 
   const products = productsRes.status === 'fulfilled' ? (productsRes.value.data ?? []) : []
-  // Sale items query gracefully falls back to empty if table doesn't exist
-  const { data: saleItems } = await supabase
-    .from('sale_items')
-    .select('product_id, product_name, qty, line_total, sales!inner(brand_id, type, status, created_at)')
-    .eq('sales.brand_id', brandId)
-    .eq('sales.type', 'sale')
-    .eq('sales.status', 'completed')
+  const saleItems = saleItemsRes.status === 'fulfilled' ? (saleItemsRes.value.data ?? []) : []
 
-  return (
-    <TrialExpiredGate isExpired={isExpired} moduleLabel="Ventas e Inventario" expiredAt={expiredAt}>
-      <ReporteProductos saleItems={(saleItems ?? []) as any[]} products={products as any[]} />
-    </TrialExpiredGate>
-  )
+  return <ReporteProductos saleItems={saleItems as any[]} products={products as any[]} />
 }
