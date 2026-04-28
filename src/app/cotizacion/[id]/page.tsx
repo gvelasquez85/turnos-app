@@ -35,12 +35,9 @@ export default async function PublicQuotePage({
     .select('product_name, product_sku, qty, unit_price, line_total')
     .eq('sale_id', id)
 
-  // Mark first open (tracking)
-  await service
-    .from('sales')
-    .update({ opened_at: new Date().toISOString() })
-    .eq('id', id)
-    .is('opened_at', null)
+  // NOTE: opened_at is tracked ONLY via the email pixel (/api/quotes/track/[id]).
+  // Do NOT update it here — this page is the customer's view and can be
+  // accessed directly (e.g. from a shared link) without opening the email.
 
   const brand = quote.brands as any
   const customer = quote.customers as any

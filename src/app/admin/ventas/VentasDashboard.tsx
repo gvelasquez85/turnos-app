@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import {
   ShoppingCart, TrendingUp, Package, FileCheck,
-  ArrowRight, DollarSign, Clock, CheckCircle, XCircle,
+  ArrowRight, DollarSign, Clock, CheckCircle, XCircle, AlertTriangle,
 } from 'lucide-react'
 
 interface Sale {
@@ -22,6 +22,7 @@ interface Establishment { id: string; name: string }
 interface Props {
   brandId: string
   recentSales: Sale[]
+  pendingSales: Sale[]
   establishments: Establishment[]
 }
 
@@ -38,7 +39,7 @@ function fmtDate(d: string) {
   return date.toLocaleDateString('es', { day: 'numeric', month: 'short' })
 }
 
-export function VentasDashboard({ recentSales, establishments }: Props) {
+export function VentasDashboard({ recentSales, pendingSales, establishments }: Props) {
   const estMap = Object.fromEntries(establishments.map(e => [e.id, e.name]))
 
   const completedSales = recentSales.filter(s => s.status === 'completed')
@@ -86,6 +87,42 @@ export function VentasDashboard({ recentSales, establishments }: Props) {
           </div>
         ))}
       </div>
+
+      {/* Ventas por revisar (from accepted quotes) */}
+      {pendingSales.length > 0 && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
+          <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-200 bg-amber-100">
+            <AlertTriangle size={15} className="text-amber-600 shrink-0" />
+            <p className="font-semibold text-amber-800 text-sm">
+              {pendingSales.length === 1
+                ? '1 venta por revisar'
+                : `${pendingSales.length} ventas por revisar`}
+            </p>
+            <span className="ml-1 text-xs text-amber-600">— Generadas desde cotizaciones aceptadas</span>
+          </div>
+          <div className="divide-y divide-amber-100">
+            {pendingSales.map(sale => (
+              <div key={sale.id} className="flex items-center gap-4 px-5 py-3">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-200 text-amber-700">
+                  <Clock size={13} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {sale.customers?.name ?? 'Cliente sin registrar'}
+                  </p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {(sale as any).notes?.split('\n')[0] ?? ''}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-sm font-semibold text-gray-900">{fmt(sale.total ?? 0)}</p>
+                  <p className="text-[10px] text-gray-400">{fmtDate(sale.created_at)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Quick access */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">

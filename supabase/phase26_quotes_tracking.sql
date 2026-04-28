@@ -27,6 +27,12 @@ $$;
 -- Grant execute to service role + anon
 GRANT EXECUTE ON FUNCTION set_quote_opened(UUID) TO service_role, anon, authenticated;
 
+-- Link auto-created sales back to their origin quote
+ALTER TABLE sales
+  ADD COLUMN IF NOT EXISTS source_quote_id UUID REFERENCES sales(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_sales_source_quote ON sales (source_quote_id) WHERE source_quote_id IS NOT NULL;
+
 -- Index for faster quote lookups
 CREATE INDEX IF NOT EXISTS idx_sales_type_brand ON sales (type, brand_id);
 CREATE INDEX IF NOT EXISTS idx_sales_sent_to_email ON sales (sent_to_email) WHERE sent_to_email IS NOT NULL;

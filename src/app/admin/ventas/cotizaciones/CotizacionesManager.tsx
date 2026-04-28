@@ -210,6 +210,23 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
         })
       }
     }
+    if (status === 'accepted') {
+      const quote = quotes.find(q => q.id === id)
+      if (quote) {
+        await supabase.from('sales').insert({
+          brand_id: brandId,
+          establishment_id: quote.establishment_id,
+          customer_id: quote.customer_id,
+          type: 'sale',
+          status: 'pending',
+          total: quote.total,
+          subtotal: (quote as any).subtotal ?? quote.total,
+          discount: (quote as any).discount ?? 0,
+          notes: `[Por revisar] Desde cotización #${id.slice(-6).toUpperCase()}${(quote as any).notes ? `\n${(quote as any).notes}` : ''}`,
+          source_quote_id: id,
+        })
+      }
+    }
     const { data } = await supabase.from('sales').update(patch).eq('id', id).select().single()
     if (data) setQuotes(qs => qs.map(q => q.id === id ? { ...q, ...data } : q))
     if (openQuote?.id === id) setOpenQuoteId(null)
@@ -239,8 +256,10 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
           ? { ...q, status: 'sent', sent_at: new Date().toISOString(), sent_to_email: sendEmail }
           : q
         ))
+      } else if (res.status === 503) {
+        setSendResult({ ok: false, msg: '⚙️ El envío de correos no está configurado. Ve a Ajustes → Comunicaciones y agrega tu API key de Brevo y el correo remitente.' })
       } else {
-        setSendResult({ ok: false, msg: body.error || 'Error al enviar' })
+        setSendResult({ ok: false, msg: body.error || `Error ${res.status} al enviar` })
       }
     } catch (e: any) {
       setSendResult({ ok: false, msg: e.message || 'Error de red' })

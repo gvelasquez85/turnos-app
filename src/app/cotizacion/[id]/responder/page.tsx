@@ -22,13 +22,35 @@ export default async function ResponderQuotePage({
 
   const newStatus = action === 'accept' ? 'accepted' : 'rejected'
 
-  await service
+  // Load quote before updating (need brand_id, customer_id, etc.)
+  const { data: quote } = await service
     .from('sales')
-    .update({ status: newStatus })
+    .select('id, brand_id, establishment_id, customer_id, total, subtotal, discount, notes')
     .eq('id', id)
     .eq('type', 'quote')
-    // Only allow transition from sent/draft
     .in('status', ['sent', 'draft'])
+    .maybeSingle()
+
+  if (quote) {
+    // Update quote status
+    await service.from('sales').update({ status: newStatus }).eq('id', id)
+
+    // If accepted → auto-create a pending sale for review
+    if (newStatus === 'accepted') {
+      await service.from('sales').insert({
+        brand_id: quote.brand_id,
+        establishment_id: quote.establishment_id,
+        customer_id: quote.customer_id,
+        type: 'sale',
+        status: 'pending',
+        total: quote.total,
+        subtotal: quote.subtotal ?? quote.total,
+        discount: quote.discount ?? 0,
+        notes: `[Por revisar] Desde cotización #${id.slice(-6).toUpperCase()}${quote.notes ? `\n${quote.notes}` : ''}`,
+        source_quote_id: id,
+      })
+    }
+  }
 
   redirect(`/cotizacion/${id}`)
 }
