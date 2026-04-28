@@ -20,7 +20,7 @@ export default async function CotizacionesPage() {
 
   const [quotesRes, estRes] = await Promise.allSettled([
     supabase.from('sales')
-      .select('id, status, total, created_at, establishment_id, customer_id, notes, customers(name)')
+      .select('id, status, total, subtotal, discount, created_at, establishment_id, customer_id, notes, sent_at, sent_to_email, opened_at, customers(name, email, phone)')
       .eq('brand_id', brandId).eq('type', 'quote')
       .order('created_at', { ascending: false }).limit(100),
     supabase.from('establishments').select('id, name').eq('brand_id', brandId).eq('active', true).order('name'),

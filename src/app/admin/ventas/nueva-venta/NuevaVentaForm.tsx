@@ -222,7 +222,7 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
                     {/* Qty */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => it.qty > 1 ? updateItem(idx, { qty: it.qty - 1 }) : removeItem(idx)}
+                        onClick={() => it.qty > 1 ? updateItem(idx, { qty: Math.floor(it.qty) - 1 }) : removeItem(idx)}
                         className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:border-red-300 hover:text-red-500"
                       >
                         <Minus size={10} />
@@ -231,12 +231,12 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
                         type="number"
                         className="w-12 text-center text-sm font-semibold border border-gray-200 rounded-lg py-0.5 focus:border-emerald-500 focus:outline-none"
                         value={it.qty}
-                        min={0.1}
+                        min={1}
                         step={1}
-                        onChange={e => updateItem(idx, { qty: parseFloat(e.target.value) || 1 })}
+                        onChange={e => updateItem(idx, { qty: Math.max(1, Math.floor(parseInt(e.target.value) || 1)) })}
                       />
                       <button
-                        onClick={() => updateItem(idx, { qty: it.qty + 1 })}
+                        onClick={() => updateItem(idx, { qty: Math.floor(it.qty) + 1 })}
                         className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:border-emerald-300 hover:text-emerald-600"
                       >
                         <Plus size={10} />
