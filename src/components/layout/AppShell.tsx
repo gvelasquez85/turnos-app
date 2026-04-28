@@ -77,7 +77,7 @@ const VENTAS_ITEMS: NavItem[] = [
   { href: '/admin/ventas', label: 'Dashboard ventas', icon: ShoppingCart, exact: true },
   { href: '/admin/ventas/inventario', label: 'Inventario', icon: Package },
   { href: '/admin/ventas/cotizaciones', label: 'Cotizaciones', icon: FileCheck },
-  { href: '/admin/ventas/cotizaciones/diseñador', label: 'Diseñador', icon: PieChart },
+  { href: '/admin/ventas/cotizaciones/disenador', label: 'Diseñador', icon: PieChart },
 ]
 
 const REPORTES_ITEMS_BASE: NavItem[] = [

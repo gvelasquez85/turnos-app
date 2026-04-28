@@ -4,8 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Palette, Type, Layout, Eye, Save, RotateCcw,
   Building2, Phone, Mail, Globe, Hash, Calendar,
-  ChevronDown, Check, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight,
-  Download,
+  Check,
 } from 'lucide-react'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
