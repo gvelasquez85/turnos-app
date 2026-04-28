@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NoBrandContext } from '@/components/NoBrandContext'
+import { getEffectiveBrandId } from '@/lib/serverBrandContext'
 import { VentasDashboard } from './VentasDashboard'
 
 export default async function VentasPage() {
@@ -14,9 +15,9 @@ export default async function VentasPage() {
   if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
     redirect('/admin')
 
-  if (!profile.brand_id) return <NoBrandContext />
+  const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
+  if (!brandId) return <NoBrandContext />
 
-  const brandId = profile.brand_id as string
   const since = new Date(Date.now() - 30 * 86400000).toISOString()
 
   const [salesRes, estRes] = await Promise.allSettled([

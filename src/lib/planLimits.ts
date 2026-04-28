@@ -1,18 +1,19 @@
 // ══════════════════════════════════════════════════════════════════════════════
-// New per-seat + per-module pricing model
+// Pricing model — all amounts in COP (Colombian Peso)
 // ══════════════════════════════════════════════════════════════════════════════
 
-/** Runtime pricing constants */
+/** Runtime pricing constants — all in COP */
 export const PRICING = {
-  perEstablishment: 15,         // $15/month per establishment (includes 1 advisor)
-  perAdditionalAdvisor: 5,      // $5/month per additional advisor beyond 1 per est.
-  modulePerEstablishment: 5,    // $5/month per establishment per add-on module
-  modulePerAdvisor: 2,          // $2/month per additional advisor per add-on module
+  perEstablishment: 60_000,       // $60.000 COP/mes por sucursal (incluye 1 usuario)
+  perAdditionalAdvisor: 20_000,   // $20.000 COP/mes por usuario adicional
+  modulePerEstablishment: 10_000, // $10.000 COP/mes por sucursal por módulo add-on
+  modulePerAdvisor: 5_000,        // $5.000 COP/mes por usuario adicional por módulo
 } as const
 
 /** Core features always included — no extra charge */
 export const CORE_MODULES = [
   'clientes',
+  'crm',       // alias for clientes
   'sales',
   'display',
   'consents',
@@ -21,32 +22,29 @@ export const CORE_MODULES = [
 ]
 
 /**
- * Calculate queue module price.
- * Base: $80,000/month. Each additional establishment beyond the first: +$20,000.
+ * Calculate queue module price (COP).
+ * Base: $80.000/mes. Each additional establishment beyond the first: +$20.000.
  */
 export function calcQueuePrice(establishments: number): number {
-  const BASE = 80000
-  const PER_EXTRA_EST = 20000
+  const BASE = 80_000
+  const PER_EXTRA_EST = 20_000
   return BASE + Math.max(0, establishments - 1) * PER_EXTRA_EST
 }
 
 /**
- * Calculate base monthly cost.
+ * Calculate base monthly cost (COP).
  * @param establishments - number of active establishments
  * @param advisors       - total advisor seats (1 is free per establishment)
  */
 export function calcMonthlyBase(establishments: number, advisors: number): number {
   const base = establishments * PRICING.perEstablishment
-  const includedAdvisors = establishments          // 1 included per establishment
+  const includedAdvisors = establishments           // 1 per establishment included
   const additionalAdvisors = Math.max(0, advisors - includedAdvisors)
   return base + additionalAdvisors * PRICING.perAdditionalAdvisor
 }
 
 /**
- * Calculate add-on module cost per month.
- * @param establishments - number of active establishments
- * @param advisors       - total advisor seats
- * @param numModules     - number of active paid add-on modules
+ * Calculate add-on module cost per month (COP).
  */
 export function calcModuleAddon(
   establishments: number,
@@ -60,13 +58,22 @@ export function calcModuleAddon(
   return numModules * costPerModule
 }
 
-/** Full monthly total. */
+/** Full monthly total (COP). */
 export function calcMonthlyTotal(
   establishments: number,
   advisors: number,
   numModules: number,
 ): number {
   return calcMonthlyBase(establishments, advisors) + calcModuleAddon(establishments, advisors, numModules)
+}
+
+/** Format a COP amount for display */
+export function fmtCOP(amount: number): string {
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
 // ── Legacy plan definitions (kept for backwards compatibility) ─────────────
@@ -91,10 +98,6 @@ export interface PlanLimits {
   hasMenu: boolean
 }
 
-/**
- * In the new model all paid plans have access to all core features.
- * Module gating is handled exclusively via brands.active_modules.
- */
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   free: {
     label: 'Gratis',
@@ -118,7 +121,6 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     hasAppointments: false,
     hasMenu: false,
   },
-  // ── Legacy tiers (migrate gradually) ──
   basic: {
     label: 'Básico (legado)',
     priceMonthly: 29,

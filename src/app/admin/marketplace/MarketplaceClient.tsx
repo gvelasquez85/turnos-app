@@ -5,10 +5,11 @@ import {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, CheckCircle, Clock, AlertTriangle,
   Zap, Star, ArrowRight, UserCheck, Lock, Building2, Users,
+  ShoppingCart, Package, Tag, Bell, Globe, BarChart2,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { calcMonthlyBase, calcQueuePrice, PRICING } from '@/lib/planLimits'
+import { calcMonthlyBase, calcQueuePrice, fmtCOP, PRICING } from '@/lib/planLimits'
 import { PayPalButton } from '@/components/PayPalButton'
 
 // Free modules — always included, shown in "Incluido" section
@@ -18,9 +19,25 @@ const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales']
 const ICON_MAP: Record<string, LucideIcon> = {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, UserCheck, Zap, Users, Clock,
+  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Building2,
 }
-function getIcon(name: string): LucideIcon {
-  return ICON_MAP[name] ?? Zap
+
+// Fallback icons by module_key (when DB icon field is missing/unknown)
+const MODULE_ICON_FALLBACK: Record<string, LucideIcon> = {
+  clientes: Users,
+  crm: Users,
+  queue: Clock,
+  appointments: CalendarClock,
+  surveys: ClipboardList,
+  menu: UtensilsCrossed,
+  sales: ShoppingCart,
+  promotions: Tag,
+}
+
+function getIcon(name: string | null | undefined, moduleKey?: string): LucideIcon {
+  if (name && ICON_MAP[name]) return ICON_MAP[name]
+  if (moduleKey && MODULE_ICON_FALLBACK[moduleKey]) return MODULE_ICON_FALLBACK[moduleKey]
+  return Zap
 }
 
 export interface MarketplaceModule {
@@ -34,10 +51,8 @@ export interface MarketplaceModule {
   price_monthly: number
   price_per_user: boolean
   price_per_user_amount: number
-  trial_days: number
-  // legacy columns (may still exist in DB)
   price_per_establishment?: number
-  price_per_advisor?: number
+  trial_days: number
   is_visible_to_brands: boolean
   is_coming_soon: boolean
   sort_order: number
@@ -121,12 +136,26 @@ export function MarketplaceClient({
   const isColombiaAccount = brandCountry === 'Colombia'
 
   function getSub(key: string) { return subs.find(s => s.module_key === key) }
-  function modulePrice(mod: MarketplaceModule) {
-    // Queue has dynamic pricing: $80k base + $20k per extra establishment
+
+  /** Compute full monthly price for a module (COP) */
+  function modulePrice(mod: MarketplaceModule): number {
     if (mod.module_key === 'queue') return calcQueuePrice(maxEstablishments)
     const base = mod.price_monthly ?? 0
     const perUser = mod.price_per_user ? (mod.price_per_user_amount ?? 0) * maxAdvisors : 0
-    return base + perUser
+    const perEst = (mod.price_per_establishment ?? 0) * maxEstablishments
+    return base + perUser + perEst
+  }
+
+  /** Human-readable price breakdown for a module */
+  function modulePriceBreakdown(mod: MarketplaceModule): string {
+    if (mod.module_key === 'queue') {
+      return `${fmtCOP(80_000)} base + ${fmtCOP(20_000)}/sucursal adicional`
+    }
+    const parts: string[] = []
+    if (mod.price_monthly) parts.push(`${fmtCOP(mod.price_monthly)} base`)
+    if (mod.price_per_establishment) parts.push(`+ ${fmtCOP(mod.price_per_establishment)}/sucursal`)
+    if (mod.price_per_user && mod.price_per_user_amount) parts.push(`+ ${fmtCOP(mod.price_per_user_amount)}/usuario`)
+    return parts.join(' ') || 'Gratis'
   }
 
   async function startTrial(moduleKey: string) {
@@ -178,7 +207,22 @@ export function MarketplaceClient({
     return sum + modulePrice(mod)
   }, 0)
 
-  if (modules.length === 0) {
+  // Deduplicate clientes/crm — treat 'crm' as an alias for 'clientes'
+  function deduplicateModules(mods: MarketplaceModule[]): MarketplaceModule[] {
+    const seen = new Set<string>()
+    return mods.reduce<MarketplaceModule[]>((acc, m) => {
+      const canonical = m.module_key === 'crm' ? 'clientes' : m.module_key
+      if (seen.has(canonical)) return acc
+      seen.add(canonical)
+      // Normalize crm → clientes display
+      if (m.module_key === 'crm') return [...acc, { ...m, module_key: 'clientes', label: 'Clientes' }]
+      return [...acc, m]
+    }, [])
+  }
+
+  const allModules = deduplicateModules(modules)
+
+  if (allModules.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
         <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
@@ -219,13 +263,13 @@ export function MarketplaceClient({
         </div>
         <div className="text-sm text-right">
           <p className="text-gray-600">
-            Base <strong className="text-gray-900">${baseMonthly}/mes</strong>
+            Base <strong className="text-gray-900">{fmtCOP(baseMonthly)}/mes</strong>
             {addonMonthly > 0 && (
-              <> + módulos <strong className="text-indigo-700">+${addonMonthly}/mes</strong></>
+              <> + módulos <strong className="text-indigo-700">+{fmtCOP(addonMonthly)}/mes</strong></>
             )}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
-            ${PRICING.perEstablishment}/sucursal · ${PRICING.perAdditionalAdvisor}/usuario adicional
+            {fmtCOP(PRICING.perEstablishment)}/sucursal · {fmtCOP(PRICING.perAdditionalAdvisor)}/usuario adicional
           </p>
         </div>
       </div>
@@ -236,9 +280,9 @@ export function MarketplaceClient({
           <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos activos</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
             {activeSubs.map(sub => {
-              const mod = modules.find(m => m.module_key === sub.module_key)
+              const mod = allModules.find(m => m.module_key === sub.module_key)
               if (!mod) return null
-              const Icon = getIcon(mod.icon ?? '')
+              const Icon = getIcon(mod.icon, mod.module_key)
               return (
                 <div key={sub.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
                   <div className={`w-9 h-9 ${mod.color ?? 'bg-indigo-500'} rounded-lg flex items-center justify-center shrink-0`}>
@@ -257,16 +301,14 @@ export function MarketplaceClient({
 
       {/* Included Modules (free, no trial/payment) */}
       {(() => {
-        const includedMods = modules.filter(m => FREE_MODULE_KEYS.includes(m.module_key))
+        const includedMods = allModules.filter(m => FREE_MODULE_KEYS.includes(m.module_key))
         if (includedMods.length === 0) return null
-        const includedMod = includedMods[0] // representative (show first, usually 'clientes')
-        const Icon = getIcon(includedMod.icon ?? '')
         return (
           <div className="mb-7">
             <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Incluido en tu plan</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {includedMods.map(mod => {
-                const ModIcon = getIcon(mod.icon ?? '')
+                const ModIcon = getIcon(mod.icon, mod.module_key)
                 return (
                   <div key={mod.module_key} className="bg-white rounded-2xl border-2 border-emerald-200 p-5">
                     <div className="flex items-start justify-between mb-3">
@@ -299,7 +341,7 @@ export function MarketplaceClient({
 
       {/* Catalogue */}
       {(() => {
-        const catalogueMods = modules.filter(m => !FREE_MODULE_KEYS.includes(m.module_key))
+        const catalogueMods = allModules.filter(m => !FREE_MODULE_KEYS.includes(m.module_key))
         if (catalogueMods.length === 0) return null
         return (
           <>
@@ -308,103 +350,97 @@ export function MarketplaceClient({
               {catalogueMods.map(mod => {
                 const sub = getSub(mod.module_key)
                 const status = getStatus(sub)
-                const Icon = getIcon(mod.icon ?? '')
+                const Icon = getIcon(mod.icon, mod.module_key)
                 const isLoading = loading === mod.module_key
                 const price = modulePrice(mod)
                 const comingSoon = mod.is_coming_soon
 
                 return (
-            <div
-              key={mod.module_key}
-              className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
-                status === 'active' || status === 'trial' ? 'border-indigo-200'
-                : comingSoon ? 'border-dashed border-gray-200 opacity-70'
-                : 'border-gray-100 hover:border-gray-200'
-              }`}
-            >
-              <div className="p-5 flex-1">
-                <div className="flex items-start justify-between mb-3">
-                  <div className={`w-11 h-11 ${mod.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center`}>
-                    <Icon size={20} className="text-white" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {comingSoon && (
-                      <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
-                        Próximamente
-                      </span>
-                    )}
-                    {!comingSoon && status !== 'available' && <StatusBadge status={status} sub={sub} />}
-                  </div>
-                </div>
-                <h3 className="font-bold text-gray-900 mb-1">{mod.label}</h3>
-                <p className="text-sm text-gray-500 mb-4 leading-relaxed">{mod.description}</p>
-                {(mod.features ?? []).length > 0 && (
-                  <ul className="space-y-1.5">
-                    {(mod.features ?? []).map(f => (
-                      <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                        <CheckCircle size={12} className="text-green-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-
-              <div className="px-5 pb-5">
-                <div className="flex items-end justify-between mb-3 pt-4 border-t border-gray-100">
-                  <div>
-                    {price > 0 ? (
-                      <>
-                        <div>
-                          <span className="text-2xl font-black text-gray-900">
-                            {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(price)}
-                          </span>
-                          <span className="text-gray-400 text-sm">/mes</span>
+                  <div
+                    key={mod.module_key}
+                    className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
+                      status === 'active' || status === 'trial' ? 'border-indigo-200'
+                      : comingSoon ? 'border-dashed border-gray-200 opacity-70'
+                      : 'border-gray-100 hover:border-gray-200'
+                    }`}
+                  >
+                    <div className="p-5 flex-1">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className={`w-11 h-11 ${mod.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center`}>
+                          <Icon size={20} className="text-white" />
                         </div>
-                        <p className="text-xs text-gray-400">
-                          {mod.module_key === 'queue'
-                            ? `$80.000 base + $20.000 por sucursal adicional`
-                            : `${new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(mod.price_monthly)}/mes base`
-                          }
-                          {mod.price_per_user && ` + $${mod.price_per_user_amount}/usuario`}
-                        </p>
-                      </>
-                    ) : (
-                      <span className="text-sm text-gray-400">Gratis</span>
-                    )}
-                  </div>
-                  {!comingSoon && status === 'available' && (
-                    <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-lg whitespace-nowrap">
-                      <Star size={10} className="inline mr-1" />7 días gratis
-                    </span>
-                  )}
-                </div>
+                        <div className="flex items-center gap-2">
+                          {comingSoon && (
+                            <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium">
+                              Próximamente
+                            </span>
+                          )}
+                          {!comingSoon && status !== 'available' && <StatusBadge status={status} sub={sub} />}
+                        </div>
+                      </div>
+                      <h3 className="font-bold text-gray-900 mb-1">{mod.label}</h3>
+                      <p className="text-sm text-gray-500 mb-4 leading-relaxed">{mod.description}</p>
+                      {(mod.features ?? []).length > 0 && (
+                        <ul className="space-y-1.5">
+                          {(mod.features ?? []).map(f => (
+                            <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
+                              <CheckCircle size={12} className="text-green-500 shrink-0" />
+                              {f}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
 
-                {comingSoon ? (
-                  <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2">
-                    <Lock size={14} /> Próximamente
-                  </button>
-                ) : status === 'available' ? (
-                  <Button onClick={() => startTrial(mod.module_key)} disabled={isLoading} className="w-full">
-                    Probar gratis 7 días <ArrowRight size={14} className="ml-1" />
-                  </Button>
-                ) : status === 'trial' ? (
-                  <div className="flex gap-2">
-                    <Button onClick={() => setContractModal(mod.module_key)} className="flex-1 text-sm">Contratar</Button>
-                    <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="flex-1 text-sm">Cancelar</Button>
+                    <div className="px-5 pb-5">
+                      <div className="flex items-end justify-between mb-3 pt-4 border-t border-gray-100">
+                        <div>
+                          {price > 0 ? (
+                            <>
+                              <div>
+                                <span className="text-2xl font-black text-gray-900">
+                                  {fmtCOP(price)}
+                                </span>
+                                <span className="text-gray-400 text-sm">/mes</span>
+                              </div>
+                              <p className="text-xs text-gray-400">{modulePriceBreakdown(mod)}</p>
+                            </>
+                          ) : (
+                            <span className="text-sm text-gray-400">Gratis</span>
+                          )}
+                        </div>
+                        {!comingSoon && status === 'available' && (
+                          <span className="text-xs text-indigo-600 font-medium bg-indigo-50 px-2 py-1 rounded-lg whitespace-nowrap">
+                            <Star size={10} className="inline mr-1" />7 días gratis
+                          </span>
+                        )}
+                      </div>
+
+                      {comingSoon ? (
+                        <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2">
+                          <Lock size={14} /> Próximamente
+                        </button>
+                      ) : status === 'available' ? (
+                        <Button onClick={() => startTrial(mod.module_key)} disabled={isLoading} className="w-full">
+                          Probar gratis 7 días <ArrowRight size={14} className="ml-1" />
+                        </Button>
+                      ) : status === 'trial' ? (
+                        <div className="flex gap-2">
+                          <Button onClick={() => setContractModal(mod.module_key)} className="flex-1 text-sm">Contratar</Button>
+                          <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="flex-1 text-sm">Cancelar</Button>
+                        </div>
+                      ) : status === 'active' ? (
+                        <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="w-full">
+                          Cancelar módulo
+                        </Button>
+                      ) : (
+                        <Button onClick={() => setContractModal(mod.module_key)} className="w-full">
+                          Contratar módulo
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                ) : status === 'active' ? (
-                  <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="w-full">
-                    Cancelar módulo
-                  </Button>
-                ) : (
-                  <Button onClick={() => setContractModal(mod.module_key)} className="w-full">
-                    Contratar módulo
-                  </Button>
-                )}
-              </div>
-            </div>
-          )
+                )
               })}
             </div>
           </>
@@ -413,7 +449,7 @@ export function MarketplaceClient({
 
       {/* Contract modal */}
       {contractModal && (() => {
-        const mod = modules.find(m => m.module_key === contractModal)
+        const mod = allModules.find(m => m.module_key === contractModal)
         const price = mod ? modulePrice(mod) : 0
         return (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -436,12 +472,12 @@ export function MarketplaceClient({
                 <>
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`w-10 h-10 ${mod?.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center shrink-0`}>
-                      <Zap size={18} className="text-white" />
+                      {(() => { const I = getIcon(mod?.icon, mod?.module_key); return <I size={18} className="text-white" /> })()}
                     </div>
                     <div>
                       <p className="font-bold text-gray-900">{mod?.label}</p>
                       {price > 0 && (
-                        <p className="text-sm text-indigo-600 font-semibold">${price}/mes</p>
+                        <p className="text-sm text-indigo-600 font-semibold">{fmtCOP(price)}/mes</p>
                       )}
                     </div>
                   </div>
@@ -453,9 +489,8 @@ export function MarketplaceClient({
                         <PayPalButton
                           moduleKey={contractModal}
                           amount={price}
-                          currency="USD"
+                          currency="COP"
                           onSuccess={(expiresAt) => {
-                            // Update local state
                             setSubs(prev => {
                               const idx = prev.findIndex(s => s.module_key === contractModal)
                               const next: Subscription = {

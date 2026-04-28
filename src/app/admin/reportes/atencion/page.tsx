@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import { NoBrandContext } from '@/components/NoBrandContext'
+import { getEffectiveBrandId } from '@/lib/serverBrandContext'
 import { ReportsDashboard } from '@/app/reports/ReportsDashboard'
 
 export default async function ReporteAtencionPage() {
@@ -15,9 +16,8 @@ export default async function ReporteAtencionPage() {
   if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
     redirect('/admin')
 
-  if (!profile.brand_id) return <NoBrandContext />
-
-  const brandId = profile.brand_id as string
+  const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
+  if (!brandId) return <NoBrandContext />
 
   let isExpired = false, expiredAt: string | null = null
   const { data: sub } = await supabase.from('module_subscriptions')

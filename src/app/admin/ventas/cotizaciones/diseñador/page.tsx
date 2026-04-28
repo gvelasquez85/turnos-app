@@ -2,9 +2,9 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NoBrandContext } from '@/components/NoBrandContext'
 import { getEffectiveBrandId } from '@/lib/serverBrandContext'
-import { InventarioManager } from './InventarioManager'
+import { QuoteDesigner } from './QuoteDesigner'
 
-export default async function InventarioPage() {
+export default async function QuoteDesignerPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -18,13 +18,9 @@ export default async function InventarioPage() {
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
   if (!brandId) return <NoBrandContext />
 
-  const [productsRes, estRes] = await Promise.allSettled([
-    supabase.from('products').select('*').eq('brand_id', brandId).order('name'),
-    supabase.from('establishments').select('id, name').eq('brand_id', brandId).eq('active', true).order('name'),
-  ])
+  // Load brand info for defaults
+  const { data: brand } = await supabase
+    .from('brands').select('id, name, logo_url').eq('id', brandId).single()
 
-  const products = productsRes.status === 'fulfilled' ? (productsRes.value.data ?? []) : []
-  const establishments = estRes.status === 'fulfilled' ? (estRes.value.data ?? []) : []
-
-  return <InventarioManager brandId={brandId} products={products as any[]} establishments={establishments} />
+  return <QuoteDesigner brandId={brandId} brandName={brand?.name ?? ''} brandLogoUrl={brand?.logo_url ?? null} />
 }

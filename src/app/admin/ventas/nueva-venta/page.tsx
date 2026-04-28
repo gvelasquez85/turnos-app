@@ -2,6 +2,7 @@ import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NoBrandContext } from '@/components/NoBrandContext'
+import { getEffectiveBrandId } from '@/lib/serverBrandContext'
 import { NuevaVentaForm } from './NuevaVentaForm'
 
 export default async function NuevaVentaPage() {
@@ -15,9 +16,8 @@ export default async function NuevaVentaPage() {
   if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
     redirect('/admin')
 
-  if (!profile.brand_id) return <NoBrandContext />
-
-  const brandId = profile.brand_id as string
+  const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
+  if (!brandId) return <NoBrandContext />
 
   const [productsRes, customersRes, estRes] = await Promise.allSettled([
     supabase.from('products').select('id, name, sku, price, unit, stock').eq('brand_id', brandId).eq('active', true).order('name'),

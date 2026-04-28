@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NoBrandContext } from '@/components/NoBrandContext'
+import { getEffectiveBrandId } from '@/lib/serverBrandContext'
 import { ReporteProductos } from './ReporteProductos'
 
 export default async function ReporteProductosPage() {
@@ -14,9 +15,8 @@ export default async function ReporteProductosPage() {
   if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
     redirect('/admin')
 
-  if (!profile.brand_id) return <NoBrandContext />
-
-  const brandId = profile.brand_id as string
+  const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
+  if (!brandId) return <NoBrandContext />
 
   const [productsRes, saleItemsRes] = await Promise.allSettled([
     supabase.from('products').select('id, name, stock, min_stock, price, category').eq('brand_id', brandId).eq('active', true),
