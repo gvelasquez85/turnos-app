@@ -101,7 +101,7 @@ function buildSections(
 
   if (role === 'advisor') {
     const advisorSections: NavSection[] = []
-    if (activeModules?.queue !== false) { // show if queue active OR modules not loaded yet
+    if (activeModules?.queue === true) {
       advisorSections.push({
         key: 'colas',
         section: 'Colas de espera',
