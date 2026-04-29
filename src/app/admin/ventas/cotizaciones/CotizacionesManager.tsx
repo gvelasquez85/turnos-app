@@ -405,29 +405,34 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
               </div>
               <div className="flex items-center gap-2">
                 {/* Mode tabs */}
-                {['view', 'edit', 'send'].map(mode => (
-                  <button
-                    key={mode}
-                    onClick={() => {
-                      setPanelMode(mode as any)
-                      if (mode === 'edit') {
-                        setEditItems(panelItems.map(it => ({ ...it })))
-                        setEditNotes(openQuote.notes ?? '')
-                      }
-                      if (mode === 'send') {
-                        setSendEmail(openQuote.customers?.email ?? openQuote.sent_to_email ?? '')
-                        setSendName(openQuote.customers?.name ?? '')
-                        setSendSubject(`Cotización #COT-${openQuote.id.slice(-6).toUpperCase()}`)
-                        setSendMessage('')
-                        setSendResult(null)
-                      }
-                    }}
-                    className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
-                    title={mode === 'view' ? 'Ver detalle' : mode === 'edit' ? 'Editar' : 'Enviar'}
-                  >
-                    {mode === 'view' ? <Eye size={15} /> : mode === 'edit' ? <Edit3 size={15} /> : <Send size={15} />}
-                  </button>
-                ))}
+                {(['view', 'edit', 'send'] as const).map(mode => {
+                  const isLocked = (openQuote.status === 'accepted' || openQuote.status === 'rejected') && mode === 'edit'
+                  return (
+                    <button
+                      key={mode}
+                      onClick={() => {
+                        if (isLocked) return
+                        setPanelMode(mode as any)
+                        if (mode === 'edit') {
+                          setEditItems(panelItems.map(it => ({ ...it })))
+                          setEditNotes(openQuote.notes ?? '')
+                        }
+                        if (mode === 'send') {
+                          setSendEmail(openQuote.customers?.email ?? openQuote.sent_to_email ?? '')
+                          setSendName(openQuote.customers?.name ?? '')
+                          setSendSubject(`Cotización #COT-${openQuote.id.slice(-6).toUpperCase()}`)
+                          setSendMessage('')
+                          setSendResult(null)
+                        }
+                      }}
+                      disabled={isLocked}
+                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      title={mode === 'view' ? 'Ver detalle' : mode === 'edit' ? (isLocked ? 'Bloqueado — cotización cerrada' : 'Editar') : 'Enviar'}
+                    >
+                      {mode === 'view' ? <Eye size={15} /> : mode === 'edit' ? <Edit3 size={15} /> : <Send size={15} />}
+                    </button>
+                  )
+                })}
                 <button onClick={closePanel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 ml-1">
                   <X size={15} />
                 </button>
@@ -439,6 +444,13 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
               {/* ── VIEW MODE ── */}
               {panelMode === 'view' && (
                 <div className="p-5 space-y-4">
+                  {/* Locked banner */}
+                  {(openQuote.status === 'accepted' || openQuote.status === 'rejected') && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold ${openQuote.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                      {openQuote.status === 'accepted' ? <CheckCircle size={13} /> : <XCircle size={13} />}
+                      {openQuote.status === 'accepted' ? 'Cotización aceptada — solo lectura' : 'Cotización rechazada — solo lectura'}
+                    </div>
+                  )}
                   {/* Status + dates */}
                   <div className="flex flex-wrap gap-2 items-center">
                     {(() => { const s = STATUS_MAP[openQuote.status] ?? STATUS_MAP.draft; return (

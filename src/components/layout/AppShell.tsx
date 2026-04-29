@@ -100,11 +100,25 @@ function buildSections(
   }
 
   if (role === 'advisor') {
-    return [{
-      key: 'colas',
-      section: 'Colas de espera',
-      items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }],
-    }]
+    const advisorSections: NavSection[] = []
+    if (activeModules?.queue !== false) { // show if queue active OR modules not loaded yet
+      advisorSections.push({
+        key: 'colas',
+        section: 'Colas de espera',
+        items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }],
+      })
+    }
+    if (activeModules?.appointments) {
+      advisorSections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
+    }
+    if (advisorSections.length === 0) {
+      advisorSections.push({
+        key: 'sin_modulos',
+        section: 'Acceso',
+        items: [{ href: '/advisor', label: 'Mi panel', icon: LayoutDashboard, exact: true }],
+      })
+    }
+    return advisorSections
   }
 
   if (role === 'superadmin') {

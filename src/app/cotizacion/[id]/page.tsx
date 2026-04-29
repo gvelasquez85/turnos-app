@@ -15,13 +15,14 @@ export default async function PublicQuotePage({
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // Load quote + brand (including saved template)
+  // Load quote + brand (including saved template) + establishment
   const { data: quote, error } = await service
     .from('sales')
     .select(`
-      id, total, subtotal, discount, notes, created_at, status,
-      brands ( id, name, logo_url, quote_template ),
-      customers ( name, email, phone )
+      id, total, subtotal, discount, notes, created_at, status, establishment_id,
+      brands ( id, name, logo_url, quote_template, phone, email, website, address ),
+      customers ( name, email, phone ),
+      establishments ( name, address, phone, city )
     `)
     .eq('id', id)
     .eq('type', 'quote')
@@ -41,6 +42,7 @@ export default async function PublicQuotePage({
 
   const brand = quote.brands as any
   const customer = quote.customers as any
+  const establishment = (quote as any).establishments as any
 
   // Merge saved template with defaults
   const template = resolveTemplate(brand?.quote_template ?? null)
@@ -59,6 +61,10 @@ export default async function PublicQuotePage({
           created_at: quote.created_at,
           brandName: brand?.name ?? 'TurnFlow',
           brandLogoUrl: brand?.logo_url ?? null,
+          brandPhone: (brand as any)?.phone ?? null,
+          brandEmail: (brand as any)?.email ?? null,
+          brandAddress: establishment?.address ?? (brand as any)?.address ?? null,
+          brandWebsite: (brand as any)?.website ?? null,
           customerName: customer?.name ?? null,
           customerEmail: customer?.email ?? null,
           customerPhone: customer?.phone ?? null,

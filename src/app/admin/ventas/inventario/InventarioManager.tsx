@@ -22,6 +22,7 @@ interface Product {
   unit: string
   active: boolean
   created_at: string
+  product_type?: string
 }
 
 interface Establishment { id: string; name: string }
@@ -37,7 +38,7 @@ const UNITS = ['unidad', 'par', 'caja', 'docena', 'kg', 'g', 'L', 'mL', 'hora', 
 const EMPTY_FORM = {
   name: '', sku: '', description: '', category: '',
   price: '', cost: '', stock: '0', min_stock: '0', unit: 'unidad',
-  establishment_id: '',
+  establishment_id: '', product_type: 'product',
 }
 
 function fmt(n: number) {
@@ -90,7 +91,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
       name: p.name, sku: p.sku ?? '', description: p.description ?? '',
       category: p.category ?? '', price: String(p.price), cost: String(p.cost),
       stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit,
-      establishment_id: p.establishment_id ?? '',
+      establishment_id: p.establishment_id ?? '', product_type: p.product_type ?? 'product',
     })
     setShowForm(true)
   }
@@ -111,6 +112,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
       min_stock: parseInt(form.min_stock) || 0,
       unit: form.unit,
       establishment_id: form.establishment_id || null,
+      product_type: form.product_type || 'product',
     }
 
     if (editProduct) {
@@ -254,7 +256,12 @@ export function InventarioManager({ brandId, products: initial, establishments }
                             <Package size={13} />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{p.name}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="text-sm font-medium text-gray-900">{p.name}</p>
+                              <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${p.product_type === 'service' ? 'bg-violet-100 text-violet-600' : 'bg-emerald-100 text-emerald-600'}`}>
+                                {p.product_type === 'service' ? 'Servicio' : 'Físico'}
+                              </span>
+                            </div>
                             <p className="text-[10px] text-gray-400">{p.unit}</p>
                           </div>
                         </div>
@@ -337,6 +344,26 @@ export function InventarioManager({ brandId, products: initial, establishments }
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
+              {/* Product type toggle */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipo de producto</label>
+                <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, product_type: 'product' }))}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'product' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Producto físico
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, product_type: 'service' }))}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'service' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    Servicio
+                  </button>
+                </div>
+              </div>
               {/* Name */}
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Nombre *</label>
