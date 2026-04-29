@@ -7,7 +7,6 @@ import {
   ArrowRight, DollarSign, Clock, CheckCircle, XCircle, AlertTriangle,
   Eye, Edit3, Truck, X, Loader2,
   User, Building2, Calendar, Package,
-  Copy,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -190,12 +189,6 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   function updateLocalSale(id: string, patch: Partial<Sale>) {
     setRecentSales(ss => ss.map(s => s.id === id ? { ...s, ...patch } : s))
     setPendingSales(ss => ss.map(s => s.id === id ? { ...s, ...patch } : s))
-  }
-
-  // ── Copy link ──────────────────────────────────────────────────────────────
-  function copyLink(id: string) {
-    const url = `${window.location.origin}/cotizacion/${id}`
-    navigator.clipboard.writeText(url).catch(() => {})
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -483,13 +476,6 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                     </div>
                   )}
 
-                  {/* Copy link */}
-                  <button
-                    onClick={() => copyLink(openSale.id)}
-                    className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700"
-                  >
-                    <Copy size={11} /> Copiar enlace público
-                  </button>
 
                   {/* Quick status change */}
                   <div className="border-t border-gray-100 pt-3">

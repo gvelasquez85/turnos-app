@@ -111,13 +111,8 @@ function buildSections(
     if (activeModules?.appointments) {
       advisorSections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
     }
-    if (advisorSections.length === 0) {
-      advisorSections.push({
-        key: 'sin_modulos',
-        section: 'Acceso',
-        items: [{ href: '/advisor', label: 'Mi panel', icon: LayoutDashboard, exact: true }],
-      })
-    }
+    // Ventas — always free for all roles
+    advisorSections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
     return advisorSections
   }
 

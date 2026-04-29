@@ -16,19 +16,20 @@ export default async function PublicQuotePage({
   )
 
   // Load quote + brand (including saved template) + establishment
-  const { data: quote, error } = await service
+  // Use * for joins to avoid errors from columns that may not exist yet in the DB
+  const { data: quote } = await service
     .from('sales')
     .select(`
       id, total, subtotal, discount, notes, created_at, status, establishment_id,
-      brands ( id, name, logo_url, quote_template, phone, email, website, address ),
+      brands ( * ),
       customers ( name, email, phone ),
-      establishments ( name, address, phone, city )
+      establishments ( * )
     `)
     .eq('id', id)
     .eq('type', 'quote')
     .maybeSingle()
 
-  if (!quote || error) notFound()
+  if (!quote) notFound()
 
   // Load line items
   const { data: items } = await service
