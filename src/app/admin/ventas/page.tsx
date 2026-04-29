@@ -35,8 +35,8 @@ export default async function VentasPage() {
   ])
 
   // Fallback query if fulfillment_type column doesn't exist yet (migration not run)
-  let recentSales = salesRes.status === 'fulfilled' ? (salesRes.value.data ?? []) : []
-  let pendingSales = pendingRes.status === 'fulfilled' ? (pendingRes.value.data ?? []) : []
+  let recentSales: any[] = salesRes.status === 'fulfilled' ? (salesRes.value.data ?? []) : []
+  let pendingSales: any[] = pendingRes.status === 'fulfilled' ? (pendingRes.value.data ?? []) : []
 
   if (salesRes.status === 'rejected' || (salesRes.status === 'fulfilled' && salesRes.value.error)) {
     const FALLBACK = 'id, type, status, total, subtotal, discount, notes, created_at, establishment_id, customer_id, customers(name, email)'
