@@ -101,6 +101,7 @@ function buildSections(
 
   if (role === 'advisor') {
     const advisorSections: NavSection[] = []
+    // Paid modules — only if active subscription or trial
     if (activeModules?.queue === true) {
       advisorSections.push({
         key: 'colas',
@@ -108,10 +109,17 @@ function buildSections(
         items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }],
       })
     }
-    if (activeModules?.appointments) {
+    if (activeModules?.appointments === true) {
       advisorSections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
     }
-    // Ventas — always free for all roles
+    if (activeModules?.surveys === true) {
+      advisorSections.push({ key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS })
+    }
+    if (activeModules?.menu === true) {
+      advisorSections.push({ key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS })
+    }
+    // Free modules — always visible
+    advisorSections.push({ key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS })
     advisorSections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
     return advisorSections
   }
