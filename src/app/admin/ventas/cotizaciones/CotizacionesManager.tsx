@@ -213,7 +213,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
     if (status === 'accepted') {
       const quote = quotes.find(q => q.id === id)
       if (quote) {
-        await supabase.from('sales').insert({
+        const { data: newSale } = await supabase.from('sales').insert({
           brand_id: brandId,
           establishment_id: quote.establishment_id,
           customer_id: quote.customer_id,
@@ -224,7 +224,18 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
           discount: (quote as any).discount ?? 0,
           notes: `[Por revisar] Desde cotización #${id.slice(-6).toUpperCase()}${(quote as any).notes ? `\n${(quote as any).notes}` : ''}`,
           source_quote_id: id,
-        })
+        }).select().single()
+
+        // Update inventory based on quote items
+        if (newSale?.id) {
+          try {
+            await fetch('/api/admin/sales/update-inventory', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ saleId: newSale.id, brandId }),
+            })
+          } catch {}
+        }
       }
     }
     const { data } = await supabase.from('sales').update(patch).eq('id', id).select().single()

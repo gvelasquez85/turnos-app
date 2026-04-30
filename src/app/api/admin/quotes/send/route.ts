@@ -42,12 +42,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'El envío de correos no está configurado. Contacta a soporte.' }, { status: 503 })
   }
 
-  // Load quote items for email body
+  // Load quote items for email body + brand
   const { data: quote } = await service
     .from('sales')
-    .select('id, total, subtotal, discount, notes, created_at, customers(name, email)')
+    .select('id, total, subtotal, discount, notes, created_at, brand_id, customers(name, email), brands(logo_url, name)')
     .eq('id', quoteId)
     .single()
+
+  const brand = (quote as any)?.brands
 
   const { data: items } = await service
     .from('sale_items')
@@ -75,6 +77,9 @@ export async function POST(req: NextRequest) {
     day: 'numeric', month: 'long', year: 'numeric',
   })
 
+  const brandColor = '#4F46E5' // Indigo default; could use brands.primary_color if added to schema
+  const logoUrl = (brand as any)?.logo_url || ''
+
   const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
@@ -82,12 +87,15 @@ export async function POST(req: NextRequest) {
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:Inter,Arial,sans-serif;">
 <div style="max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
-  <div style="background:#4F46E5;padding:28px 32px;">
-    <p style="margin:0;color:#c7d2fe;font-size:13px;letter-spacing:2px;text-transform:uppercase;">Cotización</p>
-    <h1 style="margin:4px 0 0;color:#fff;font-size:24px;font-weight:800;">
-      # COT-${quoteId.slice(-6).toUpperCase()}
-    </h1>
-    <p style="margin:8px 0 0;color:#a5b4fc;font-size:13px;">${quoteDate}</p>
+  <div style="background:${brandColor};padding:28px 32px;display:flex;align-items:center;gap:16px;">
+    ${logoUrl ? `<img src="${logoUrl}" style="height:40px;object-fit:contain;" alt="Logo" />` : ''}
+    <div>
+      <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;letter-spacing:2px;text-transform:uppercase;">Cotización</p>
+      <h1 style="margin:4px 0 0;color:#fff;font-size:24px;font-weight:800;">
+        # COT-${quoteId.slice(-6).toUpperCase()}
+      </h1>
+      <p style="margin:8px 0 0;color:rgba(255,255,255,0.7);font-size:13px;">${quoteDate}</p>
+    </div>
   </div>
 
   <div style="padding:28px 32px;">
@@ -110,7 +118,7 @@ export async function POST(req: NextRequest) {
       <tbody>${itemsHtml}</tbody>
       <tfoot>
         ${(quote?.discount ?? 0) > 0 ? `<tr><td colspan="2" style="padding:8px 12px;text-align:right;color:#6b7280;">Descuento:</td><td style="padding:8px 12px;text-align:right;color:#dc2626;">−${fmt(quote?.discount ?? 0)}</td></tr>` : ''}
-        <tr style="background:#4F46E5;">
+        <tr style="background:${brandColor};">
           <td colspan="2" style="padding:12px;color:#fff;font-weight:700;border-radius:0 0 0 8px;">Total</td>
           <td style="padding:12px;color:#fff;font-weight:800;font-size:16px;text-align:right;border-radius:0 0 8px 0;">${fmt(quote?.total ?? 0)}</td>
         </tr>
@@ -118,15 +126,15 @@ export async function POST(req: NextRequest) {
     </table>
 
     ${(quote?.notes) ? `
-    <div style="margin-top:20px;padding:14px 16px;background:#f9fafb;border-radius:8px;border-left:3px solid #6366f1;">
-      <p style="margin:0;font-size:12px;font-weight:600;color:#4f46e5;text-transform:uppercase;letter-spacing:1px;">Notas</p>
+    <div style="margin-top:20px;padding:14px 16px;background:#f9fafb;border-radius:8px;border-left:3px solid ${brandColor};">
+      <p style="margin:0;font-size:12px;font-weight:600;color:${brandColor};text-transform:uppercase;letter-spacing:1px;">Notas</p>
       <p style="margin:6px 0 0;font-size:13px;color:#6b7280;">${quote.notes}</p>
     </div>` : ''}
 
     <!-- CTA -->
     <div style="margin-top:28px;text-align:center;">
       <a href="${quotePublicUrl}"
-         style="display:inline-block;background:#4F46E5;color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;">
+         style="display:inline-block;background:${brandColor};color:#fff;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;">
         Ver cotización completa →
       </a>
     </div>

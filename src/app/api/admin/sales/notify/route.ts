@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // Load sale + customer + brand
+  // Load sale + customer + brand (with logo for email)
   const { data: sale } = await service
     .from('sales')
-    .select('id, total, notes, brand_id, customers(name, email), brands(name)')
+    .select('id, total, notes, brand_id, customers(name, email), brands(name, logo_url)')
     .eq('id', saleId)
     .single()
 
@@ -55,18 +55,23 @@ export async function POST(req: NextRequest) {
 
     const statusLabel = STATUS_LABELS[newStatus] ?? newStatus
     const fmt = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+    const brandColor = '#4F46E5' // Default indigo; could use brands.primary_color if added
+    const logoUrl = (brand as any)?.logo_url || ''
 
     const htmlContent = `
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/></head>
 <body style="margin:0;padding:0;background:#f5f5f5;font-family:Inter,Arial,sans-serif;">
 <div style="max-width:540px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
-  <div style="background:#4F46E5;padding:24px 32px;">
-    <p style="margin:0;color:#c7d2fe;font-size:13px;">Actualización de tu pedido</p>
-    <h1 style="margin:4px 0 0;color:#fff;font-size:22px;font-weight:800;">${statusLabel}</h1>
+  <div style="background:${brandColor};padding:24px 32px;display:flex;align-items:center;gap:12px;">
+    ${logoUrl ? `<img src="${logoUrl}" style="height:32px;object-fit:contain;" alt="Logo" />` : ''}
+    <div>
+      <p style="margin:0;color:rgba(255,255,255,0.8);font-size:13px;">Actualización de tu pedido</p>
+      <h1 style="margin:4px 0 0;color:#fff;font-size:22px;font-weight:800;">${statusLabel}</h1>
+    </div>
   </div>
   <div style="padding:28px 32px;">
     <p style="color:#374151;font-size:15px;">Hola <strong>${customer.name}</strong>,</p>
-    <p style="color:#6b7280;font-size:14px;line-height:1.6;">Tu pedido en <strong>${brand?.name ?? 'nuestra tienda'}</strong> ha cambiado de estado a: <strong style="color:#4F46E5;">${statusLabel}</strong>.</p>
+    <p style="color:#6b7280;font-size:14px;line-height:1.6;">Tu pedido en <strong>${brand?.name ?? 'nuestra tienda'}</strong> ha cambiado de estado a: <strong style="color:${brandColor};">${statusLabel}</strong>.</p>
     <div style="margin:20px 0;padding:16px;background:#f9fafb;border-radius:8px;">
       <p style="margin:0;font-size:13px;color:#6b7280;">Total: <strong style="color:#111827;">${fmt(sale?.total ?? 0)}</strong></p>
       ${(sale as any)?.notes ? `<p style="margin:8px 0 0;font-size:12px;color:#9ca3af;">${(sale as any).notes}</p>` : ''}

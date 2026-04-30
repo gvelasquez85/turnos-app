@@ -37,7 +37,7 @@ export default async function ResponderQuotePage({
 
     // If accepted → auto-create a pending sale for review
     if (newStatus === 'accepted') {
-      await service.from('sales').insert({
+      const { data: newSale } = await service.from('sales').insert({
         brand_id: quote.brand_id,
         establishment_id: quote.establishment_id,
         customer_id: quote.customer_id,
@@ -48,7 +48,19 @@ export default async function ResponderQuotePage({
         discount: quote.discount ?? 0,
         notes: `[Por revisar] Desde cotización #${id.slice(-6).toUpperCase()}${quote.notes ? `\n${quote.notes}` : ''}`,
         source_quote_id: id,
-      })
+      }).select().single()
+
+      // Update inventory based on quote items
+      if (newSale?.id) {
+        try {
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.co'
+          await fetch(`${appUrl}/api/admin/sales/update-inventory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ saleId: newSale.id, brandId: quote.brand_id }),
+          })
+        } catch {}
+      }
     }
   }
 
