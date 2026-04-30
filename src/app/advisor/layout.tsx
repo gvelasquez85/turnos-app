@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
+import { getVerifiedActiveModules } from '@/lib/serverBrandContext'
 
 export default async function AdvisorLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -18,25 +19,11 @@ export default async function AdvisorLayout({ children }: { children: React.Reac
   }
 
   const brandId = (profile as any).brand_id
-  const rawModules: Record<string, boolean> = (profile.brands as any)?.active_modules ?? {}
-
-  // Verify queue subscription status against module_subscriptions (source of truth)
-  // brand.active_modules may be stale — subscription expiry takes precedence
-  let verifiedModules = { ...rawModules }
-  if (brandId) {
-    const { data: subs } = await supabase
-      .from('module_subscriptions')
-      .select('module_key, status')
-      .eq('brand_id', brandId)
-      .in('status', ['active', 'trialing'])
-
-    const activeSubs = new Set((subs ?? []).map((s: any) => s.module_key))
-
-    // For paid modules (queue, appointments, surveys, menu), only show if sub is active
-    for (const mod of ['queue', 'appointments', 'surveys', 'menu']) {
-      verifiedModules[mod] = activeSubs.has(mod)
-    }
-  }
+  const activeModules = await getVerifiedActiveModules(
+    supabase,
+    brandId,
+    (profile.brands as any)?.active_modules ?? null,
+  )
 
   return (
     <AppShell
@@ -46,7 +33,7 @@ export default async function AdvisorLayout({ children }: { children: React.Reac
       brandName={(profile.brands as any)?.name ?? null}
       establishmentName={(profile.establishments as any)?.name ?? null}
       establishmentSlug={(profile.establishments as any)?.slug ?? null}
-      activeModules={verifiedModules}
+      activeModules={activeModules}
     >
       {children}
     </AppShell>

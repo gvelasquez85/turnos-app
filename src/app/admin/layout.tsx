@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
+import { getVerifiedActiveModules } from '@/lib/serverBrandContext'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -40,15 +41,21 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     if (mem?.plan) plan = mem.plan
   }
 
+  const activeModules = await getVerifiedActiveModules(
+    supabase,
+    brandId,
+    (profile.brands as any)?.active_modules ?? null,
+  )
+
   return (
     <AppShell
-      role={profile.role as 'superadmin' | 'brand_admin' | 'manager'}
+      role={profile.role as 'superadmin' | 'brand_admin' | 'manager' | 'advisor'}
       fullName={profile.full_name}
       email={profile.email}
       brandName={(profile.brands as any)?.name ?? null}
       establishmentName={(profile.establishments as any)?.name ?? null}
       establishmentSlug={(profile.establishments as any)?.slug ?? null}
-      activeModules={(profile.brands as any)?.active_modules ?? undefined}
+      activeModules={activeModules}
       plan={plan}
     >
       {children}
