@@ -438,8 +438,8 @@ function AppShellInner({
               </div>
             )}
           </Link>
-          {/* Pantalla TV (advisor with establishment) */}
-          {activeRole === 'advisor' && establishmentSlug && (
+          {/* Pantalla TV (advisor with establishment) — solo si módulo queue activo */}
+          {activeRole === 'advisor' && establishmentSlug && activeModules?.queue === true && (
             <a
               href={`/display/${establishmentSlug}`}
               target="_blank"
