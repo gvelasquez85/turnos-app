@@ -15,7 +15,7 @@ export default async function ClientesPage() {
     .eq('id', user.id)
     .single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
+  if (!profile || !['brand_admin', 'manager', 'superadmin', 'advisor'].includes(profile.role ?? ''))
     redirect('/admin')
 
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')

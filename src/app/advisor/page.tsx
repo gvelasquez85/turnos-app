@@ -31,6 +31,11 @@ export default async function AdvisorPage() {
     }
   }
 
+  // If advisor role and queue is not active → redirect to free modules (ventas)
+  if (profile?.role === 'advisor' && isQueueExpired) {
+    redirect('/admin/ventas')
+  }
+
   // Cargar campos personalizados si hay establecimiento asignado fijo
   if (profile?.establishment_id) {
     const [{ data: advisorFields }, { data: establishment }] = await Promise.all([

@@ -27,7 +27,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     }
   }
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role)) redirect('/')
+  if (!profile || !['brand_admin', 'manager', 'superadmin', 'advisor'].includes(profile.role)) redirect('/')
 
   const brandId = (profile as any).brand_id
   let plan = 'free'

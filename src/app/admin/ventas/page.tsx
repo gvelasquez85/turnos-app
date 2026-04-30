@@ -12,7 +12,7 @@ export default async function VentasPage() {
   const { data: profile } = await supabase
     .from('profiles').select('role, brand_id').eq('id', user.id).single()
 
-  if (!profile || !['brand_admin', 'manager', 'superadmin'].includes(profile.role ?? ''))
+  if (!profile || !['brand_admin', 'manager', 'superadmin', 'advisor'].includes(profile.role ?? ''))
     redirect('/admin')
 
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
