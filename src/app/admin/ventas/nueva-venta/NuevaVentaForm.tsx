@@ -137,6 +137,17 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
       }
     }
 
+    // Send confirmation email for new sales
+    if (type === 'sale' && sale?.id) {
+      try {
+        await fetch('/api/admin/sales/send-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ saleId: sale.id }),
+        })
+      } catch {}
+    }
+
     setSaving(false)
     router.push(type === 'quote' ? '/admin/ventas/cotizaciones' : '/admin/ventas')
   }

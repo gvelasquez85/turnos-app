@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   // Load quote items for email body + brand
   const { data: quote } = await service
     .from('sales')
-    .select('id, total, subtotal, discount, notes, created_at, brand_id, customers(name, email), brands(logo_url, name)')
+    .select('id, total, subtotal, discount, notes, created_at, brand_id, customers(name, email), brands(logo_url, name, primary_color)')
     .eq('id', quoteId)
     .single()
 
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     day: 'numeric', month: 'long', year: 'numeric',
   })
 
-  const brandColor = '#4F46E5' // Indigo default; could use brands.primary_color if added to schema
+  const brandColor = (brand as any)?.primary_color || '#4F46E5' // Use brand primary color or fallback to indigo
   const logoUrl = (brand as any)?.logo_url || ''
 
   const htmlContent = `

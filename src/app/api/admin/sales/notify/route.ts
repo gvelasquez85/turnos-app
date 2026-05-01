@@ -26,10 +26,10 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // Load sale + customer + brand (with logo for email)
+  // Load sale + customer + brand (with logo and colors for email)
   const { data: sale } = await service
     .from('sales')
-    .select('id, total, notes, brand_id, customers(name, email), brands(name, logo_url)')
+    .select('id, total, notes, brand_id, customers(name, email), brands(name, logo_url, primary_color)')
     .eq('id', saleId)
     .single()
 
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
 
     const statusLabel = STATUS_LABELS[newStatus] ?? newStatus
     const fmt = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
-    const brandColor = '#4F46E5' // Default indigo; could use brands.primary_color if added
+    const brandColor = (brand as any)?.primary_color || '#4F46E5' // Use brand primary color or fallback to indigo
     const logoUrl = (brand as any)?.logo_url || ''
 
     const htmlContent = `
