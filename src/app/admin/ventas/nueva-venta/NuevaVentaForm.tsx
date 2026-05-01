@@ -116,31 +116,32 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
     }))
     await supabase.from('sale_items').insert(lineItems)
 
-    // Decrease stock for sales
-    if (type === 'sale') {
-      for (const it of items) {
-        if (it.product_id) {
-          const prod = products.find(p => p.id === it.product_id)
-          if (prod) {
-            const newStock = prod.stock - Math.ceil(it.qty)
-            await supabase.from('products').update({ stock: newStock }).eq('id', it.product_id)
-            await supabase.from('stock_movements').insert({
-              product_id: it.product_id,
-              brand_id: brandId,
-              type: 'sale',
-              qty_change: -Math.ceil(it.qty),
-              qty_after: newStock,
-              reference_id: sale.id,
-            })
-          }
-        }
-      }
+    // Decrease stock via server API (reads fresh stock from DB)
+    if (type === 'sale' && sale?.id) {
+      try {
+        await fetch('/api/admin/sales/update-inventory', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ saleId: sale.id, brandId }),
+        })
+      } catch {}
     }
 
     // Send confirmation email for new sales
     if (type === 'sale' && sale?.id) {
       try {
         await fetch('/api/admin/sales/send-confirmation', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ saleId: sale.id }),
+        })
+      } catch {}
+    }
+
+    // Create download links for digital products
+    if (type === 'sale' && sale?.id) {
+      try {
+        await fetch('/api/admin/sales/create-download-links', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ saleId: sale.id }),

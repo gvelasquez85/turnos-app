@@ -23,6 +23,8 @@ interface Product {
   active: boolean
   created_at: string
   product_type?: string
+  digital_url?: string | null
+  download_limit?: number | null
 }
 
 interface Establishment { id: string; name: string }
@@ -39,6 +41,7 @@ const EMPTY_FORM = {
   name: '', sku: '', description: '', category: '',
   price: '', cost: '', stock: '0', min_stock: '0', unit: 'unidad',
   establishment_id: '', product_type: 'product',
+  digital_url: '', download_limit: '3',
 }
 
 function fmt(n: number) {
@@ -92,6 +95,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
       category: p.category ?? '', price: String(p.price), cost: String(p.cost),
       stock: String(p.stock), min_stock: String(p.min_stock), unit: p.unit,
       establishment_id: p.establishment_id ?? '', product_type: p.product_type ?? 'product',
+      digital_url: p.digital_url ?? '', download_limit: String(p.download_limit ?? 3),
     })
     setShowForm(true)
   }
@@ -113,6 +117,8 @@ export function InventarioManager({ brandId, products: initial, establishments }
       unit: form.unit,
       establishment_id: form.establishment_id || null,
       product_type: form.product_type || 'product',
+      digital_url: (form as any).digital_url || null,
+      download_limit: (form as any).download_limit ? parseInt((form as any).download_limit) || 3 : 3,
     }
 
     if (editProduct) {
@@ -353,14 +359,21 @@ export function InventarioManager({ brandId, products: initial, establishments }
                     onClick={() => setForm(f => ({ ...f, product_type: 'product' }))}
                     className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'product' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                   >
-                    Producto físico
+                    📦 Físico
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, product_type: 'service' }))}
                     className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'service' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
                   >
-                    Servicio
+                    🛠 Servicio
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, product_type: 'digital' }))}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'digital' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                  >
+                    ⬇️ Digital
                   </button>
                 </div>
               </div>
@@ -474,6 +487,32 @@ export function InventarioManager({ brandId, products: initial, establishments }
                   placeholder="Descripción opcional del producto o servicio"
                 />
               </div>
+              {/* Digital product fields */}
+              {form.product_type === 'digital' && (
+                <>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">URL del archivo (OneDrive, Drive, etc.)</label>
+                    <input
+                      type="url"
+                      value={(form as any).digital_url ?? ''}
+                      onChange={e => setForm(f => ({ ...f, digital_url: e.target.value }))}
+                      placeholder="https://..."
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Máx. descargas por compra</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={(form as any).download_limit ?? 3}
+                      onChange={e => setForm(f => ({ ...f, download_limit: e.target.value }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                    />
+                  </div>
+                </>
+              )}
               {/* Establishment */}
               {establishments.length > 1 && (
                 <div>

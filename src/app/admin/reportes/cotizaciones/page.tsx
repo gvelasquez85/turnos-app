@@ -18,8 +18,13 @@ export default async function ReporteCotizacionesPage() {
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
   if (!brandId) return <NoBrandContext />
 
+  const since90 = new Date(Date.now() - 90 * 86400000).toISOString()
   const [quotesRes, quoteItemsRes] = await Promise.allSettled([
-    supabase.from('sales').select('id, status, total, created_at').eq('brand_id', brandId).eq('type', 'quote'),
+    supabase.from('sales')
+      .select('id, status, total, created_at, customers(name)')
+      .eq('brand_id', brandId).eq('type', 'quote')
+      .gte('created_at', since90)
+      .order('created_at', { ascending: false }),
     supabase.from('sale_items')
       .select('product_name, qty, line_total, sales!inner(brand_id, type)')
       .eq('sales.brand_id', brandId).eq('sales.type', 'quote'),

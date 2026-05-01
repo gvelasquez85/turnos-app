@@ -2,7 +2,7 @@
 import { useMemo } from 'react'
 import { FileCheck, CheckCircle, XCircle, Clock, ShoppingCart, TrendingUp } from 'lucide-react'
 
-interface Quote { id: string; status: string; total: number; created_at: string }
+interface Quote { id: string; status: string; total: number; created_at: string; customers?: { name: string } | null }
 interface QuoteItem { product_name: string; qty: number; line_total: number }
 
 function fmt(n: number) {
@@ -114,6 +114,40 @@ export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; q
             </div>
           )}
         </div>
+      </div>
+
+      {/* Recent quotes list */}
+      <div className="mt-5 bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100">
+          <h3 className="font-semibold text-gray-900 text-sm">Últimas cotizaciones</h3>
+        </div>
+        {quotes.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-8">Sin cotizaciones</p>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {quotes.slice(0, 20).map((q: any) => {
+              const cfg = STATUS_CFG.find(s => s.key === q.status)
+              const Icon = cfg?.icon ?? Clock
+              return (
+                <div key={q.id} className="flex items-center gap-4 px-5 py-3">
+                  <Icon size={14} className={cfg?.color ?? 'text-gray-400'} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {q.customers?.name ?? 'Sin cliente'} — # COT-{q.id.slice(-6).toUpperCase()}
+                    </p>
+                    <p className="text-xs text-gray-400">{new Date(q.created_at).toLocaleDateString('es')}</p>
+                  </div>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${cfg ? '' : 'bg-gray-100 text-gray-500'}`}>
+                    {cfg?.label ?? q.status}
+                  </span>
+                  <span className="text-sm font-bold text-gray-900 shrink-0">
+                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(q.total)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

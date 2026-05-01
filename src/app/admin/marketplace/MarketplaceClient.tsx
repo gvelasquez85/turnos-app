@@ -199,7 +199,9 @@ export function MarketplaceClient({
     setLoading(null)
   }
 
-  const activeSubs = subs.filter(s => ['trial', 'active'].includes(s.status))
+  const activeSubs = subs.filter(s =>
+    ['trial', 'active'].includes(s.status) && !FREE_MODULE_KEYS.includes(s.module_key)
+  )
   const baseMonthly = calcMonthlyBase(maxEstablishments, maxAdvisors)
   const addonMonthly = activeSubs.reduce((sum, sub) => {
     const mod = modules.find(m => m.module_key === sub.module_key)

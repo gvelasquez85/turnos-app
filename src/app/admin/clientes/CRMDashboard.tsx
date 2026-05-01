@@ -123,6 +123,7 @@ function CustomerSlideOver({
   const [note, setNote] = useState('')
   const [savingNote, setSavingNote] = useState(false)
   const [loadingTabs, setLoadingTabs] = useState(false)
+  const [customTagInput, setCustomTagInput] = useState('')
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
@@ -250,6 +251,20 @@ function CustomerSlideOver({
         .select().single()
       if (data) setTags(prev => [...prev, data as CustomerTag])
     }
+  }
+
+  async function addCustomTag() {
+    if (!customTagInput.trim()) return
+    const key = 'custom_' + customTagInput.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    const supabase = createClient()
+    const { data } = await supabase.from('customer_tags').insert({
+      customer_id: customer.id,
+      tag_key: key,
+      tag_label: customTagInput.trim(),
+    }).select().single()
+    if (data) setTags(prev => [...prev, data as CustomerTag])
+    onUpdate({ ...customer, tags: [...((customer as any).tags ?? []), { tag_key: key }] })
+    setCustomTagInput('')
   }
 
   async function saveNote() {
@@ -549,6 +564,25 @@ function CustomerSlideOver({
                       </button>
                     )
                   })}
+                  {/* Custom tags already added */}
+                  {tags.filter(t => t.tag_key.startsWith('custom_')).map(t => (
+                    <div key={t.id} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50">
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700">{(t as any).tag_label ?? t.tag_key.replace('custom_', '')}</span>
+                      <button onClick={() => toggleTag(t.tag_key)} className="text-gray-400 hover:text-red-500"><X size={12} /></button>
+                    </div>
+                  ))}
+                  <div className="flex gap-2 mt-3">
+                    <input
+                      type="text"
+                      value={customTagInput}
+                      onChange={e => setCustomTagInput(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addCustomTag()}
+                      placeholder="Nueva etiqueta..."
+                      className="flex-1 text-xs border border-gray-200 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      maxLength={30}
+                    />
+                    <button onClick={addCustomTag} className="px-3 py-1.5 bg-indigo-600 text-white text-xs rounded-lg hover:bg-indigo-700">+</button>
+                  </div>
                 </div>
               )}
             </div>
