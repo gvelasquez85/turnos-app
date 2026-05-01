@@ -138,7 +138,17 @@ export function MarketplaceClient({
 
   const isColombiaAccount = brandCountry === 'Colombia'
 
-  function getSub(key: string) { return subs.find(s => s.module_key === key) }
+  // Handle module key aliases when looking up subscriptions
+  function getSub(key: string) {
+    const aliases: Record<string, string[]> = {
+      clientes: ['clientes', 'crm'],
+      crm: ['clientes', 'crm'],
+      sales: ['sales', 'ventas'],
+      ventas: ['sales', 'ventas'],
+    }
+    const keys = aliases[key] ?? [key]
+    return subs.find(s => keys.includes(s.module_key))
+  }
 
   /** Compute full monthly price for a module (COP) */
   function modulePrice(mod: MarketplaceModule): number {
@@ -238,20 +248,37 @@ export function MarketplaceClient({
     return sum + modulePrice(mod)
   }, 0)
 
-  // Deduplicate clientes/crm — treat 'crm' as an alias for 'clientes'
+  // Normalize module keys: crm→clientes, ventas→sales
+  function normalizeModuleKey(key: string): string {
+    if (key === 'crm') return 'clientes'
+    if (key === 'ventas') return 'sales'
+    return key
+  }
+
+  // Deduplicate modules using canonical keys
   function deduplicateModules(mods: MarketplaceModule[]): MarketplaceModule[] {
     const seen = new Set<string>()
     return mods.reduce<MarketplaceModule[]>((acc, m) => {
-      const canonical = m.module_key === 'crm' ? 'clientes' : m.module_key
+      const canonical = normalizeModuleKey(m.module_key)
       if (seen.has(canonical)) return acc
       seen.add(canonical)
-      // Normalize crm → clientes display
-      if (m.module_key === 'crm') return [...acc, { ...m, module_key: 'clientes', label: 'Clientes' }]
-      return [...acc, m]
+      const normalized = canonical !== m.module_key
+        ? { ...m, module_key: canonical, label: canonical === 'clientes' ? 'Clientes' : m.label }
+        : m
+      return [...acc, normalized]
     }, [])
   }
 
   const allModules = deduplicateModules(modules)
+
+  // Orphan subscriptions: have a sub row in DB but no matching marketplace_modules entry.
+  // These appear when a trial was started before a module was removed from visibility,
+  // or when the SQL migration hasn't run. We still need to let the user delete them.
+  const orphanSubs = subs.filter(s => {
+    const canonical = normalizeModuleKey(s.module_key)
+    if (FREE_MODULE_KEYS.includes(canonical) || FREE_MODULE_KEYS.includes(s.module_key)) return false
+    return !allModules.some(m => m.module_key === canonical || m.module_key === s.module_key)
+  })
 
   if (allModules.length === 0) {
     return (
@@ -495,6 +522,43 @@ export function MarketplaceClient({
           </>
         )
       })()}
+
+      {/* Orphan subscriptions — sub exists in DB but no marketplace_modules entry */}
+      {orphanSubs.length > 0 && (
+        <div className="mb-7">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos sin renovar</h2>
+          <div className="flex flex-col gap-2">
+            {orphanSubs.map(sub => {
+              const status = getStatus(sub)
+              const Icon = MODULE_ICON_FALLBACK[sub.module_key] ?? Zap
+              const labelMap: Record<string, string> = {
+                appointments: 'Citas programadas', surveys: 'Encuestas',
+                queue: 'Colas de espera', menu: 'Menú / Preorden',
+                crm: 'Clientes CRM', clientes: 'Clientes',
+              }
+              const label = labelMap[sub.module_key] ?? sub.module_key
+              return (
+                <div key={sub.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                    <Icon size={16} className="text-gray-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 text-sm">{label}</p>
+                    <StatusBadge status={status} sub={sub} />
+                  </div>
+                  <button
+                    onClick={() => { setDeleteModal(sub.module_key); setDeleteStep('confirm'); setExportedBlob(null) }}
+                    title="Eliminar módulo de la cuenta"
+                    className="w-9 h-9 flex items-center justify-center rounded-xl border border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Delete module modal */}
       {deleteModal && (() => {
