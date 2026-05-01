@@ -263,7 +263,7 @@ function CustomerSlideOver({
       tag_label: customTagInput.trim(),
     }).select().single()
     if (data) setTags(prev => [...prev, data as CustomerTag])
-    onUpdate({ ...customer, tags: [...((customer as any).tags ?? []), { tag_key: key }] })
+    onUpdate({ ...(customer as any) } as Customer)
     setCustomTagInput('')
   }
 

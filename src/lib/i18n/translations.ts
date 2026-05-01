@@ -36,6 +36,22 @@ const TRANSLATIONS: Record<string, Record<LangCode, string>> = {
   'nav.memberships': { es: 'Membresías', en: 'Memberships', pt: 'Assinaturas' },
   'nav.users': { es: 'Usuarios', en: 'Users', pt: 'Usuários' },
   'nav.settings': { es: 'Configuración', en: 'Settings', pt: 'Configurações' },
+  // ── New nav keys ──────────────────────────────────────────────
+  'nav.sales': { es: 'Ventas', en: 'Sales', pt: 'Vendas' },
+  'nav.inventory': { es: 'Inventario', en: 'Inventory', pt: 'Inventário' },
+  'nav.quotes': { es: 'Cotizaciones', en: 'Quotes', pt: 'Cotações' },
+  'nav.customize': { es: 'Personalizar', en: 'Customize', pt: 'Personalizar' },
+  'nav.attention': { es: 'Atención', en: 'Attendance', pt: 'Atendimento' },
+  'nav.products': { es: 'Productos', en: 'Products', pt: 'Produtos' },
+  // ── Section names ─────────────────────────────────────────────
+  'section.myBrand': { es: 'Mi Marca', en: 'My Brand', pt: 'Minha Marca' },
+  'section.clients': { es: 'Clientes', en: 'Customers', pt: 'Clientes' },
+  'section.queues': { es: 'Colas de espera', en: 'Queues', pt: 'Filas de espera' },
+  'section.appointments': { es: 'Citas', en: 'Appointments', pt: 'Agendamentos' },
+  'section.surveys': { es: 'Encuestas', en: 'Surveys', pt: 'Pesquisas' },
+  'section.menu': { es: 'Menú / Preorden', en: 'Menu / Pre-order', pt: 'Menu / Pré-pedido' },
+  'section.sales': { es: 'Ventas', en: 'Sales', pt: 'Vendas' },
+  'section.more': { es: 'Más', en: 'More', pt: 'Mais' },
   // ── Sections ─────────────────────────────────────────────────
   'section.brand': { es: 'Marca', en: 'Brand', pt: 'Marca' },
   'section.admin': { es: 'Administración', en: 'Administration', pt: 'Administração' },

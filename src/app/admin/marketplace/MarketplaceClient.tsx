@@ -5,7 +5,7 @@ import {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, CheckCircle, Clock, AlertTriangle,
   Zap, Star, ArrowRight, UserCheck, Lock, Building2, Users,
-  ShoppingCart, Package, Tag, Bell, Globe, BarChart2,
+  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Trash2, Download, Loader2,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -13,7 +13,7 @@ import { calcMonthlyBase, calcQueuePrice, fmtCOP, PRICING } from '@/lib/planLimi
 import { PayPalButton } from '@/components/PayPalButton'
 
 // Free modules — always included, shown in "Incluido" section
-const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales']
+const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales', 'ventas']
 
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -132,6 +132,9 @@ export function MarketplaceClient({
   const [loading, setLoading] = useState<string | null>(null)
   const [contractModal, setContractModal] = useState<string | null>(null)
   const [paymentSuccess, setPaymentSuccess] = useState<string | null>(null)
+  const [deleteModal, setDeleteModal] = useState<string | null>(null)
+  const [deleteStep, setDeleteStep] = useState<'confirm' | 'exporting' | 'done'>('confirm')
+  const [exportedBlob, setExportedBlob] = useState<string | null>(null)
 
   const isColombiaAccount = brandCountry === 'Colombia'
 
@@ -197,6 +200,32 @@ export function MarketplaceClient({
     setSubs(s => s.map(x => x.module_key === moduleKey ? { ...x, status: 'cancelled' } : x))
     setBrandModules(updated)
     setLoading(null)
+  }
+
+  async function exportAndDelete(moduleKey: string) {
+    setDeleteStep('exporting')
+    // 1. Export data
+    try {
+      const res = await fetch('/api/admin/modules/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moduleKey }),
+      })
+      if (res.ok) {
+        const json = await res.json()
+        const blob = URL.createObjectURL(new Blob([JSON.stringify(json, null, 2)], { type: 'application/json' }))
+        setExportedBlob(blob)
+      }
+    } catch {}
+    // 2. Delete subscription
+    await fetch('/api/admin/modules/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ moduleKey }),
+    })
+    setSubs(s => s.filter(x => x.module_key !== moduleKey))
+    setBrandModules(m => { const n = { ...m }; delete n[moduleKey]; return n })
+    setDeleteStep('done')
   }
 
   const activeSubs = subs.filter(s =>
@@ -436,9 +465,20 @@ export function MarketplaceClient({
                           Cancelar módulo
                         </Button>
                       ) : (
-                        <Button onClick={() => setContractModal(mod.module_key)} className="w-full">
-                          Contratar módulo
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button onClick={() => setContractModal(mod.module_key)} className="flex-1">
+                            Contratar módulo
+                          </Button>
+                          {(status === 'expired' || status === 'cancelled') && (
+                            <button
+                              onClick={() => { setDeleteModal(mod.module_key); setDeleteStep('confirm'); setExportedBlob(null) }}
+                              title="Eliminar módulo de la cuenta"
+                              className="w-10 h-10 flex items-center justify-center rounded-xl border border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                   </div>
@@ -446,6 +486,74 @@ export function MarketplaceClient({
               })}
             </div>
           </>
+        )
+      })()}
+
+      {/* Delete module modal */}
+      {deleteModal && (() => {
+        const mod = allModules.find(m => m.module_key === deleteModal)
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+              {deleteStep === 'confirm' && (
+                <>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+                      <Trash2 size={18} className="text-red-500" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-900">Eliminar módulo</p>
+                      <p className="text-sm text-gray-500">{mod?.label}</p>
+                    </div>
+                  </div>
+                  <p className="text-sm text-gray-600 mb-2">
+                    Antes de eliminar, te recomendamos <strong>descargar tus datos</strong>. Esto incluye toda la información generada con este módulo en formato JSON.
+                  </p>
+                  <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3 mb-5">
+                    Al eliminar, se borrará el historial de suscripción y el módulo dejará de aparecer en tu cuenta. Los datos del negocio (clientes, ventas, etc.) no se borran.
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    <Button onClick={() => exportAndDelete(deleteModal)} className="w-full bg-red-600 hover:bg-red-700">
+                      Exportar datos y eliminar
+                    </Button>
+                    <Button variant="secondary" onClick={() => setDeleteModal(null)} className="w-full">
+                      Cancelar
+                    </Button>
+                  </div>
+                </>
+              )}
+              {deleteStep === 'exporting' && (
+                <div className="text-center py-4">
+                  <Loader2 size={32} className="animate-spin text-indigo-500 mx-auto mb-3" />
+                  <p className="font-semibold text-gray-900 mb-1">Exportando datos...</p>
+                  <p className="text-sm text-gray-500">Esto puede tardar unos segundos.</p>
+                </div>
+              )}
+              {deleteStep === 'done' && (
+                <div className="text-center">
+                  <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle size={24} className="text-green-600" />
+                  </div>
+                  <h2 className="text-lg font-bold text-gray-900 mb-2">Módulo eliminado</h2>
+                  <p className="text-sm text-gray-500 mb-5">
+                    El módulo fue removido de tu cuenta correctamente.
+                  </p>
+                  {exportedBlob && (
+                    <a
+                      href={exportedBlob}
+                      download={`export_${deleteModal}_${new Date().toISOString().slice(0,10)}.json`}
+                      className="flex items-center justify-center gap-2 w-full py-2.5 mb-3 rounded-xl border border-indigo-200 text-indigo-600 text-sm font-medium hover:bg-indigo-50 transition-colors"
+                    >
+                      <Download size={14} /> Descargar datos exportados
+                    </a>
+                  )}
+                  <Button className="w-full" onClick={() => { setDeleteModal(null); setDeleteStep('confirm'); setExportedBlob(null) }}>
+                    Cerrar
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
         )
       })()}
 

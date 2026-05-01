@@ -22,6 +22,7 @@ export type AppRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 're
 interface NavItem {
   href: string
   label: string
+  labelKey?: string  // i18n translation key (optional)
   icon: React.ElementType
   exact?: boolean
 }
@@ -29,65 +30,66 @@ interface NavItem {
 interface NavSection {
   key: string
   section: string
+  sectionKey?: string  // i18n translation key for section header
   items: NavItem[]
 }
 
 // ─── Item definitions ──────────────────────────────────────────────────────────
 
 const BRAND_ITEMS: NavItem[] = [
-  { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
-  { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
-  { href: '/admin/users', label: 'Equipo', icon: Users },
+  { href: '/admin/brand', label: 'Mi marca', labelKey: 'nav.brand', icon: Building2 },
+  { href: '/admin', label: 'Sucursales', labelKey: 'nav.branches', icon: Store, exact: true },
+  { href: '/admin/users', label: 'Equipo', labelKey: 'nav.team', icon: Users },
 ]
 
 const MANAGER_BRAND_ITEMS: NavItem[] = [
-  { href: '/admin/brand', label: 'Mi marca', icon: Building2 },
-  { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
+  { href: '/admin/brand', label: 'Mi marca', labelKey: 'nav.brand', icon: Building2 },
+  { href: '/admin', label: 'Sucursales', labelKey: 'nav.branches', icon: Store, exact: true },
 ]
 
-const PROMOTIONS_ITEM: NavItem = { href: '/admin/promotions', label: 'Promociones', icon: Tag }
+const PROMOTIONS_ITEM: NavItem = { href: '/admin/promotions', label: 'Promociones', labelKey: 'nav.promotions', icon: Tag }
 
 const CLIENTES_ITEMS: NavItem[] = [
-  { href: '/admin/clientes', label: 'Clientes', icon: Users },
-  { href: '/admin/consents', label: 'Autorizaciones', icon: Shield },
+  { href: '/admin/clientes', label: 'Clientes', labelKey: 'nav.customers', icon: Users },
+  { href: '/admin/consents', label: 'Autorizaciones', labelKey: 'nav.consents', icon: Shield },
 ]
 
 const QUEUE_ITEMS: NavItem[] = [
-  { href: '/admin/queue', label: 'Monitor de colas', icon: Clock },
-  { href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true },
-  { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
-  { href: '/admin/advisor-fields', label: 'Campos asesor', icon: FileText },
-  { href: '/admin/brand/form-config', label: 'Formulario cliente', icon: ClipboardList },
-  { href: '/admin/display', label: 'Pantalla TV', icon: Monitor },
+  { href: '/admin/queue', label: 'Monitor de colas', labelKey: 'nav.queueMonitor', icon: Clock },
+  { href: '/advisor', label: 'Cola de espera', labelKey: 'nav.queue', icon: LayoutDashboard, exact: true },
+  { href: '/admin/visit-reasons', label: 'Motivos', labelKey: 'nav.reasons', icon: MessageSquare },
+  { href: '/admin/advisor-fields', label: 'Campos asesor', labelKey: 'nav.advisorFields', icon: FileText },
+  { href: '/admin/brand/form-config', label: 'Formulario cliente', labelKey: 'nav.customerForm', icon: ClipboardList },
+  { href: '/admin/display', label: 'Pantalla TV', labelKey: 'nav.tvScreen', icon: Monitor },
 ]
 
 const APPOINTMENTS_ITEMS: NavItem[] = [
-  { href: '/admin/appointments', label: 'Citas', icon: CalendarClock },
+  { href: '/admin/appointments', label: 'Citas', labelKey: 'nav.appointments', icon: CalendarClock },
 ]
 
 const SURVEYS_ITEMS: NavItem[] = [
-  { href: '/admin/surveys', label: 'Encuestas', icon: ClipboardList },
+  { href: '/admin/surveys', label: 'Encuestas', labelKey: 'nav.surveys', icon: ClipboardList },
 ]
 
 const MENU_ITEMS: NavItem[] = [
-  { href: '/admin/menu', label: 'Menú / Preorden', icon: UtensilsCrossed },
+  { href: '/admin/menu', label: 'Menú / Preorden', labelKey: 'nav.menu', icon: UtensilsCrossed },
 ]
 
 const VENTAS_ITEMS: NavItem[] = [
-  { href: '/admin/ventas', label: 'Ventas', icon: ShoppingCart, exact: true },
-  { href: '/admin/ventas/inventario', label: 'Inventario', icon: Package },
-  { href: '/admin/ventas/cotizaciones', label: 'Cotizaciones', icon: FileCheck, exact: true },
-  { href: '/admin/ventas/cotizaciones/personalizar', label: 'Personalizar', icon: PieChart },
+  { href: '/admin/ventas', label: 'Ventas', labelKey: 'nav.sales', icon: ShoppingCart, exact: true },
+  { href: '/admin/ventas/inventario', label: 'Inventario', labelKey: 'nav.inventory', icon: Package },
+  { href: '/admin/ventas/cotizaciones', label: 'Cotizaciones', labelKey: 'nav.quotes', icon: FileCheck, exact: true },
+  { href: '/admin/ventas/cotizaciones/personalizar', label: 'Personalizar', labelKey: 'nav.customize', icon: PieChart },
 ]
 
 const REPORTES_ITEMS_BASE: NavItem[] = [
-  { href: '/admin/reportes/clientes', label: 'Clientes', icon: Users },
+  { href: '/admin/reportes/clientes', label: 'Clientes', labelKey: 'nav.customers', icon: Users },
 ]
 
-const REPORTES_QUEUE_ITEM: NavItem = { href: '/admin/reportes/atencion', label: 'Atención', icon: Clock }
-const REPORTES_VENTAS_ITEM: NavItem = { href: '/admin/reportes/ventas', label: 'Ventas', icon: TrendingUp }
-const REPORTES_PRODUCTOS_ITEM: NavItem = { href: '/admin/reportes/productos', label: 'Productos', icon: Package }
-const REPORTES_COTIZACIONES_ITEM: NavItem = { href: '/admin/reportes/cotizaciones', label: 'Cotizaciones', icon: FileCheck }
+const REPORTES_QUEUE_ITEM: NavItem = { href: '/admin/reportes/atencion', label: 'Atención', labelKey: 'nav.attention', icon: Clock }
+const REPORTES_VENTAS_ITEM: NavItem = { href: '/admin/reportes/ventas', label: 'Ventas', labelKey: 'nav.sales', icon: TrendingUp }
+const REPORTES_PRODUCTOS_ITEM: NavItem = { href: '/admin/reportes/productos', label: 'Productos', labelKey: 'nav.products', icon: Package }
+const REPORTES_COTIZACIONES_ITEM: NavItem = { href: '/admin/reportes/cotizaciones', label: 'Cotizaciones', labelKey: 'nav.quotes', icon: FileCheck }
 
 // ─── Section builder ────────────────────────────────────────────────────────────
 
@@ -101,52 +103,47 @@ function buildSections(
 
   if (role === 'advisor') {
     const advisorSections: NavSection[] = []
-    // Paid modules — only if active subscription or trial
     if (activeModules?.queue === true) {
       advisorSections.push({
-        key: 'colas',
-        section: 'Colas de espera',
-        items: [{ href: '/advisor', label: 'Cola de espera', icon: LayoutDashboard, exact: true }],
+        key: 'colas', section: 'Colas de espera', sectionKey: 'section.queues',
+        items: [{ href: '/advisor', label: 'Cola de espera', labelKey: 'nav.queue', icon: LayoutDashboard, exact: true }],
       })
     }
     if (activeModules?.appointments === true) {
-      advisorSections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
+      advisorSections.push({ key: 'citas', section: 'Citas', sectionKey: 'section.appointments', items: APPOINTMENTS_ITEMS })
     }
     if (activeModules?.surveys === true) {
-      advisorSections.push({ key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS })
+      advisorSections.push({ key: 'encuestas', section: 'Encuestas', sectionKey: 'section.surveys', items: SURVEYS_ITEMS })
     }
     if (activeModules?.menu === true) {
-      advisorSections.push({ key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS })
+      advisorSections.push({ key: 'menu_preorden', section: 'Menú / Preorden', sectionKey: 'section.menu', items: MENU_ITEMS })
     }
-    // Free modules — always visible
-    advisorSections.push({ key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS })
-    advisorSections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
+    advisorSections.push({ key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS })
+    advisorSections.push({ key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS })
     return advisorSections
   }
 
   if (role === 'superadmin') {
     return [
       {
-        key: 'admin',
-        section: 'Administración',
+        key: 'admin', section: 'Administración', sectionKey: 'section.admin',
         items: [
-          { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
-          { href: '/superadmin/memberships', label: 'Membresías', icon: CreditCard },
-          { href: '/superadmin/users', label: 'Usuarios', icon: Users },
+          { href: '/superadmin', label: 'Marcas', labelKey: 'nav.brands', icon: Building2, exact: true },
+          { href: '/superadmin/memberships', label: 'Membresías', labelKey: 'nav.memberships', icon: CreditCard },
+          { href: '/superadmin/users', label: 'Usuarios', labelKey: 'nav.users', icon: Users },
           { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
-          { href: '/superadmin/settings', label: 'Configuración', icon: Settings },
+          { href: '/superadmin/settings', label: 'Configuración', labelKey: 'nav.settings', icon: Settings },
         ],
       },
-      { key: 'marca', section: 'Mi Marca', items: BRAND_ITEMS },
-      { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
-      { key: 'colas', section: 'Colas de espera', items: [...QUEUE_ITEMS, PROMOTIONS_ITEM] },
-      { key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS },
-      { key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS },
-      { key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS },
-      // For superadmin, show Ventas + full Reportes always (they act in brand context via brand selector)
-      { key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS },
+      { key: 'marca', section: 'Mi Marca', sectionKey: 'section.myBrand', items: BRAND_ITEMS },
+      { key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS },
+      { key: 'colas', section: 'Colas de espera', sectionKey: 'section.queues', items: [...QUEUE_ITEMS, PROMOTIONS_ITEM] },
+      { key: 'citas', section: 'Citas', sectionKey: 'section.appointments', items: APPOINTMENTS_ITEMS },
+      { key: 'encuestas', section: 'Encuestas', sectionKey: 'section.surveys', items: SURVEYS_ITEMS },
+      { key: 'menu_preorden', section: 'Menú / Preorden', sectionKey: 'section.menu', items: MENU_ITEMS },
+      { key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS },
       {
-        key: 'reportes', section: 'Reportes', items: [
+        key: 'reportes', section: 'Reportes', sectionKey: 'section.reportsSection', items: [
           ...REPORTES_ITEMS_BASE,
           REPORTES_QUEUE_ITEM,
           REPORTES_VENTAS_ITEM,
@@ -161,38 +158,35 @@ function buildSections(
   const brandItems = role === 'brand_admin' ? BRAND_ITEMS : MANAGER_BRAND_ITEMS
 
   const sections: NavSection[] = [
-    { key: 'marca', section: 'Mi Marca', items: brandItems },
-    { key: 'clientes', section: 'Clientes', items: CLIENTES_ITEMS },
+    { key: 'marca', section: 'Mi Marca', sectionKey: 'section.myBrand', items: brandItems },
+    { key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS },
   ]
 
   // Queue module — paid, includes Promotions when active
   if (activeModules?.queue) {
     const queueItems = [...QUEUE_ITEMS, PROMOTIONS_ITEM]
-    sections.push({ key: 'colas', section: 'Colas de espera', items: queueItems })
+    sections.push({ key: 'colas', section: 'Colas de espera', sectionKey: 'section.queues', items: queueItems })
   }
   if (activeModules?.appointments) {
-    sections.push({ key: 'citas', section: 'Citas', items: APPOINTMENTS_ITEMS })
+    sections.push({ key: 'citas', section: 'Citas', sectionKey: 'section.appointments', items: APPOINTMENTS_ITEMS })
   }
   if (activeModules?.surveys) {
-    sections.push({ key: 'encuestas', section: 'Encuestas', items: SURVEYS_ITEMS })
+    sections.push({ key: 'encuestas', section: 'Encuestas', sectionKey: 'section.surveys', items: SURVEYS_ITEMS })
   }
   if (activeModules?.menu) {
-    sections.push({ key: 'menu_preorden', section: 'Menú / Preorden', items: MENU_ITEMS })
+    sections.push({ key: 'menu_preorden', section: 'Menú / Preorden', sectionKey: 'section.menu', items: MENU_ITEMS })
   }
 
-  // Ventas — always free, always visible
-  sections.push({ key: 'ventas', section: 'Ventas', items: VENTAS_ITEMS })
+  sections.push({ key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS })
 
-  // Reportes — always visible; sub-items depend on active modules
   const reportesItems: NavItem[] = [...REPORTES_ITEMS_BASE]
   if (activeModules?.queue) reportesItems.push(REPORTES_QUEUE_ITEM)
-  // Ventas reports always included (sales is free)
   reportesItems.push(REPORTES_VENTAS_ITEM)
   reportesItems.push(REPORTES_PRODUCTOS_ITEM)
   reportesItems.push(REPORTES_COTIZACIONES_ITEM)
-  sections.push({ key: 'reportes', section: 'Reportes', items: reportesItems })
+  sections.push({ key: 'reportes', section: 'Reportes', sectionKey: 'section.reportsSection', items: reportesItems })
 
-  sections.push({ key: 'marketplace', section: 'Más', items: [{ href: '/admin/marketplace', label: 'Marketplace', icon: Zap }] })
+  sections.push({ key: 'marketplace', section: 'Más', sectionKey: 'section.more', items: [{ href: '/admin/marketplace', label: 'Marketplace', icon: Zap }] })
   return sections
 }
 
@@ -378,7 +372,7 @@ function AppShellInner({
                     className="flex items-center justify-between w-full px-2 pt-3 pb-1 group"
                   >
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-600 transition-colors">
-                      {section.section}
+                      {section.sectionKey ? t(section.sectionKey, section.section) : section.section}
                     </span>
                     <ChevronDown
                       size={12}
@@ -403,7 +397,7 @@ function AppShellInner({
                           key={item.href}
                           href={item.href}
                           onClick={() => setMobileOpen(false)}
-                          title={isCollapsed ? item.label : undefined}
+                          title={isCollapsed ? (item.labelKey ? t(item.labelKey, item.label) : item.label) : undefined}
                           className={cn(
                             'flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors',
                             isCollapsed && 'justify-center',
@@ -413,7 +407,7 @@ function AppShellInner({
                           )}
                         >
                           <Icon size={17} className="shrink-0" />
-                          {!isCollapsed && <span>{item.label}</span>}
+                          {!isCollapsed && <span>{item.labelKey ? t(item.labelKey, item.label) : item.label}</span>}
                         </Link>
                       )
                     })}
