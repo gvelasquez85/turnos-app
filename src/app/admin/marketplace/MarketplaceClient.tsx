@@ -459,6 +459,13 @@ export function MarketplaceClient({
                         <div className="flex gap-2">
                           <Button onClick={() => setContractModal(mod.module_key)} className="flex-1 text-sm">Contratar</Button>
                           <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="flex-1 text-sm">Cancelar</Button>
+                          <button
+                            onClick={() => { setDeleteModal(mod.module_key); setDeleteStep('confirm'); setExportedBlob(null) }}
+                            title="Eliminar módulo de la cuenta"
+                            className="w-10 h-10 flex items-center justify-center rounded-xl border border-red-200 text-red-400 hover:bg-red-50 hover:text-red-600 transition-colors shrink-0"
+                          >
+                            <Trash2 size={14} />
+                          </button>
                         </div>
                       ) : status === 'active' ? (
                         <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="w-full">
