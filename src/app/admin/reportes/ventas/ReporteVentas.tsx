@@ -134,35 +134,39 @@ export function ReporteVentas({ sales: allSales, establishments }: {
             <p className="text-sm text-gray-400 text-center py-8">Sin datos en el período</p>
           ) : (
             <>
-              <div className="flex items-end gap-1 h-36">
+              {/* Bar area — explicit px heights so bars always render */}
+              <div className="flex items-end gap-[3px]" style={{ height: 120 }}>
                 {dailyData.map(([day, { count, revenue }]) => {
-                  const h = Math.max(4, (count / maxDaily) * 100)
+                  const barPx = Math.max(4, Math.round((count / maxDaily) * 116))
                   return (
-                    <div key={day} className="flex-1 flex flex-col items-center gap-1 group relative">
-                      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 text-center">
+                    <div key={day} className="flex-1 relative group flex flex-col justify-end" style={{ height: 120 }}>
+                      {/* Tooltip */}
+                      <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 text-center">
                         <div className="font-semibold">{count} venta{count !== 1 ? 's' : ''}</div>
                         <div className="text-gray-300">{fmt(revenue)}</div>
                       </div>
+                      {/* Bar */}
                       <div
                         className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-400 transition-colors cursor-default"
-                        style={{ height: `${h}%` }}
+                        style={{ height: barPx }}
                       />
-                      <span className="text-[8px] text-gray-400 rotate-45 origin-left mt-1 hidden sm:block">
-                        {new Date(day + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' })}
-                      </span>
                     </div>
                   )
                 })}
               </div>
-              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
-                <span className="flex items-center gap-1.5 text-xs text-gray-500">
-                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
-                  Altura = cantidad de ventas
-                </span>
-                {totalDiscount > 0 && (
-                  <span className="text-xs text-gray-400 ml-auto">Descuentos: <strong>{fmt(totalDiscount)}</strong></span>
-                )}
+              {/* Labels row */}
+              <div className="flex gap-[3px] mt-1">
+                {dailyData.map(([day]) => (
+                  <div key={day} className="flex-1 overflow-hidden">
+                    <span className="block text-[8px] text-gray-400 text-center leading-tight truncate">
+                      {new Date(day + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+                    </span>
+                  </div>
+                ))}
               </div>
+              {totalDiscount > 0 && (
+                <p className="text-xs text-gray-400 mt-2">Descuentos: <strong>{fmt(totalDiscount)}</strong></p>
+              )}
             </>
           )}
         </div>
