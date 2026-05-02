@@ -15,12 +15,14 @@ function fmt(n: number) {
 }
 
 function groupByDay(sales: Sale[]) {
-  const map: Record<string, number> = {}
+  const map: Record<string, { count: number; revenue: number }> = {}
   sales.forEach(s => {
     const day = s.created_at.slice(0, 10)
-    map[day] = (map[day] ?? 0) + s.total
+    if (!map[day]) map[day] = { count: 0, revenue: 0 }
+    map[day].count++
+    map[day].revenue += s.total
   })
-  return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-14)
+  return Object.entries(map).sort(([a], [b]) => a.localeCompare(b)).slice(-30)
 }
 
 export function ReporteVentas({ sales: allSales, establishments }: {
@@ -72,8 +74,9 @@ export function ReporteVentas({ sales: allSales, establishments }: {
       .sort((a, b) => b.total - a.total)
   }, [filtered, estMap])
 
-  const dailyData = groupByDay(filtered)
-  const maxDaily = Math.max(...dailyData.map(([, v]) => v), 1)
+  // Chart uses allInPeriod (same data as the "Ventas" count card)
+  const dailyData = groupByDay(allInPeriod)
+  const maxDaily = Math.max(...dailyData.map(([, v]) => v.count), 1)
 
   return (
     <div>
@@ -123,29 +126,44 @@ export function ReporteVentas({ sales: allSales, establishments }: {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Daily chart */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Ventas por día</h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-gray-900">Ventas por día</h3>
+            <span className="text-xs text-gray-400">Total: <strong className="text-gray-700">{totalCount}</strong> ventas</span>
+          </div>
           {dailyData.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">Sin datos en el período</p>
           ) : (
-            <div className="flex items-end gap-1 h-32">
-              {dailyData.map(([day, val]) => {
-                const h = Math.max(4, (val / maxDaily) * 100)
-                return (
-                  <div key={day} className="flex-1 flex flex-col items-center gap-1 group relative">
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
-                      {fmt(val)}
+            <>
+              <div className="flex items-end gap-1 h-36">
+                {dailyData.map(([day, { count, revenue }]) => {
+                  const h = Math.max(4, (count / maxDaily) * 100)
+                  return (
+                    <div key={day} className="flex-1 flex flex-col items-center gap-1 group relative">
+                      <div className="absolute bottom-7 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10 text-center">
+                        <div className="font-semibold">{count} venta{count !== 1 ? 's' : ''}</div>
+                        <div className="text-gray-300">{fmt(revenue)}</div>
+                      </div>
+                      <div
+                        className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-400 transition-colors cursor-default"
+                        style={{ height: `${h}%` }}
+                      />
+                      <span className="text-[8px] text-gray-400 rotate-45 origin-left mt-1 hidden sm:block">
+                        {new Date(day + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' })}
+                      </span>
                     </div>
-                    <div className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-600 transition-colors cursor-default" style={{ height: `${h}%` }} />
-                    <span className="text-[8px] text-gray-400 rotate-45 origin-left mt-1 hidden sm:block">
-                      {new Date(day + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' })}
-                    </span>
-                  </div>
-                )
-              })}
-            </div>
-          )}
-          {totalDiscount > 0 && (
-            <p className="text-xs text-gray-400 mt-3">Descuentos aplicados: <strong>{fmt(totalDiscount)}</strong></p>
+                  )
+                })}
+              </div>
+              <div className="flex items-center gap-4 mt-3 pt-3 border-t border-gray-50">
+                <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 inline-block" />
+                  Altura = cantidad de ventas
+                </span>
+                {totalDiscount > 0 && (
+                  <span className="text-xs text-gray-400 ml-auto">Descuentos: <strong>{fmt(totalDiscount)}</strong></span>
+                )}
+              </div>
+            </>
           )}
         </div>
 
