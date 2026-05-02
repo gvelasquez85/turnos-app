@@ -36,15 +36,17 @@ interface NavSection {
 
 // ─── Item definitions ──────────────────────────────────────────────────────────
 
+const HOME_ITEM: NavItem = { href: '/admin/home', label: 'Inicio', labelKey: 'nav.home', icon: LayoutDashboard, exact: true }
+
 const BRAND_ITEMS: NavItem[] = [
   { href: '/admin/brand', label: 'Mi marca', labelKey: 'nav.brand', icon: Building2 },
-  { href: '/admin', label: 'Sucursales', labelKey: 'nav.branches', icon: Store, exact: true },
+  { href: '/admin/sucursales', label: 'Sucursales', labelKey: 'nav.branches', icon: Store, exact: true },
   { href: '/admin/users', label: 'Equipo', labelKey: 'nav.team', icon: Users },
 ]
 
 const MANAGER_BRAND_ITEMS: NavItem[] = [
   { href: '/admin/brand', label: 'Mi marca', labelKey: 'nav.brand', icon: Building2 },
-  { href: '/admin', label: 'Sucursales', labelKey: 'nav.branches', icon: Store, exact: true },
+  { href: '/admin/sucursales', label: 'Sucursales', labelKey: 'nav.branches', icon: Store, exact: true },
 ]
 
 const PROMOTIONS_ITEM: NavItem = { href: '/admin/promotions', label: 'Promociones', labelKey: 'nav.promotions', icon: Tag }
@@ -120,7 +122,7 @@ function buildSections(
     }
     advisorSections.push({ key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS })
     advisorSections.push({ key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS })
-    return advisorSections
+    return [{ key: 'home', section: 'Inicio', sectionKey: 'nav.home', items: [HOME_ITEM] }, ...advisorSections]
   }
 
   if (role === 'superadmin') {
@@ -158,6 +160,7 @@ function buildSections(
   const brandItems = role === 'brand_admin' ? BRAND_ITEMS : MANAGER_BRAND_ITEMS
 
   const sections: NavSection[] = [
+    { key: 'home', section: 'Inicio', sectionKey: 'nav.home', items: [HOME_ITEM] },
     { key: 'marca', section: 'Mi Marca', sectionKey: 'section.myBrand', items: brandItems },
     { key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS },
   ]

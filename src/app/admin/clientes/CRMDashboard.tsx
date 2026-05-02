@@ -7,6 +7,7 @@ import {
   ChevronDown, ChevronUp, X, Plus, Edit2, Check,
   MessageSquare, Tag, Clock, FileText, ChevronRight,
   Cake, Wifi, Smartphone, Save, Loader2, ShoppingCart, CalendarCheck,
+  Sparkles, Copy, RefreshCw, Send,
 } from 'lucide-react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -52,6 +53,17 @@ interface Props {
   customers: Customer[]
   establishments: Establishment[]
   brandId: string
+  businessType?: string
+}
+
+// Business-type vocabulary
+const BIZ_VOCAB: Record<string, { client: string; clients: string; service: string; newClient: string }> = {
+  belleza:     { client: 'clienta',  clients: 'clientas',  service: 'servicio', newClient: 'Nueva clienta' },
+  restaurante: { client: 'cliente',  clients: 'clientes',  service: 'pedido',   newClient: 'Nuevo cliente' },
+  ferreteria:  { client: 'cliente',  clients: 'clientes',  service: 'orden',    newClient: 'Nuevo cliente' },
+  tienda:      { client: 'cliente',  clients: 'clientes',  service: 'compra',   newClient: 'Nuevo cliente' },
+  servicios:   { client: 'cliente',  clients: 'clientes',  service: 'servicio', newClient: 'Nuevo cliente' },
+  otros:       { client: 'cliente',  clients: 'clientes',  service: 'venta',    newClient: 'Nuevo cliente' },
 }
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -101,18 +113,20 @@ function initials(name: string): string {
 
 // ─── SlideOver ──────────────────────────────────────────────────────────────
 
-type Tab = 'perfil' | 'etiquetas' | 'historial' | 'notas'
+type Tab = 'perfil' | 'etiquetas' | 'historial' | 'notas' | 'mensaje'
 
 function CustomerSlideOver({
   customer,
   establishments,
   onClose,
   onUpdate,
+  businessType = 'otros',
 }: {
   customer: Customer
   establishments: Establishment[]
   onClose: () => void
   onUpdate: (c: Customer) => void
+  businessType?: string
 }) {
   const [tab, setTab] = useState<Tab>('perfil')
   const [editing, setEditing] = useState(false)
@@ -124,6 +138,10 @@ function CustomerSlideOver({
   const [savingNote, setSavingNote] = useState(false)
   const [loadingTabs, setLoadingTabs] = useState(false)
   const [customTagInput, setCustomTagInput] = useState('')
+  const [aiMessage, setAiMessage] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiType, setAiType] = useState('reactivation')
+  const [aiCopied, setAiCopied] = useState(false)
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
@@ -280,6 +298,38 @@ function CustomerSlideOver({
     if (data) setHistory(prev => [data as CustomerHistoryItem, ...prev])
   }
 
+  async function generateMessage() {
+    setAiLoading(true)
+    setAiMessage('')
+    try {
+      const res = await fetch('/api/admin/ai/message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: aiType,
+          context: {
+            clientName: customer.name.split(' ')[0],
+            daysSince: daysSince(customer.last_visit_at),
+            lastService: null,
+            businessType,
+          },
+        }),
+      })
+      const data = await res.json()
+      if (data.message) setAiMessage(data.message)
+    } catch {}
+    setAiLoading(false)
+  }
+
+  async function copyMessage() {
+    if (!aiMessage) return
+    try {
+      await navigator.clipboard.writeText(aiMessage)
+      setAiCopied(true)
+      setTimeout(() => setAiCopied(false), 2000)
+    } catch {}
+  }
+
   function toggleInterest(val: string) {
     const curr = form.intereses ?? []
     setForm(f => ({
@@ -293,6 +343,7 @@ function CustomerSlideOver({
     { key: 'etiquetas', label: 'Etiquetas', icon: Tag },
     { key: 'historial', label: 'Historial', icon: Clock },
     { key: 'notas', label: 'Notas', icon: MessageSquare },
+    { key: 'mensaje', label: 'Mensaje IA', icon: Sparkles },
   ]
 
   const vtag = visitTag(customer.total_visits)
@@ -674,6 +725,114 @@ function CustomerSlideOver({
             </div>
           )}
 
+          {/* ── Mensaje IA ── */}
+          {tab === 'mensaje' && (
+            <div className="p-5 space-y-4">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-100">
+                <div className="flex items-center gap-2 mb-1">
+                  <Sparkles size={14} className="text-indigo-600" />
+                  <p className="text-xs font-semibold text-indigo-700">Asistente IA</p>
+                </div>
+                <p className="text-xs text-indigo-600">
+                  Genera un mensaje listo para copiar y enviar por WhatsApp a {customer.name.split(' ')[0]}
+                </p>
+              </div>
+
+              {/* Message type */}
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">Tipo de mensaje</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { key: 'reactivation', label: 'Invitar a volver', emoji: '👋' },
+                    { key: 'quote_followup', label: 'Seguimiento cotización', emoji: '📋' },
+                    { key: 'birthday', label: 'Cumpleaños', emoji: '🎂' },
+                    { key: 'promo', label: 'Promoción', emoji: '🎁' },
+                    { key: 'thanks', label: 'Agradecimiento', emoji: '🙏' },
+                    { key: 'appointment_reminder', label: 'Recordatorio cita', emoji: '📅' },
+                  ].map(t => (
+                    <button
+                      key={t.key}
+                      onClick={() => { setAiType(t.key); setAiMessage('') }}
+                      className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all text-left ${
+                        aiType === t.key
+                          ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                          : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}
+                    >
+                      <span>{t.emoji}</span> {t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Client context */}
+              {daysSince(customer.last_visit_at) > 0 && (
+                <div className="flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                  <Clock size={12} />
+                  {customer.name.split(' ')[0]} lleva {daysSince(customer.last_visit_at)} días sin visitar
+                </div>
+              )}
+
+              {/* Generate button */}
+              <button
+                onClick={generateMessage}
+                disabled={aiLoading}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              >
+                {aiLoading
+                  ? <><Loader2 size={14} className="animate-spin" /> Generando...</>
+                  : <><Sparkles size={14} /> Generar mensaje</>
+                }
+              </button>
+
+              {/* Generated message */}
+              {aiMessage && (
+                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                  <div className="flex items-center justify-between px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    <p className="text-xs font-semibold text-gray-500">Mensaje generado</p>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={generateMessage}
+                        title="Regenerar"
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                      >
+                        <RefreshCw size={12} />
+                      </button>
+                      <button
+                        onClick={copyMessage}
+                        title="Copiar"
+                        className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                          aiCopied
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : 'bg-indigo-100 text-indigo-700 hover:bg-indigo-200'
+                        }`}
+                      >
+                        {aiCopied ? <Check size={11} /> : <Copy size={11} />}
+                        {aiCopied ? 'Copiado' : 'Copiar'}
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{aiMessage}</p>
+                  </div>
+                  {(customer.phone || customer.celular) && (
+                    <div className="px-4 pb-3">
+                      <a
+                        href={`https://wa.me/57${(customer.phone || customer.celular || '').replace(/\D/g, '')}?text=${encodeURIComponent(aiMessage)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"
+                      >
+                        <Send size={13} />
+                        Abrir en WhatsApp
+                      </a>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </>
@@ -779,7 +938,8 @@ function CreateModal({ brandId, onClose, onCreated }: {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-export function CRMDashboard({ customers: initialCustomers, establishments, brandId }: Props) {
+export function CRMDashboard({ customers: initialCustomers, establishments, brandId, businessType = 'otros' }: Props) {
+  const bv = BIZ_VOCAB[businessType] ?? BIZ_VOCAB.otros
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [search, setSearch] = useState('')
   const [filterEst, setFilterEst] = useState('')
@@ -843,14 +1003,14 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-gray-500 text-sm mt-1">Historial de visitas y perfil de cada cliente</p>
+          <h1 className="text-2xl font-bold text-gray-900">{bv.clients.charAt(0).toUpperCase() + bv.clients.slice(1)}</h1>
+          <p className="text-gray-500 text-sm mt-1">Perfil e historial de cada {bv.client}</p>
         </div>
         <button
           onClick={() => setCreateModal(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
         >
-          <Plus size={15} /> Nuevo cliente
+          <Plus size={15} /> {bv.newClient}
         </button>
       </div>
 
@@ -1037,6 +1197,7 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
         <CustomerSlideOver
           customer={selectedCustomer}
           establishments={establishments}
+          businessType={businessType}
           onClose={() => setSelectedCustomer(null)}
           onUpdate={updated => {
             setCustomers(cs => cs.map(c => c.id === updated.id ? updated : c))

@@ -1,26 +1,25 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { EstablishmentsManager } from './EstablishmentsManager'
+import { EstablishmentsManager } from '../EstablishmentsManager'
 import { getLimits } from '@/lib/planLimits'
 
-export default async function AdminPage() {
+export default async function SucursalesPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
-  const { data: profile } = await supabase.from('profiles').select('brand_id, role').eq('id', user!.id).single()
+  if (!user) redirect('/login')
 
-  // Non-superadmin users land on the home dashboard; /admin is the Sucursales page for superadmin
-  if (profile?.role && profile.role !== 'superadmin') {
-    redirect('/admin/home')
-  }
+  const { data: profile } = await supabase
+    .from('profiles').select('brand_id, role').eq('id', user.id).single()
+
+  if (!profile) redirect('/login')
 
   const query = supabase.from('establishments').select('*').order('created_at')
-  if (profile?.role !== 'superadmin' && profile?.brand_id) {
+  if (profile.role !== 'superadmin' && profile.brand_id) {
     query.eq('brand_id', profile.brand_id)
   }
   const { data: establishments } = await query
 
-  // Stats de tickets: en espera + atendidos hoy por establecimiento
-  const estIds = (establishments || []).map(e => e.id)
+  const estIds = (establishments || []).map((e: any) => e.id)
   const todayStart = new Date()
   todayStart.setHours(0, 0, 0, 0)
 
@@ -31,7 +30,6 @@ export default async function AdminPage() {
       .select('establishment_id, status, created_at')
       .in('establishment_id', estIds)
       .or(`status.in.(waiting,in_progress),and(status.eq.done,created_at.gte.${todayStart.toISOString()})`)
-
     for (const t of stats || []) {
       if (!ticketStats[t.establishment_id]) ticketStats[t.establishment_id] = { waiting: 0, today: 0 }
       if (t.status === 'waiting' || t.status === 'in_progress') ticketStats[t.establishment_id].waiting++
@@ -39,24 +37,23 @@ export default async function AdminPage() {
     }
   }
 
-  // For superadmin, load all brands (including slug for auto-prefixing establishment slugs)
   const { data: brands } = await supabase.from('brands').select('id, name, slug').eq('active', true)
 
-  // Load membership to enforce limits
-  const { data: membership } = profile?.brand_id
-    ? await supabase.from('memberships').select('plan, max_establishments, max_advisors').eq('brand_id', profile.brand_id).single()
+  const { data: membership } = profile.brand_id
+    ? await supabase.from('memberships').select('plan, max_establishments, max_advisors')
+        .eq('brand_id', profile.brand_id).single()
     : { data: null }
 
-  const limits = getLimits(membership?.plan ?? 'free')
-  const maxEstablishments = membership?.max_establishments ?? limits.maxEstablishments
+  const limits = getLimits((membership as any)?.plan ?? 'free')
+  const maxEstablishments = (membership as any)?.max_establishments ?? limits.maxEstablishments
 
   return (
     <EstablishmentsManager
       establishments={establishments || []}
       brands={brands || []}
-      defaultBrandId={profile?.brand_id || null}
+      defaultBrandId={profile.brand_id || null}
       ticketStats={ticketStats}
-      isSuperAdmin={profile?.role === 'superadmin'}
+      isSuperAdmin={profile.role === 'superadmin'}
       maxEstablishments={maxEstablishments}
     />
   )

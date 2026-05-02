@@ -21,7 +21,7 @@ export default async function ClientesPage() {
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
   if (!brandId) return <NoBrandContext />
 
-  const [customersRes, establishmentsRes] = await Promise.allSettled([
+  const [customersRes, establishmentsRes, brandRes] = await Promise.allSettled([
     supabase
       .from('customers')
       .select('id, name, phone, email, document_id, first_visit_at, last_visit_at, total_visits, establishment_ids, celular, canal_contacto, ultima_compra, intereses, cumpleanos')
@@ -33,16 +33,23 @@ export default async function ClientesPage() {
       .eq('brand_id', brandId)
       .eq('active', true)
       .order('name'),
+    supabase
+      .from('brands')
+      .select('business_type, name')
+      .eq('id', brandId)
+      .single(),
   ])
 
   const customers = customersRes.status === 'fulfilled' ? (customersRes.value.data ?? []) : []
   const establishments = establishmentsRes.status === 'fulfilled' ? (establishmentsRes.value.data ?? []) : []
+  const brand = brandRes.status === 'fulfilled' ? brandRes.value.data : null
 
   return (
     <CRMDashboard
       customers={customers as any[]}
       establishments={establishments ?? []}
       brandId={brandId}
+      businessType={(brand as any)?.business_type ?? 'otros'}
     />
   )
 }

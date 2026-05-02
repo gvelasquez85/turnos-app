@@ -36,6 +36,7 @@ const TRANSLATIONS: Record<string, Record<LangCode, string>> = {
   'nav.memberships': { es: 'Membresías', en: 'Memberships', pt: 'Assinaturas' },
   'nav.users': { es: 'Usuarios', en: 'Users', pt: 'Usuários' },
   'nav.settings': { es: 'Configuración', en: 'Settings', pt: 'Configurações' },
+  'nav.home': { es: 'Inicio', en: 'Home', pt: 'Início' },
   // ── New nav keys ──────────────────────────────────────────────
   'nav.sales': { es: 'Ventas', en: 'Sales', pt: 'Vendas' },
   'nav.inventory': { es: 'Inventario', en: 'Inventory', pt: 'Inventário' },
