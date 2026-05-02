@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo, useCallback } from 'react'
+import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -114,12 +115,15 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   const openSale = useMemo(() => allSales.find(s => s.id === openSaleId) ?? null, [allSales, openSaleId])
 
   // KPIs
-  const completedSales = useMemo(() => recentSales.filter(s => s.status === 'completed' || s.status === 'completado' || s.status === 'entregado'), [recentSales])
+  const completedSales = useMemo(() => recentSales.filter(s => SALE_COMPLETED_SET.has(s.status)), [recentSales])
   const totalRevenue = completedSales.reduce((s, x) => s + (x.total ?? 0), 0)
   const avgTicket = completedSales.length > 0 ? totalRevenue / completedSales.length : 0
   const todayStr = new Date().toDateString()
   const todaySales = completedSales.filter(s => new Date(s.created_at).toDateString() === todayStr)
   const todayRevenue = todaySales.reduce((s, x) => s + (x.total ?? 0), 0)
+  // Pending (separate indicator)
+  const pendingSalesKPI = useMemo(() => allSales.filter(s => s.status === 'pending'), [allSales])
+  const pendingRevenue = pendingSalesKPI.reduce((s, x) => s + (x.total ?? 0), 0)
 
   // ── Open panel ─────────────────────────────────────────────────────────────
   async function openPanel(saleId: string, mode: 'view' | 'edit' | 'status' = 'view') {
@@ -211,10 +215,10 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           {[
-            { label: 'Ingresos (30d)', value: fmt(totalRevenue), icon: DollarSign, color: 'bg-emerald-100 text-emerald-700', sub: `${completedSales.length} ventas` },
-            { label: 'Hoy', value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-blue-100 text-blue-700', sub: `${todaySales.length} ventas hoy` },
+            { label: 'Ingresos (30d)', value: fmt(totalRevenue), icon: DollarSign, color: 'bg-emerald-100 text-emerald-700', sub: `${completedSales.length} ventas facturadas` },
+            { label: 'Hoy', value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-blue-100 text-blue-700', sub: `${todaySales.length} ventas facturadas hoy` },
             { label: 'Ticket promedio', value: fmt(avgTicket), icon: ShoppingCart, color: 'bg-indigo-100 text-indigo-700', sub: 'últimos 30 días' },
             { label: 'Ventas totales', value: String(completedSales.length), icon: CheckCircle, color: 'bg-purple-100 text-purple-700', sub: 'últimos 30 días' },
           ].map(({ label, value, icon: Icon, color, sub }) => (
@@ -230,6 +234,20 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
             </div>
           ))}
         </div>
+        {/* Pending revenue indicator */}
+        {pendingSalesKPI.length > 0 && (
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-center gap-3 mb-6">
+            <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+              <AlertTriangle size={13} className="text-amber-600" />
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-amber-800">
+                {pendingSalesKPI.length} venta{pendingSalesKPI.length > 1 ? 's' : ''} pendiente{pendingSalesKPI.length > 1 ? 's' : ''} — {fmt(pendingRevenue)} por confirmar
+              </p>
+              <p className="text-[11px] text-amber-600">Estas ventas no están incluidas en los ingresos hasta ser facturadas</p>
+            </div>
+          </div>
+        )}
 
         {/* Pending sales */}
         {pendingSales.length > 0 && (

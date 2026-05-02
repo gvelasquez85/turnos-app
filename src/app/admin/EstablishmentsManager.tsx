@@ -16,6 +16,7 @@ interface Props {
   brands: Pick<Brand, 'id' | 'name' | 'slug'>[]
   defaultBrandId: string | null
   ticketStats?: Record<string, EstStat>
+  hasQueue?: boolean
   isSuperAdmin?: boolean
   maxEstablishments?: number
 }
@@ -69,7 +70,7 @@ function FeaturesModal({ est, featureList, getFeatures, onSave, onClose, loading
   )
 }
 
-export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {}, isSuperAdmin, maxEstablishments }: Props) {
+export function EstablishmentsManager({ establishments: initial, brands, defaultBrandId, ticketStats = {}, hasQueue = false, isSuperAdmin, maxEstablishments }: Props) {
   const { t } = useT()
   const [establishments, setEstablishments] = useState(initial)
   const [showForm, setShowForm] = useState(false)
@@ -368,14 +369,16 @@ export function EstablishmentsManager({ establishments: initial, brands, default
                 <p className="text-xs text-gray-500 truncate">
                   {est.address || 'Sin dirección'} · <span className="font-mono">/t/{est.slug}</span>
                 </p>
-                <div className="flex items-center gap-3 mt-1.5">
-                  <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
-                    <Clock size={10} /> {stats.waiting} en espera
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
-                    <CheckCircle size={10} /> {stats.today} atendidos hoy
-                  </span>
-                </div>
+                {hasQueue && (
+                  <div className="flex items-center gap-3 mt-1.5">
+                    <span className="flex items-center gap-1 text-xs text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                      <Clock size={10} /> {stats.waiting} en espera
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                      <CheckCircle size={10} /> {stats.today} atendidos hoy
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className={`text-xs px-2 py-0.5 rounded-full ${est.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>

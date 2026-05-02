@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
 import { redirect } from 'next/navigation'
 import { getEffectiveBrandId } from '@/lib/serverBrandContext'
 import { NoBrandContext } from '@/components/NoBrandContext'
@@ -88,10 +89,16 @@ export default async function HomeDashboardPage() {
   const lowStock = lowStockRes.status === 'fulfilled' ? (lowStockRes.value.data ?? []) : []
   const totalClients = totalClientsRes.status === 'fulfilled' ? (totalClientsRes.value.count ?? 0) : 0
 
-  // Revenue today
-  const revenueToday = salesToday.reduce((s: number, v: any) => s + (v.total ?? 0), 0)
-  const revenueWeek = salesWeek.reduce((s: number, v: any) => s + (v.total ?? 0), 0)
-  const countToday = salesToday.length
+  // Split today's sales: completed (facturado+) vs pending
+  const completedToday = salesToday.filter((v: any) => SALE_COMPLETED_SET.has(v.status))
+  const pendingToday   = salesToday.filter((v: any) => v.status === 'pending')
+  const completedWeek  = salesWeek.filter((v: any) => SALE_COMPLETED_SET.has(v.status))
+
+  const revenueToday  = completedToday.reduce((s: number, v: any) => s + (v.total ?? 0), 0)
+  const revenueWeek   = completedWeek.reduce((s: number, v: any) => s + (v.total ?? 0), 0)
+  const countToday    = completedToday.length
+  const pendingCount  = pendingToday.length
+  const pendingRevenue = pendingToday.reduce((s: number, v: any) => s + (v.total ?? 0), 0)
 
   return (
     <HomePanel
@@ -102,6 +109,8 @@ export default async function HomeDashboardPage() {
       revenueToday={revenueToday}
       revenueWeek={revenueWeek}
       countToday={countToday}
+      pendingCount={pendingCount}
+      pendingRevenue={pendingRevenue}
       totalClients={totalClients}
       inactiveClients={inactiveClients as any[]}
       openQuotes={openQuotes as any[]}

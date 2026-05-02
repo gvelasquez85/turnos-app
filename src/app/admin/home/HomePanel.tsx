@@ -15,6 +15,8 @@ interface Props {
   revenueToday: number
   revenueWeek: number
   countToday: number
+  pendingCount: number
+  pendingRevenue: number
   totalClients: number
   inactiveClients: { id: string; name: string; phone: string | null; updated_at: string }[]
   openQuotes: { id: string; total: number; created_at: string; customers: any }[]
@@ -48,7 +50,7 @@ function greeting() {
 
 export function HomePanel({
   brandName, businessType, userName,
-  revenueToday, revenueWeek, countToday, totalClients,
+  revenueToday, revenueWeek, countToday, pendingCount, pendingRevenue, totalClients,
   inactiveClients, openQuotes, lowStock,
 }: Props) {
   const v = VOCAB[businessType] || VOCAB.otros
@@ -103,24 +105,37 @@ export function HomePanel({
         <h1 className="text-2xl font-black text-gray-900 mt-0.5">Hoy en {brandName}</h1>
       </div>
 
-      {/* KPIs — 4 cols en desktop, 2 en móvil */}
+      {/* KPIs — grid adaptivo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Ventas confirmadas hoy */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-400 font-medium">Ventas hoy</p>
             <TrendingUp size={14} className="text-emerald-500" />
           </div>
           <p className="text-2xl font-black text-gray-900">{fmt(revenueToday)}</p>
-          <p className="text-xs text-gray-400 mt-1">{countToday} {countToday === 1 ? 'venta' : 'ventas'} completadas</p>
+          <p className="text-xs text-gray-400 mt-1">{countToday} {countToday === 1 ? 'venta' : 'ventas'} facturadas</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-xs text-gray-400 font-medium">Esta semana</p>
-            <TrendingUp size={14} className="text-blue-500" />
+        {/* Pendientes hoy (si las hay) */}
+        {pendingCount > 0 ? (
+          <div className="bg-amber-50 rounded-2xl border border-amber-100 p-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-amber-600 font-medium">Por confirmar</p>
+              <TrendingUp size={14} className="text-amber-400" />
+            </div>
+            <p className="text-2xl font-black text-amber-700">{fmt(pendingRevenue)}</p>
+            <p className="text-xs text-amber-500 mt-1">{pendingCount} venta{pendingCount > 1 ? 's' : ''} pendiente{pendingCount > 1 ? 's' : ''}</p>
           </div>
-          <p className="text-2xl font-black text-gray-900">{fmt(revenueWeek)}</p>
-          <p className="text-xs text-gray-400 mt-1">últimos 7 días</p>
-        </div>
+        ) : (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs text-gray-400 font-medium">Esta semana</p>
+              <TrendingUp size={14} className="text-blue-500" />
+            </div>
+            <p className="text-2xl font-black text-gray-900">{fmt(revenueWeek)}</p>
+            <p className="text-xs text-gray-400 mt-1">últimos 7 días</p>
+          </div>
+        )}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-400 font-medium">Tus {v.clients}</p>
@@ -138,6 +153,16 @@ export function HomePanel({
           <p className="text-xs text-gray-400 mt-1">{v.clients} inactivos</p>
         </div>
       </div>
+      {/* Semana — fila adicional si hay pendientes (para no perder el dato) */}
+      {pendingCount > 0 && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
+          <TrendingUp size={16} className="text-blue-500 shrink-0" />
+          <div>
+            <p className="text-xs text-gray-400">Esta semana (facturadas)</p>
+            <p className="text-lg font-black text-gray-900">{fmt(revenueWeek)}</p>
+          </div>
+        </div>
+      )}
 
       {/* Fila principal: acciones + accesos rápidos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

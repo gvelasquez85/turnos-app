@@ -56,6 +56,7 @@ export default async function AdminPage() {
       brands={brands || []}
       defaultBrandId={profile?.brand_id || null}
       ticketStats={ticketStats}
+      hasQueue={profile?.role === 'superadmin'} // superadmin sees all stats
       isSuperAdmin={profile?.role === 'superadmin'}
       maxEstablishments={maxEstablishments}
     />

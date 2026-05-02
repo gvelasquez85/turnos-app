@@ -1,9 +1,8 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { DollarSign, ShoppingCart, TrendingUp, Users } from 'lucide-react'
+import { DollarSign, ShoppingCart, TrendingUp, Users, AlertTriangle } from 'lucide-react'
 import { DateRangeFilter, presetRange, type DateRange, type Preset } from '@/components/ui/DateRangeFilter'
-
-const COMPLETED = new Set(['completed', 'completado', 'entregado'])
+import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
 
 interface Sale {
   id: string; status: string; total: number; subtotal: number; discount: number
@@ -35,7 +34,7 @@ export function ReporteVentas({ sales: allSales, establishments }: {
 
   const filtered = useMemo(() => {
     let list = allSales.filter(s =>
-      COMPLETED.has(s.status) &&
+      SALE_COMPLETED_SET.has(s.status) &&
       new Date(s.created_at) >= range.from &&
       new Date(s.created_at) <= range.to
     )
@@ -43,10 +42,19 @@ export function ReporteVentas({ sales: allSales, establishments }: {
     return list
   }, [allSales, range, filterEst])
 
+  const pendingInPeriod = useMemo(() =>
+    allSales.filter(s =>
+      s.status === 'pending' &&
+      new Date(s.created_at) >= range.from &&
+      new Date(s.created_at) <= range.to &&
+      (!filterEst || s.establishment_id === filterEst)
+    ), [allSales, range, filterEst])
+
   const totalRev = filtered.reduce((s, x) => s + x.total, 0)
   const totalDiscount = filtered.reduce((s, x) => s + (x.discount ?? 0), 0)
   const avgTicket = filtered.length > 0 ? totalRev / filtered.length : 0
   const uniqueCustomers = new Set(filtered.map(s => s.customer_id).filter(Boolean)).size
+  const pendingRevenue = pendingInPeriod.reduce((s, x) => s + x.total, 0)
 
   const byEst = useMemo(() => {
     const map: Record<string, { count: number; total: number }> = {}
@@ -79,6 +87,16 @@ export function ReporteVentas({ sales: allSales, establishments }: {
           onEstChange={setFilterEst}
         />
       </div>
+
+      {/* Pending indicator */}
+      {pendingInPeriod.length > 0 && (
+        <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+          <AlertTriangle size={14} className="text-amber-600 shrink-0" />
+          <p className="text-xs font-semibold text-amber-800">
+            {pendingInPeriod.length} venta{pendingInPeriod.length > 1 ? 's' : ''} pendiente{pendingInPeriod.length > 1 ? 's' : ''} ({fmt(pendingRevenue)}) no incluidas en los ingresos
+          </p>
+        </div>
+      )}
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
