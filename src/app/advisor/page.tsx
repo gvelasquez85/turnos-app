@@ -15,10 +15,11 @@ export default async function AdvisorPage() {
     .eq('id', user.id)
     .single()
 
-  // Check queue module subscription (required for advisor access)
+  // Queue gate only applies to advisor role.
+  // brand_admin and superadmin can always access the advisor view ("Ver como agente").
   let isQueueExpired = false
   let queueExpiredAt: string | null = null
-  if (profile?.role !== 'superadmin' && profile?.brand_id) {
+  if (profile?.role === 'advisor' && profile?.brand_id) {
     const { data: sub } = await supabase
       .from('module_subscriptions')
       .select('status, trial_expires_at, expires_at')
@@ -29,11 +30,8 @@ export default async function AdvisorPage() {
       isQueueExpired = true
       queueExpiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
     }
-  }
-
-  // If advisor role and queue is not active → redirect to free modules (ventas)
-  if (profile?.role === 'advisor' && isQueueExpired) {
-    redirect('/admin/ventas')
+    // Redirect advisor (not admin) away if queue not active
+    if (isQueueExpired) redirect('/admin/ventas')
   }
 
   // Cargar campos personalizados si hay establecimiento asignado fijo

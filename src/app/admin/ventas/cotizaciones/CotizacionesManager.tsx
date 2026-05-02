@@ -198,16 +198,36 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
     if (status === 'converted') {
       const quote = quotes.find(q => q.id === id)
       if (quote) {
-        await supabase.from('sales').insert({
+        // Use 'pending' so the sale enters the exact same flow as manually-created sales
+        const { data: newSale } = await supabase.from('sales').insert({
           brand_id: brandId,
           establishment_id: quote.establishment_id,
           customer_id: quote.customer_id,
           type: 'sale',
-          status: 'completed',
+          status: 'pending',
           total: quote.total,
-          subtotal: quote.total,
-          notes: `Convertida de cotización #${id.slice(-6).toUpperCase()}`,
-        })
+          subtotal: (quote as any).subtotal ?? quote.total,
+          discount: (quote as any).discount ?? 0,
+          notes: `Desde cotización #${id.slice(-6).toUpperCase()}${(quote as any).notes ? `\n${(quote as any).notes}` : ''}`,
+          source_quote_id: id,
+        }).select().single()
+        // Copy sale_items from quote
+        if (newSale?.id) {
+          const { data: qItems } = await supabase
+            .from('sale_items').select('*').eq('sale_id', id)
+          if (qItems?.length) {
+            await supabase.from('sale_items').insert(
+              qItems.map(({ id: _id, sale_id: _sid, ...rest }: any) => ({ ...rest, sale_id: newSale.id }))
+            )
+          }
+          try {
+            await fetch('/api/admin/sales/update-inventory', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ saleId: newSale.id, brandId }),
+            })
+          } catch {}
+        }
       }
     }
     if (status === 'accepted') {
@@ -222,7 +242,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
           total: quote.total,
           subtotal: (quote as any).subtotal ?? quote.total,
           discount: (quote as any).discount ?? 0,
-          notes: `[Por revisar] Desde cotización #${id.slice(-6).toUpperCase()}${(quote as any).notes ? `\n${(quote as any).notes}` : ''}`,
+          notes: `Desde cotización #${id.slice(-6).toUpperCase()}${(quote as any).notes ? `\n${(quote as any).notes}` : ''}`,
           source_quote_id: id,
         }).select().single()
 

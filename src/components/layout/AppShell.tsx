@@ -487,8 +487,8 @@ function AppShellInner({
               {!isCollapsed && <span>Salir de vista asesor</span>}
             </button>
           )}
-          {/* Language selector */}
-          {!isCollapsed && (
+          {/* Language selector — superadmin only */}
+          {!isCollapsed && role === 'superadmin' && (
             <div className="px-2 py-1">
               <select
                 value={lang}

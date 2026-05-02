@@ -61,6 +61,7 @@ export default async function BrandSettingsPage() {
       availableModules={marketplaceModules ?? []}
       currentEstablishments={estCount ?? 1}
       currentAdvisors={advCount ?? 0}
+      isSuperAdmin={profile.role === 'superadmin'}
     />
   )
 }
