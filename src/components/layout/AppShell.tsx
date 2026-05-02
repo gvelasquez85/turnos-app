@@ -11,11 +11,13 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
   ShoppingCart, Package, FileCheck, PieChart, TrendingUp,
+  Sun, Moon,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
 import { I18nProvider, useT } from '@/lib/i18n/context'
 import { SUPPORTED_LANGUAGES, type LangCode } from '@/lib/i18n/translations'
+import { useDarkMode } from '@/hooks/useDarkMode'
 
 export type AppRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 'reporting'
 
@@ -222,6 +224,7 @@ function AppShellInner({
   brands: initialBrands, activeModules, plan,
 }: AppShellProps) {
   const { t, lang, setLang } = useT()
+  const { dark, toggle: toggleDark } = useDarkMode()
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
@@ -317,25 +320,25 @@ function AppShellInner({
       <>
         {/* Header */}
         <div className={cn(
-          'flex items-center h-14 px-3 border-b border-gray-100 shrink-0',
+          'flex items-center h-14 px-3 border-b border-gray-100 dark:border-gray-800 shrink-0',
           isCollapsed ? 'justify-center' : 'justify-between',
         )}>
           {!isCollapsed && (
             <div className="flex items-center gap-2.5">
               <TurnFlowLogo size={28} />
-              <span className="font-bold text-gray-900 tracking-tight">TurnFlow</span>
+              <span className="font-bold text-gray-900 dark:text-gray-100 tracking-tight">TurnFlow</span>
             </div>
           )}
           {isCollapsed && <TurnFlowLogo size={26} />}
           <button
             onClick={toggleCollapsed}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 hidden md:flex items-center justify-center shrink-0"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hidden md:flex items-center justify-center shrink-0"
           >
             {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
           </button>
           <button
             onClick={() => setMobileOpen(false)}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 md:hidden shrink-0"
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500 md:hidden shrink-0"
           >
             <X size={15} />
           </button>
@@ -343,10 +346,10 @@ function AppShellInner({
 
         {/* Brand selector (superadmin only) */}
         {role === 'superadmin' && brands.length > 0 && !isCollapsed && (
-          <div className="px-3 pt-2 pb-1 border-b border-gray-100">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 mb-1.5">Marca</p>
+          <div className="px-3 pt-2 pb-1 border-b border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Marca</p>
             <select
-              className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:outline-none"
               value={selectedBrandId}
               onChange={e => setSelectedBrandId(e.target.value)}
             >
@@ -356,8 +359,8 @@ function AppShellInner({
           </div>
         )}
         {role === 'superadmin' && brands.length > 0 && isCollapsed && (
-          <div className="flex justify-center py-2 border-b border-gray-100">
-            <Building2 size={16} className="text-gray-400" aria-label={brands.find(b => b.id === selectedBrandId)?.name} />
+          <div className="flex justify-center py-2 border-b border-gray-100 dark:border-gray-800">
+            <Building2 size={16} className="text-gray-400 dark:text-gray-500" aria-label={brands.find(b => b.id === selectedBrandId)?.name} />
           </div>
         )}
 
@@ -374,19 +377,19 @@ function AppShellInner({
                     onClick={() => toggleSectionCollapsed(section.key)}
                     className="flex items-center justify-between w-full px-2 pt-3 pb-1 group"
                   >
-                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 group-hover:text-gray-600 transition-colors">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors">
                       {section.sectionKey ? t(section.sectionKey, section.section) : section.section}
                     </span>
                     <ChevronDown
                       size={12}
                       className={cn(
-                        'text-gray-300 group-hover:text-gray-500 transition-all',
+                        'text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 transition-all',
                         isSectionCollapsed ? '-rotate-90' : 'rotate-0',
                       )}
                     />
                   </button>
                 ) : (
-                  si > 0 && <div className="h-px bg-gray-100 mx-2 my-2" />
+                  si > 0 && <div className="h-px bg-gray-100 dark:bg-gray-800 mx-2 my-2" />
                 )}
 
                 {/* Section items */}
@@ -405,8 +408,8 @@ function AppShellInner({
                             'flex items-center gap-3 px-2 py-2 rounded-lg text-sm transition-colors',
                             isCollapsed && 'justify-center',
                             active
-                              ? 'bg-indigo-50 text-indigo-700 font-medium'
-                              : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+                              ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 font-medium'
+                              : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-100',
                           )}
                         >
                           <Icon size={17} className="shrink-0" />
@@ -422,23 +425,23 @@ function AppShellInner({
         </nav>
 
         {/* Footer */}
-        <div className="shrink-0 border-t border-gray-100 p-2">
+        <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-2">
           <Link
             href="/profile"
             onClick={() => setMobileOpen(false)}
             title={isCollapsed ? 'Mi perfil' : undefined}
             className={cn(
-              'flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 transition-colors mb-1 w-full text-left',
+              'flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-1 w-full text-left',
               isCollapsed && 'justify-center',
             )}
           >
-            <UserCircle size={18} className="text-gray-400 shrink-0" />
+            <UserCircle size={18} className="text-gray-400 dark:text-gray-500 shrink-0" />
             {!isCollapsed && (
               <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{fullName || email}</p>
+                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{fullName || email}</p>
                 {subtitle
-                  ? <p className="text-xs text-gray-400 truncate">{subtitle}</p>
-                  : <p className="text-xs text-gray-400">{roleLabel[role]}</p>
+                  ? <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{subtitle}</p>
+                  : <p className="text-xs text-gray-400 dark:text-gray-500">{roleLabel[role]}</p>
                 }
               </div>
             )}
@@ -451,7 +454,7 @@ function AppShellInner({
               rel="noopener noreferrer"
               title={isCollapsed ? 'Pantalla TV' : undefined}
               className={cn(
-                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 hover:bg-indigo-50 hover:text-indigo-600 w-full transition-colors mb-1',
+                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-indigo-600 dark:hover:text-indigo-400 w-full transition-colors mb-1',
                 isCollapsed && 'justify-center',
               )}
             >
@@ -465,7 +468,7 @@ function AppShellInner({
               onClick={startImpersonate}
               title={isCollapsed ? 'Ver como agente' : undefined}
               className={cn(
-                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-indigo-500 hover:bg-indigo-50 w-full transition-colors mb-1',
+                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-indigo-500 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 w-full transition-colors mb-1',
                 isCollapsed && 'justify-center',
               )}
             >
@@ -479,7 +482,7 @@ function AppShellInner({
               onClick={stopImpersonate}
               title={isCollapsed ? 'Salir de vista asesor' : undefined}
               className={cn(
-                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-amber-600 hover:bg-amber-50 w-full transition-colors mb-1',
+                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 w-full transition-colors mb-1',
                 isCollapsed && 'justify-center',
               )}
             >
@@ -493,7 +496,7 @@ function AppShellInner({
               <select
                 value={lang}
                 onChange={e => setLang(e.target.value as LangCode)}
-                className="w-full rounded-lg border border-gray-200 bg-gray-50 px-2 py-1.5 text-xs text-gray-500 focus:border-indigo-400 focus:outline-none cursor-pointer"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 focus:border-indigo-400 focus:outline-none cursor-pointer"
                 title="Idioma / Language"
               >
                 {SUPPORTED_LANGUAGES.map(l => (
@@ -502,11 +505,23 @@ function AppShellInner({
               </select>
             </div>
           )}
+          {/* Dark mode toggle */}
+          <button
+            onClick={toggleDark}
+            title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+            className={cn(
+              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 w-full transition-colors mb-1',
+              isCollapsed && 'justify-center',
+            )}
+          >
+            {dark ? <Sun size={15} /> : <Moon size={15} />}
+            {!isCollapsed && <span>{dark ? 'Modo claro' : 'Modo oscuro'}</span>}
+          </button>
           <button
             onClick={handleLogout}
             title={isCollapsed ? 'Cerrar sesión' : undefined}
             className={cn(
-              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 hover:bg-red-50 hover:text-red-600 w-full transition-colors',
+              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 w-full transition-colors',
               isCollapsed && 'justify-center',
             )}
           >
@@ -519,10 +534,10 @@ function AppShellInner({
   }
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
       {/* Desktop sidebar */}
       <aside className={cn(
-        'fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex-col z-30 transition-all duration-200 hidden md:flex',
+        'fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col z-30 transition-all duration-200 hidden md:flex',
         collapsed ? 'w-16' : 'w-56',
       )}>
         <SidebarContent />
@@ -538,7 +553,7 @@ function AppShellInner({
 
       {/* Mobile sidebar */}
       <aside className={cn(
-        'fixed left-0 top-0 h-full bg-white border-r border-gray-200 flex-col z-30 transition-transform duration-200 w-64 md:hidden',
+        'fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col z-30 transition-transform duration-200 w-64 md:hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
       )}>
         <SidebarContent mobile />
@@ -550,12 +565,12 @@ function AppShellInner({
         collapsed ? 'md:ml-16' : 'md:ml-56',
       )}>
         {/* Mobile topbar */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 h-14 flex items-center gap-3 md:hidden">
-          <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-500">
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 h-14 flex items-center gap-3 md:hidden">
+          <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
             <Menu size={20} />
           </button>
           <TurnFlowLogo size={24} />
-          <span className="font-bold text-gray-900 text-sm">TurnFlow</span>
+          <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">TurnFlow</span>
         </div>
         <div className="p-4 md:p-6 lg:p-8">
           {children}
