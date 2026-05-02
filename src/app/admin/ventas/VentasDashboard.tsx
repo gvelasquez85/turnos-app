@@ -119,9 +119,15 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   const totalRevenue = completedSales.reduce((s, x) => s + (x.total ?? 0), 0)
   const avgTicket = completedSales.length > 0 ? totalRevenue / completedSales.length : 0
   const todayStr = new Date().toDateString()
+  // Count = ALL non-cancelled today (matches home dashboard and list view)
+  const allTodaySales = useMemo(() =>
+    recentSales.filter(s => s.status !== 'cancelled' && new Date(s.created_at).toDateString() === todayStr),
+    [recentSales, todayStr])
+  // Revenue = completed/invoiced only
   const todaySales = completedSales.filter(s => new Date(s.created_at).toDateString() === todayStr)
   const todayRevenue = todaySales.reduce((s, x) => s + (x.total ?? 0), 0)
-  // Pending (separate indicator)
+  const todayPending = allTodaySales.filter(s => s.status === 'pending')
+  // Pending (separate indicator — all time in window)
   const pendingSalesKPI = useMemo(() => allSales.filter(s => s.status === 'pending'), [allSales])
   const pendingRevenue = pendingSalesKPI.reduce((s, x) => s + (x.total ?? 0), 0)
 
@@ -218,7 +224,7 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
           {[
             { label: 'Ingresos (30d)', value: fmt(totalRevenue), icon: DollarSign, color: 'bg-emerald-100 text-emerald-700', sub: `${completedSales.length} ventas facturadas` },
-            { label: 'Hoy', value: fmt(todayRevenue), icon: TrendingUp, color: 'bg-blue-100 text-blue-700', sub: `${todaySales.length} ventas facturadas hoy` },
+            { label: 'Hoy', value: String(allTodaySales.length), icon: TrendingUp, color: 'bg-blue-100 text-blue-700', sub: allTodaySales.length === 0 ? 'sin ventas hoy' : `${fmt(todayRevenue)} facturado${todayPending.length > 0 ? ` · ${todayPending.length} pendiente${todayPending.length > 1 ? 's' : ''}` : ''}` },
             { label: 'Ticket promedio', value: fmt(avgTicket), icon: ShoppingCart, color: 'bg-indigo-100 text-indigo-700', sub: 'últimos 30 días' },
             { label: 'Ventas totales', value: String(completedSales.length), icon: CheckCircle, color: 'bg-purple-100 text-purple-700', sub: 'últimos 30 días' },
           ].map(({ label, value, icon: Icon, color, sub }) => (

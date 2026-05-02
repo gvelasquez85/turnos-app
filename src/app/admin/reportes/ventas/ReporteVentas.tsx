@@ -32,9 +32,10 @@ export function ReporteVentas({ sales: allSales, establishments }: {
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
-  const filtered = useMemo(() => {
+  // All non-cancelled in period — this is THE canonical count users see everywhere
+  const allInPeriod = useMemo(() => {
     let list = allSales.filter(s =>
-      SALE_COMPLETED_SET.has(s.status) &&
+      s.status !== 'cancelled' &&
       new Date(s.created_at) >= range.from &&
       new Date(s.created_at) <= range.to
     )
@@ -42,19 +43,22 @@ export function ReporteVentas({ sales: allSales, establishments }: {
     return list
   }, [allSales, range, filterEst])
 
-  const pendingInPeriod = useMemo(() =>
-    allSales.filter(s =>
-      s.status === 'pending' &&
-      new Date(s.created_at) >= range.from &&
-      new Date(s.created_at) <= range.to &&
-      (!filterEst || s.establishment_id === filterEst)
-    ), [allSales, range, filterEst])
+  // Subset: completed (facturado+) — for revenue
+  const filtered = useMemo(() =>
+    allInPeriod.filter(s => SALE_COMPLETED_SET.has(s.status)),
+    [allInPeriod])
 
-  const totalRev = filtered.reduce((s, x) => s + x.total, 0)
+  // Subset: pending — shown as separate indicator
+  const pendingInPeriod = useMemo(() =>
+    allInPeriod.filter(s => s.status === 'pending'),
+    [allInPeriod])
+
+  const totalCount   = allInPeriod.length          // canonical count
+  const totalRev     = filtered.reduce((s, x) => s + x.total, 0)
   const totalDiscount = filtered.reduce((s, x) => s + (x.discount ?? 0), 0)
-  const avgTicket = filtered.length > 0 ? totalRev / filtered.length : 0
+  const avgTicket    = filtered.length > 0 ? totalRev / filtered.length : 0
   const uniqueCustomers = new Set(filtered.map(s => s.customer_id).filter(Boolean)).size
-  const pendingRevenue = pendingInPeriod.reduce((s, x) => s + x.total, 0)
+  const pendingRevenue  = pendingInPeriod.reduce((s, x) => s + x.total, 0)
 
   const byEst = useMemo(() => {
     const map: Record<string, { count: number; total: number }> = {}
@@ -76,7 +80,7 @@ export function ReporteVentas({ sales: allSales, establishments }: {
       <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reporte de Ventas</h1>
-          <p className="text-gray-500 text-sm mt-1">{filtered.length} ventas completadas en el período</p>
+          <p className="text-gray-500 text-sm mt-1">{totalCount} venta{totalCount !== 1 ? 's' : ''} en el período{pendingInPeriod.length > 0 ? ` · ${pendingInPeriod.length} pendiente${pendingInPeriod.length > 1 ? 's' : ''}` : ''}</p>
         </div>
         <DateRangeFilter
           value={range}
@@ -101,8 +105,8 @@ export function ReporteVentas({ sales: allSales, establishments }: {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'Ingresos', value: fmt(totalRev), icon: DollarSign, color: 'bg-emerald-100 text-emerald-700' },
-          { label: 'Ventas', value: filtered.length, icon: ShoppingCart, color: 'bg-blue-100 text-blue-700' },
+          { label: 'Ingresos facturados', value: fmt(totalRev), icon: DollarSign, color: 'bg-emerald-100 text-emerald-700' },
+          { label: 'Ventas', value: totalCount, icon: ShoppingCart, color: 'bg-blue-100 text-blue-700' },
           { label: 'Ticket promedio', value: fmt(avgTicket), icon: TrendingUp, color: 'bg-indigo-100 text-indigo-700' },
           { label: 'Clientes únicos', value: uniqueCustomers, icon: Users, color: 'bg-purple-100 text-purple-700' },
         ].map(({ label, value, icon: Icon, color }) => (

@@ -1,22 +1,24 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Link from 'next/link'
 import {
   TrendingUp, Users, ShoppingCart, Package, FileCheck,
   Sparkles, Bell, ChevronRight, MessageSquare,
-  CheckCircle, ArrowRight,
+  CheckCircle, ArrowRight, Clock,
 } from 'lucide-react'
+import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
+
+interface Sale { id: string; total: number; status: string; created_at: string }
 
 interface Props {
   brandName: string
   businessType: string
   primaryColor: string
   userName: string
-  revenueToday: number
-  revenueWeek: number
-  countToday: number
-  pendingCount: number
-  pendingRevenue: number
+  /** Sales from last 48 h, all non-cancelled */
+  salesRecent: Sale[]
+  /** Sales from last 7 days, all non-cancelled */
+  salesWeek: Sale[]
   totalClients: number
   inactiveClients: { id: string; name: string; phone: string | null; updated_at: string }[]
   openQuotes: { id: string; total: number; created_at: string; customers: any }[]
@@ -37,8 +39,7 @@ function fmt(n: number) {
 }
 
 function daysAgo(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime()
-  return Math.floor(diff / 86400000)
+  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
 }
 
 function greeting() {
@@ -50,24 +51,47 @@ function greeting() {
 
 export function HomePanel({
   brandName, businessType, userName,
-  revenueToday, revenueWeek, countToday, pendingCount, pendingRevenue, totalClients,
+  salesRecent, salesWeek, totalClients,
   inactiveClients, openQuotes, lowStock,
 }: Props) {
   const v = VOCAB[businessType] || VOCAB.otros
   const firstName = userName.split(' ')[0]
   const [dismissed, setDismissed] = useState<string[]>([])
 
+  // ── "Hoy" filtered in browser timezone — same logic as VentasDashboard ──
+  const todayStr = new Date().toDateString()
+
+  const todaySales = useMemo(() =>
+    salesRecent.filter(s => new Date(s.created_at).toDateString() === todayStr),
+    [salesRecent, todayStr])
+
+  // Count = ALL non-cancelled today (matches what user sees in the sales list)
+  const countToday = todaySales.length
+
+  // Revenue = only committed/invoiced (facturado+)
+  const completedToday = todaySales.filter(s => SALE_COMPLETED_SET.has(s.status))
+  const pendingToday   = todaySales.filter(s => s.status === 'pending')
+  const revenueToday   = completedToday.reduce((s, x) => s + (x.total ?? 0), 0)
+  const pendingRevenue = pendingToday.reduce((s, x) => s + (x.total ?? 0), 0)
+
+  // Week revenue (completed only)
+  const revenueWeek = useMemo(() =>
+    salesWeek
+      .filter(s => SALE_COMPLETED_SET.has(s.status))
+      .reduce((s, x) => s + (x.total ?? 0), 0),
+    [salesWeek])
+
+  // ── Action cards ────────────────────────────────────────────────────────────
   const actions: { key: string; icon: React.ElementType; color: string; text: string; sub: string; href: string }[] = []
 
   if (inactiveClients.length > 0) {
     const first = inactiveClients[0]
-    const days = daysAgo(first.updated_at)
     actions.push({
       key: 'inactive',
       icon: Users,
       color: 'bg-emerald-50 text-emerald-700',
       text: `${inactiveClients.length} ${inactiveClients.length > 1 ? v.clients : v.client} ${inactiveClients.length > 1 ? 'pueden' : 'puede'} volver a comprarte`,
-      sub: `${first.name} lleva ${days} días sin volver`,
+      sub: `${first.name} lleva ${daysAgo(first.updated_at)} días sin volver`,
       href: '/admin/clientes',
     })
   }
@@ -105,37 +129,36 @@ export function HomePanel({
         <h1 className="text-2xl font-black text-gray-900 mt-0.5">Hoy en {brandName}</h1>
       </div>
 
-      {/* KPIs — grid adaptivo */}
+      {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Ventas confirmadas hoy */}
+        {/* Ventas hoy — TOTAL count (todos los estados no-cancelados) */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-400 font-medium">Ventas hoy</p>
             <TrendingUp size={14} className="text-emerald-500" />
           </div>
-          <p className="text-2xl font-black text-gray-900">{fmt(revenueToday)}</p>
-          <p className="text-xs text-gray-400 mt-1">{countToday} {countToday === 1 ? 'venta' : 'ventas'} facturadas</p>
+          <p className="text-2xl font-black text-gray-900">{countToday}</p>
+          <p className="text-xs text-gray-400 mt-1">
+            {completedToday.length > 0 && `${fmt(revenueToday)} facturado`}
+            {completedToday.length > 0 && pendingToday.length > 0 && ' · '}
+            {pendingToday.length > 0 && (
+              <span className="text-amber-500">{pendingToday.length} pendiente{pendingToday.length > 1 ? 's' : ''}</span>
+            )}
+            {countToday === 0 && 'sin ventas hoy'}
+          </p>
         </div>
-        {/* Pendientes hoy (si las hay) */}
-        {pendingCount > 0 ? (
-          <div className="bg-amber-50 rounded-2xl border border-amber-100 p-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-amber-600 font-medium">Por confirmar</p>
-              <TrendingUp size={14} className="text-amber-400" />
-            </div>
-            <p className="text-2xl font-black text-amber-700">{fmt(pendingRevenue)}</p>
-            <p className="text-xs text-amber-500 mt-1">{pendingCount} venta{pendingCount > 1 ? 's' : ''} pendiente{pendingCount > 1 ? 's' : ''}</p>
+
+        {/* Esta semana */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs text-gray-400 font-medium">Esta semana</p>
+            <TrendingUp size={14} className="text-blue-500" />
           </div>
-        ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-gray-400 font-medium">Esta semana</p>
-              <TrendingUp size={14} className="text-blue-500" />
-            </div>
-            <p className="text-2xl font-black text-gray-900">{fmt(revenueWeek)}</p>
-            <p className="text-xs text-gray-400 mt-1">últimos 7 días</p>
-          </div>
-        )}
+          <p className="text-2xl font-black text-gray-900">{fmt(revenueWeek)}</p>
+          <p className="text-xs text-gray-400 mt-1">últimos 7 días · facturadas</p>
+        </div>
+
+        {/* Tus clientes */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-400 font-medium">Tus {v.clients}</p>
@@ -144,6 +167,8 @@ export function HomePanel({
           <p className="text-2xl font-black text-gray-900">{totalClients}</p>
           <p className="text-xs text-gray-400 mt-1">en tu base</p>
         </div>
+
+        {/* Por recuperar */}
         <div className="bg-white rounded-2xl border border-gray-100 p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-xs text-gray-400 font-medium">Por recuperar</p>
@@ -153,21 +178,11 @@ export function HomePanel({
           <p className="text-xs text-gray-400 mt-1">{v.clients} inactivos</p>
         </div>
       </div>
-      {/* Semana — fila adicional si hay pendientes (para no perder el dato) */}
-      {pendingCount > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
-          <TrendingUp size={16} className="text-blue-500 shrink-0" />
-          <div>
-            <p className="text-xs text-gray-400">Esta semana (facturadas)</p>
-            <p className="text-lg font-black text-gray-900">{fmt(revenueWeek)}</p>
-          </div>
-        </div>
-      )}
 
-      {/* Fila principal: acciones + accesos rápidos */}
+      {/* Fila principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        {/* Acciones (2/3 del ancho) */}
+        {/* Acciones + IA */}
         <div className="lg:col-span-2">
           <div className="flex items-center gap-2 mb-3">
             <Bell size={14} className="text-indigo-500" />
@@ -187,10 +202,7 @@ export function HomePanel({
                       <p className="font-semibold text-gray-900 text-sm">{action.text}</p>
                       <p className="text-xs text-gray-400 truncate">{action.sub}</p>
                     </div>
-                    <Link
-                      href={action.href}
-                      className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 shrink-0"
-                    >
+                    <Link href={action.href} className="flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800 shrink-0">
                       Ver <ChevronRight size={12} />
                     </Link>
                   </div>
@@ -209,7 +221,7 @@ export function HomePanel({
             </div>
           )}
 
-          {/* IA: Mensaje sugerido */}
+          {/* IA sugerida */}
           {inactiveClients.length > 0 && (
             <div className="mt-3 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl p-5">
               <div className="flex items-center gap-2 mb-2">
@@ -219,37 +231,31 @@ export function HomePanel({
               <p className="text-sm font-semibold text-gray-900 mb-1">
                 {inactiveClients[0].name} lleva {daysAgo(inactiveClients[0].updated_at)} días sin volver
               </p>
-              <p className="text-sm text-gray-600 mb-3">
-                Es un buen momento para escribirle. ¿Generamos un mensaje para WhatsApp?
-              </p>
+              <p className="text-sm text-gray-600 mb-3">¿Generamos un mensaje para WhatsApp?</p>
               <Link
                 href={`/admin/clientes?action=message&clientId=${inactiveClients[0].id}`}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
               >
-                <MessageSquare size={13} />
-                Generar mensaje
+                <MessageSquare size={13} /> Generar mensaje
               </Link>
             </div>
           )}
         </div>
 
-        {/* Accesos rápidos (1/3) */}
+        {/* Accesos rápidos */}
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Accesos rápidos</p>
           <div className="grid grid-cols-1 gap-3">
             {[
-              { label: 'Nueva venta', icon: ShoppingCart, href: '/admin/ventas/nueva-venta', color: 'text-emerald-600 bg-emerald-50' },
-              { label: 'Agregar cliente', icon: Users, href: '/admin/clientes', color: 'text-indigo-600 bg-indigo-50' },
-              { label: 'Nueva cotización', icon: FileCheck, href: '/admin/ventas/nueva-venta?type=quote', color: 'text-amber-600 bg-amber-50' },
-              { label: 'Ver inventario', icon: Package, href: '/admin/ventas/inventario', color: 'text-blue-600 bg-blue-50' },
+              { label: 'Nueva venta',      icon: ShoppingCart, href: '/admin/ventas/nueva-venta',              color: 'text-emerald-600 bg-emerald-50' },
+              { label: 'Agregar cliente',  icon: Users,        href: '/admin/clientes',                        color: 'text-indigo-600 bg-indigo-50'  },
+              { label: 'Nueva cotización', icon: FileCheck,    href: '/admin/ventas/nueva-venta?type=quote',   color: 'text-amber-600 bg-amber-50'    },
+              { label: 'Ver inventario',   icon: Package,      href: '/admin/ventas/inventario',               color: 'text-blue-600 bg-blue-50'      },
             ].map(item => {
               const Icon = item.icon
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-center gap-3 hover:border-gray-200 hover:shadow-sm transition-all group"
-                >
+                <Link key={item.href} href={item.href}
+                  className="bg-white rounded-xl border border-gray-100 px-4 py-3 flex items-center gap-3 hover:border-gray-200 hover:shadow-sm transition-all group">
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${item.color}`}>
                     <Icon size={16} />
                   </div>
@@ -261,7 +267,6 @@ export function HomePanel({
           </div>
         </div>
       </div>
-
     </div>
   )
 }
