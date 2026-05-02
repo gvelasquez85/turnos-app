@@ -30,6 +30,18 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   if (!profile || !['brand_admin', 'manager', 'superadmin', 'advisor'].includes(profile.role)) redirect('/')
 
+  // Redirect brand_admin / manager to onboarding if not yet completed
+  if (['brand_admin', 'manager'].includes(profile.role) && (profile as any).brand_id) {
+    const { data: brandCheck } = await supabase
+      .from('brands')
+      .select('onboarding_completed')
+      .eq('id', (profile as any).brand_id)
+      .single()
+    if (brandCheck && brandCheck.onboarding_completed !== true) {
+      redirect('/onboarding')
+    }
+  }
+
   const brandId = (profile as any).brand_id
 
   let plan = 'free'

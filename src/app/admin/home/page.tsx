@@ -32,18 +32,18 @@ export default async function HomeDashboardPage() {
       .select('id, name, business_type, onboarding_completed, primary_color')
       .eq('id', brandId).single(),
 
-    // Ventas de HOY — mismos status que VentasDashboard (completed/completado/entregado)
+    // Ventas de HOY — todas excepto canceladas (así el número coincide con lo que ve el usuario en el panel)
     supabase.from('sales')
       .select('id, total, status, type, created_at')
       .eq('brand_id', brandId).eq('type', 'sale')
-      .in('status', ['completed', 'completado', 'entregado'])
+      .neq('status', 'cancelled')
       .gte('created_at', todayStr),
 
-    // Ventas de los últimos 7 días — mismos status
+    // Ventas de los últimos 7 días — todas excepto canceladas
     supabase.from('sales')
       .select('id, total, created_at')
       .eq('brand_id', brandId).eq('type', 'sale')
-      .in('status', ['completed', 'completado', 'entregado'])
+      .neq('status', 'cancelled')
       .gte('created_at', since7),
 
     // Clientes inactivos > 30 días (tienen historial de compra pero no reciente)

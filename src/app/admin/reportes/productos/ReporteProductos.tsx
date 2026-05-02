@@ -1,6 +1,7 @@
 'use client'
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { Package, AlertTriangle, TrendingUp, TrendingDown } from 'lucide-react'
+import { DateRangeFilter, presetRange, type DateRange, type Preset } from '@/components/ui/DateRangeFilter'
 
 interface SaleItem {
   product_id: string | null
@@ -15,8 +16,17 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
 }
 
-export function ReporteProductos({ saleItems, products }: { saleItems: SaleItem[]; products: Product[] }) {
-  // Aggregate by product
+export function ReporteProductos({ saleItems: allItems, products }: { saleItems: SaleItem[]; products: Product[] }) {
+  const [preset, setPreset] = useState<Preset>('month')
+  const [range, setRange] = useState<DateRange>(presetRange('month'))
+
+  // Filter sale items by date range
+  const saleItems = useMemo(() =>
+    allItems.filter(item => {
+      const d = new Date(item.sales?.created_at)
+      return d >= range.from && d <= range.to
+    }), [allItems, range])
+
   const productStats = useMemo(() => {
     const map: Record<string, { name: string; qty: number; revenue: number; transactions: number }> = {}
     saleItems.forEach(item => {
@@ -26,22 +36,27 @@ export function ReporteProductos({ saleItems, products }: { saleItems: SaleItem[
       map[key].revenue += item.line_total
       map[key].transactions++
     })
-    return Object.entries(map)
-      .map(([id, v]) => ({ id, ...v }))
-      .sort((a, b) => b.qty - a.qty)
+    return Object.entries(map).map(([id, v]) => ({ id, ...v })).sort((a, b) => b.qty - a.qty)
   }, [saleItems])
 
   const topSellers = productStats.slice(0, 10)
   const bottomSellers = [...productStats].sort((a, b) => a.qty - b.qty).slice(0, 5)
 
   const lowStock = products.filter(p => p.min_stock > 0 && p.stock <= p.min_stock)
-  const noStock = products.filter(p => p.stock === 0)
+  const noStock  = products.filter(p => p.stock === 0)
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reporte de Productos</h1>
-        <p className="text-gray-500 text-sm mt-1">{products.length} productos en inventario</p>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reporte de Productos</h1>
+          <p className="text-gray-500 text-sm mt-1">{products.length} productos en inventario</p>
+        </div>
+        <DateRangeFilter
+          value={range}
+          preset={preset}
+          onChange={(r, p) => { setRange(r); setPreset(p) }}
+        />
       </div>
 
       {/* Stock alerts */}
@@ -76,10 +91,10 @@ export function ReporteProductos({ saleItems, products }: { saleItems: SaleItem[
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingUp size={16} className="text-emerald-500" />
-            <h3 className="text-sm font-semibold text-gray-900">Más vendidos</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Más vendidos en el período</h3>
           </div>
           {topSellers.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">Sin datos de ventas</p>
+            <p className="text-sm text-gray-400 text-center py-6">Sin ventas en el período</p>
           ) : (
             <div className="space-y-2">
               {topSellers.map((p, i) => (
@@ -100,10 +115,10 @@ export function ReporteProductos({ saleItems, products }: { saleItems: SaleItem[
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <div className="flex items-center gap-2 mb-4">
             <TrendingDown size={16} className="text-red-400" />
-            <h3 className="text-sm font-semibold text-gray-900">Menos vendidos</h3>
+            <h3 className="text-sm font-semibold text-gray-900">Menos vendidos en el período</h3>
           </div>
           {bottomSellers.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-6">Sin datos de ventas</p>
+            <p className="text-sm text-gray-400 text-center py-6">Sin ventas en el período</p>
           ) : (
             <div className="space-y-2">
               {bottomSellers.map((p, i) => (
@@ -133,27 +148,20 @@ export function ReporteProductos({ saleItems, products }: { saleItems: SaleItem[
                   <th className="px-4 py-2 text-center">Stock</th>
                   <th className="px-4 py-2 text-center">Mín.</th>
                   <th className="px-4 py-2 text-right">Precio</th>
-                  <th className="px-4 py-2 text-right">Vendidos</th>
+                  <th className="px-4 py-2 text-right">Vendidos (período)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {products.map(p => {
-                  const stats = productStats.find(s => s.id === p.id)
+                  const stats = productStats.find(s => s.id === p.id || s.name === p.name)
                   const isLow = p.min_stock > 0 && p.stock <= p.min_stock
                   return (
-                    <tr key={p.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-2.5">
-                        <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                        {p.category && <p className="text-[10px] text-gray-400">{p.category}</p>}
-                      </td>
-                      <td className="px-4 py-2.5 text-center">
-                        <span className={`text-sm font-bold ${p.stock === 0 ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-gray-900'}`}>
-                          {p.stock}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2.5 text-center text-xs text-gray-400">{p.min_stock}</td>
-                      <td className="px-4 py-2.5 text-right text-sm text-gray-700">{fmt(p.price)}</td>
-                      <td className="px-4 py-2.5 text-right text-sm font-semibold text-gray-900">{stats?.qty ?? 0}</td>
+                    <tr key={p.id} className={isLow ? 'bg-amber-50' : ''}>
+                      <td className="px-4 py-2.5 text-sm text-gray-800">{p.name}</td>
+                      <td className={`px-4 py-2.5 text-sm font-semibold text-center ${p.stock === 0 ? 'text-red-600' : isLow ? 'text-amber-600' : 'text-gray-900'}`}>{p.stock}</td>
+                      <td className="px-4 py-2.5 text-sm text-gray-400 text-center">{p.min_stock || '—'}</td>
+                      <td className="px-4 py-2.5 text-sm text-gray-700 text-right">{fmt(p.price)}</td>
+                      <td className="px-4 py-2.5 text-sm text-gray-700 text-right">{stats ? `${stats.qty} u.` : '—'}</td>
                     </tr>
                   )
                 })}

@@ -1,25 +1,14 @@
 'use client'
 import { useState, useMemo } from 'react'
-import { DollarSign, ShoppingCart, TrendingUp, Users, Building2, Calendar } from 'lucide-react'
+import { DollarSign, ShoppingCart, TrendingUp, Users } from 'lucide-react'
+import { DateRangeFilter, presetRange, type DateRange, type Preset } from '@/components/ui/DateRangeFilter'
+
+const COMPLETED = new Set(['completed', 'completado', 'entregado'])
 
 interface Sale {
   id: string; status: string; total: number; subtotal: number; discount: number
   created_at: string; establishment_id: string | null; customer_id: string | null
   customers: { name: string } | null
-}
-
-type Period = 'today' | 'week' | 'month' | 'year' | 'all'
-const PERIOD_LABELS: Record<Period, string> = {
-  today: 'Hoy', week: 'Esta semana', month: 'Este mes', year: 'Este año', all: 'Todo',
-}
-
-function periodStart(p: Period): Date {
-  const n = new Date()
-  if (p === 'today') return new Date(n.getFullYear(), n.getMonth(), n.getDate())
-  if (p === 'week') { const d = new Date(n); d.setDate(d.getDate()-d.getDay()); d.setHours(0,0,0,0); return d }
-  if (p === 'month') return new Date(n.getFullYear(), n.getMonth(), 1)
-  if (p === 'year') return new Date(n.getFullYear(), 0, 1)
-  return new Date(0)
 }
 
 function fmt(n: number) {
@@ -38,23 +27,27 @@ function groupByDay(sales: Sale[]) {
 export function ReporteVentas({ sales: allSales, establishments }: {
   sales: Sale[]; establishments: { id: string; name: string }[]
 }) {
-  const [period, setPeriod] = useState<Period>('month')
+  const [preset, setPreset] = useState<Preset>('month')
+  const [range, setRange] = useState<DateRange>(presetRange('month'))
   const [filterEst, setFilterEst] = useState('')
+
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
-  const start = periodStart(period)
   const filtered = useMemo(() => {
-    let list = allSales.filter(s => s.status === 'completed' && new Date(s.created_at) >= start)
+    let list = allSales.filter(s =>
+      COMPLETED.has(s.status) &&
+      new Date(s.created_at) >= range.from &&
+      new Date(s.created_at) <= range.to
+    )
     if (filterEst) list = list.filter(s => s.establishment_id === filterEst)
     return list
-  }, [allSales, start, filterEst])
+  }, [allSales, range, filterEst])
 
   const totalRev = filtered.reduce((s, x) => s + x.total, 0)
   const totalDiscount = filtered.reduce((s, x) => s + (x.discount ?? 0), 0)
   const avgTicket = filtered.length > 0 ? totalRev / filtered.length : 0
   const uniqueCustomers = new Set(filtered.map(s => s.customer_id).filter(Boolean)).size
 
-  // By establishment
   const byEst = useMemo(() => {
     const map: Record<string, { count: number; total: number }> = {}
     filtered.forEach(s => {
@@ -72,28 +65,19 @@ export function ReporteVentas({ sales: allSales, establishments }: {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Reporte de Ventas</h1>
-          <p className="text-gray-500 text-sm mt-1">{filtered.length} ventas en el período</p>
+          <p className="text-gray-500 text-sm mt-1">{filtered.length} ventas completadas en el período</p>
         </div>
-        <div className="flex gap-2 flex-wrap">
-          {establishments.length > 1 && (
-            <select className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm focus:outline-none"
-              value={filterEst} onChange={e => setFilterEst(e.target.value)}>
-              <option value="">Todas las sucursales</option>
-              {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-            </select>
-          )}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5">
-            {(Object.keys(PERIOD_LABELS) as Period[]).map(p => (
-              <button key={p} onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${period === p ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'}`}>
-                {PERIOD_LABELS[p]}
-              </button>
-            ))}
-          </div>
-        </div>
+        <DateRangeFilter
+          value={range}
+          preset={preset}
+          onChange={(r, p) => { setRange(r); setPreset(p) }}
+          estOptions={establishments}
+          estValue={filterEst}
+          onEstChange={setFilterEst}
+        />
       </div>
 
       {/* KPIs */}
@@ -115,9 +99,9 @@ export function ReporteVentas({ sales: allSales, establishments }: {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Daily chart (bar) */}
+        {/* Daily chart */}
         <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-4">Ventas diarias (últimos 14 días)</h3>
+          <h3 className="text-sm font-semibold text-gray-900 mb-4">Ventas por día</h3>
           {dailyData.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-8">Sin datos en el período</p>
           ) : (
@@ -129,10 +113,7 @@ export function ReporteVentas({ sales: allSales, establishments }: {
                     <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[10px] px-1.5 py-0.5 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none z-10">
                       {fmt(val)}
                     </div>
-                    <div
-                      className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-600 transition-colors cursor-default"
-                      style={{ height: `${h}%` }}
-                    />
+                    <div className="w-full bg-emerald-500 rounded-t-sm hover:bg-emerald-600 transition-colors cursor-default" style={{ height: `${h}%` }} />
                     <span className="text-[8px] text-gray-400 rotate-45 origin-left mt-1 hidden sm:block">
                       {new Date(day + 'T12:00:00').toLocaleDateString('es', { day: 'numeric', month: 'short' })}
                     </span>

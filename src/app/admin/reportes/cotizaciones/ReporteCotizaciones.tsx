@@ -1,6 +1,7 @@
 'use client'
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import { FileCheck, CheckCircle, XCircle, Clock, ShoppingCart, TrendingUp } from 'lucide-react'
+import { DateRangeFilter, presetRange, type DateRange, type Preset } from '@/components/ui/DateRangeFilter'
 
 interface Quote { id: string; status: string; total: number; created_at: string; customers?: { name: string } | null }
 interface QuoteItem { product_name: string; qty: number; line_total: number }
@@ -9,7 +10,24 @@ function fmt(n: number) {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
 }
 
-export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; quoteItems: QuoteItem[] }) {
+const STATUS_CFG = [
+  { key: 'draft',     label: 'Borrador',    icon: Clock,         color: 'text-gray-500' },
+  { key: 'sent',      label: 'Enviadas',    icon: FileCheck,     color: 'text-blue-600' },
+  { key: 'accepted',  label: 'Aceptadas',   icon: CheckCircle,   color: 'text-green-600' },
+  { key: 'rejected',  label: 'Rechazadas',  icon: XCircle,       color: 'text-red-500' },
+  { key: 'converted', label: 'Convertidas', icon: ShoppingCart,  color: 'text-purple-600' },
+]
+
+export function ReporteCotizaciones({ quotes: allQuotes, quoteItems }: { quotes: Quote[]; quoteItems: QuoteItem[] }) {
+  const [preset, setPreset] = useState<Preset>('month')
+  const [range, setRange] = useState<DateRange>(presetRange('month'))
+
+  const quotes = useMemo(() =>
+    allQuotes.filter(q =>
+      new Date(q.created_at) >= range.from &&
+      new Date(q.created_at) <= range.to
+    ), [allQuotes, range])
+
   const total = quotes.length
   const byStatus = useMemo(() => {
     const m: Record<string, number> = {}
@@ -23,7 +41,6 @@ export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; q
     .filter(q => ['accepted', 'converted'].includes(q.status))
     .reduce((s, q) => s + q.total, 0)
 
-  // Most quoted products
   const productStats = useMemo(() => {
     const map: Record<string, { qty: number; revenue: number; count: number }> = {}
     quoteItems.forEach(item => {
@@ -35,19 +52,18 @@ export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; q
     return Object.entries(map).map(([name, v]) => ({ name, ...v })).sort((a, b) => b.count - a.count)
   }, [quoteItems])
 
-  const STATUS_CFG = [
-    { key: 'draft', label: 'Borrador', icon: Clock, color: 'text-gray-500' },
-    { key: 'sent', label: 'Enviadas', icon: FileCheck, color: 'text-blue-600' },
-    { key: 'accepted', label: 'Aceptadas', icon: CheckCircle, color: 'text-green-600' },
-    { key: 'rejected', label: 'Rechazadas', icon: XCircle, color: 'text-red-500' },
-    { key: 'converted', label: 'Convertidas', icon: ShoppingCart, color: 'text-purple-600' },
-  ]
-
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Reporte de Cotizaciones</h1>
-        <p className="text-gray-500 text-sm mt-1">{total} cotizaciones en total</p>
+      <div className="flex flex-wrap items-start justify-between gap-3 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Reporte de Cotizaciones</h1>
+          <p className="text-gray-500 text-sm mt-1">{total} cotizaciones en el período</p>
+        </div>
+        <DateRangeFilter
+          value={range}
+          preset={preset}
+          onChange={(r, p) => { setRange(r); setPreset(p) }}
+        />
       </div>
 
       {/* KPIs */}
@@ -72,26 +88,30 @@ export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; q
         {/* Status breakdown */}
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h3 className="text-sm font-semibold text-gray-900 mb-4">Por estado</h3>
-          <div className="space-y-3">
-            {STATUS_CFG.map(({ key, label, icon: Icon, color }) => {
-              const count = byStatus[key] ?? 0
-              const pct = total > 0 ? (count / total) * 100 : 0
-              return (
-                <div key={key} className="flex items-center gap-3">
-                  <Icon size={14} className={color} />
-                  <div className="flex-1">
-                    <div className="flex justify-between mb-1">
-                      <span className="text-xs text-gray-600">{label}</span>
-                      <span className="text-xs font-bold text-gray-900">{count} <span className="font-normal text-gray-400">({pct.toFixed(0)}%)</span></span>
-                    </div>
-                    <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
+          {total === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-6">Sin datos en el período</p>
+          ) : (
+            <div className="space-y-3">
+              {STATUS_CFG.map(({ key, label, icon: Icon, color }) => {
+                const count = byStatus[key] ?? 0
+                const pct = total > 0 ? (count / total) * 100 : 0
+                return (
+                  <div key={key} className="flex items-center gap-3">
+                    <Icon size={14} className={color} />
+                    <div className="flex-1">
+                      <div className="flex justify-between mb-1">
+                        <span className="text-xs text-gray-600">{label}</span>
+                        <span className="text-xs font-bold text-gray-900">{count} <span className="font-normal text-gray-400">({pct.toFixed(0)}%)</span></span>
+                      </div>
+                      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Most quoted products */}
@@ -119,10 +139,10 @@ export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; q
       {/* Recent quotes list */}
       <div className="mt-5 bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="font-semibold text-gray-900 text-sm">Últimas cotizaciones</h3>
+          <h3 className="font-semibold text-gray-900 text-sm">Cotizaciones del período</h3>
         </div>
         {quotes.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-8">Sin cotizaciones</p>
+          <p className="text-sm text-gray-400 text-center py-8">Sin cotizaciones en el período</p>
         ) : (
           <div className="divide-y divide-gray-50">
             {quotes.slice(0, 20).map((q: any) => {
@@ -140,9 +160,7 @@ export function ReporteCotizaciones({ quotes, quoteItems }: { quotes: Quote[]; q
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${cfg ? '' : 'bg-gray-100 text-gray-500'}`}>
                     {cfg?.label ?? q.status}
                   </span>
-                  <span className="text-sm font-bold text-gray-900 shrink-0">
-                    {new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(q.total)}
-                  </span>
+                  <span className="text-sm font-bold text-gray-900 shrink-0">{fmt(q.total)}</span>
                 </div>
               )
             })}
