@@ -140,6 +140,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
     website: initialBrand.website || '',
     language: initialBrand.language || 'es',
     country: initialBrand.country || 'Colombia',
+    business_type: (initialBrand as any).business_type || 'otros',
   })
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -272,6 +273,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
         website: form.website || null,
         language: form.language,
         country: form.country || null,
+        business_type: form.business_type,
       })
       .eq('id', brand.id)
       .select()
@@ -388,6 +390,35 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
         <div className="bg-white rounded-xl border border-gray-200 p-6">
           <div className="flex flex-col gap-4">
             <Input label="Nombre de la marca" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+            {/* ── Tipo de negocio ── */}
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-gray-700">Tipo de negocio</label>
+              <p className="text-xs text-gray-500">Usamos esto para adaptar el lenguaje de la plataforma a tu sector.</p>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-1">
+                {[
+                  { key: 'belleza',     emoji: '💅', label: 'Belleza' },
+                  { key: 'restaurante', emoji: '🍽️', label: 'Restaurante' },
+                  { key: 'ferreteria',  emoji: '🔧', label: 'Ferretería' },
+                  { key: 'tienda',      emoji: '🛍️', label: 'Tienda' },
+                  { key: 'servicios',   emoji: '🛠️', label: 'Servicios' },
+                  { key: 'otros',       emoji: '🏢', label: 'Otros' },
+                ].map(bt => (
+                  <button
+                    key={bt.key}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, business_type: bt.key }))}
+                    className={`flex flex-col items-center gap-1 p-3 rounded-xl border text-xs font-medium transition-colors ${
+                      form.business_type === bt.key
+                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                        : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                    }`}
+                  >
+                    <span className="text-lg">{bt.emoji}</span>
+                    {bt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <Input label="URL del logo" value={form.logo_url} onChange={e => setForm(f => ({ ...f, logo_url: e.target.value }))} placeholder="https://..." />
             {/* ── Colores de marca ── */}
             <div className="flex flex-col gap-3">
