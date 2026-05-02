@@ -9,13 +9,75 @@
 
 export type BillingCurrency = 'COP' | 'USD'
 
-// ─── Tablas de precios ────────────────────────────────────────────────────────
+// ─── Planes de producto ───────────────────────────────────────────────────────
+
+export const PLANS_COP = {
+  free: {
+    key: 'free',
+    name: 'Gratis',
+    price: 0,
+    priceAnnual: 0,
+    limits: {
+      clients: 30,
+      products: 20,
+      salesPerMonth: 20,
+      users: 1,        // solo brand admin
+      establishments: 1,
+    },
+  },
+  essential: {
+    key: 'essential',
+    name: 'Esencial',
+    price: 29_900,
+    priceAnnual: 299_000,   // 2 meses gratis
+    limits: {
+      clients: 300,
+      products: 100,
+      salesPerMonth: null,  // ilimitado
+      users: 6,             // 1 admin + 5 adicionales
+      establishments: 2,
+    },
+  },
+  business: {
+    key: 'business',
+    name: 'Negocio',
+    price: 59_900,
+    priceAnnual: 599_000,   // 2 meses gratis
+    limits: {
+      clients: null,
+      products: null,
+      salesPerMonth: null,
+      users: 16,            // 1 admin + 15 adicionales
+      establishments: 3,
+    },
+  },
+} as const
+
+export const ADDONS_COP = {
+  extraUser: {
+    key: 'extra_user',
+    name: 'Usuario adicional',
+    price: 9_900,
+  },
+  whatsapp: {
+    key: 'whatsapp',
+    name: 'Automatizaciones WhatsApp',
+    price: 19_900,
+  },
+  advancedReports: {
+    key: 'advanced_reports',
+    name: 'Reportes avanzados',
+    price: 19_900,
+  },
+} as const
+
+// ─── Tablas de precios (legacy — por compatibilidad) ──────────────────────────
 
 export const PRICING_COP = {
   currency: 'COP' as const,
-  perEstablishment: 70_000,      // COP/mes por sucursal (IVA incluido)
-  perAdditionalAdvisor: 20_000,  // COP/mes por asesor adicional
-  moduleFlat: 80_000,            // COP/mes por módulo activo (precio base plano)
+  perEstablishment: 70_000,
+  perAdditionalAdvisor: 20_000,
+  moduleFlat: 80_000,
   freeEstablishments: 1,
   freeAdvisors: 2,
 } as const

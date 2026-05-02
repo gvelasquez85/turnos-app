@@ -5,7 +5,7 @@ import {
   Clock, Users, Monitor, BarChart2, MessageSquare, CheckCircle,
   ChevronRight, Menu, X, Star, Zap, Shield, Globe, Tag,
 } from 'lucide-react'
-import { PRICING_COP, formatCurrency } from '@/lib/billing-cop'
+import { PLANS_COP, ADDONS_COP, formatCurrency } from '@/lib/billing-cop'
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
 function Navbar() {
@@ -244,71 +244,177 @@ function HowItWorks() {
 
 // ─── Pricing ──────────────────────────────────────────────────────────────────
 function Pricing() {
-  const p = PRICING_COP
+  const [annual, setAnnual] = useState(false)
+  const free = PLANS_COP.free
+  const ess = PLANS_COP.essential
+  const biz = PLANS_COP.business
+
+  const plans = [
+    {
+      plan: free,
+      badge: null,
+      badgeBg: '',
+      color: 'emerald',
+      border: 'border-emerald-200',
+      bg: 'bg-emerald-50/40',
+      textAccent: 'text-emerald-700',
+      checkColor: 'text-emerald-500',
+      cta: { label: 'Empezar gratis', href: '/login', style: 'border-2 border-emerald-600 text-emerald-700 hover:bg-emerald-50' },
+      features: [
+        'Hasta 30 clientes',
+        'Hasta 20 productos o servicios',
+        'Hasta 20 registros de venta al mes',
+        '1 sucursal · 1 usuario',
+        'Módulo Clientes completo',
+        'Cola de espera con QR',
+      ],
+      sub: 'Sin tarjeta de crédito',
+    },
+    {
+      plan: ess,
+      badge: null,
+      badgeBg: '',
+      color: 'gray',
+      border: 'border-gray-200',
+      bg: 'bg-white',
+      textAccent: 'text-gray-700',
+      checkColor: 'text-indigo-500',
+      cta: { label: 'Empezar ahora', href: '/login', style: 'bg-gray-800 text-white hover:bg-gray-900' },
+      features: [
+        'Hasta 300 clientes',
+        'Hasta 100 productos/servicios',
+        'Ventas ilimitadas',
+        'Hasta 2 sucursales · 6 usuarios',
+        'Cotizaciones y agenda básica',
+        'Inventario básico',
+        'Exportación Excel (ventas, clientes)',
+        'Recordatorios y tareas',
+      ],
+      sub: annual ? `${formatCurrency(ess.priceAnnual)}/año · 2 meses gratis` : 'facturación mensual',
+    },
+    {
+      plan: biz,
+      badge: 'Recomendado',
+      badgeBg: 'bg-indigo-600',
+      color: 'indigo',
+      border: 'border-indigo-500',
+      bg: 'bg-white',
+      textAccent: 'text-indigo-600',
+      checkColor: 'text-indigo-500',
+      cta: { label: 'Empezar ahora', href: '/login', style: 'bg-indigo-600 text-white hover:bg-indigo-700' },
+      features: [
+        'Clientes ilimitados',
+        'Productos/servicios ilimitados',
+        'Hasta 3 sucursales · 16 usuarios',
+        'Cotizaciones + seguimiento completo',
+        'Inventario con alertas',
+        'Dashboard ventas, clientes e inventario',
+        'Clientes inactivos y recordatorios recompra',
+        'Exportación para contador (Excel)',
+        'Soporte prioritario por WhatsApp',
+      ],
+      sub: annual ? `${formatCurrency(biz.priceAnnual)}/año · 2 meses gratis` : 'facturación mensual',
+    },
+  ]
+
+  const addons = [
+    { ...ADDONS_COP.extraUser, desc: 'Por cada usuario adicional más allá del límite del plan' },
+    { ...ADDONS_COP.whatsapp, desc: 'Recordatorios, seguimiento, recuperación y confirmaciones automáticas' },
+    { ...ADDONS_COP.advancedReports, desc: 'Ranking de productos, clientes más valiosos, comparativos y reporte para contador' },
+  ]
+
   return (
-    <section id="precios" className="py-20 px-4 bg-white">
-      <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-14">
+    <section id="precios" className="py-20 px-4 bg-gray-50">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-12">
           <h2 className="text-3xl font-black text-gray-900 mb-3">Planes simples y transparentes</h2>
-          <p className="text-gray-500 max-w-lg mx-auto">Clientes es gratis y para siempre. Las colas digitales y reportes avanzados son un módulo opcional.</p>
-        </div>
+          <p className="text-gray-500 max-w-lg mx-auto mb-8">Entrada fácil. Crece cuando lo necesites. Sin sorpresas.</p>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Plan Gratuito */}
-          <div className="border-2 border-emerald-200 rounded-2xl p-7 flex flex-col bg-emerald-50/50">
-            <p className="text-xs font-semibold text-emerald-700 uppercase tracking-wider mb-2">Para empezar</p>
-            <p className="text-4xl font-black text-gray-900">Gratis</p>
-            <p className="text-sm text-gray-400 mt-0.5 mb-5">para siempre</p>
-            <ul className="flex flex-col gap-3 mb-8 flex-1">
-              {[
-                '✓ Módulo Clientes completo',
-                '✓ 1 sucursal incluida',
-                '✓ 2 usuarios incluidos',
-                '✓ Cola de espera lite (QR)',
-                '✓ Historial de clientes',
-                '✓ Tags y recordatorios',
-              ].map((f, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle size={14} className="text-emerald-500 shrink-0" /> {f}
-                </li>
-              ))}
-            </ul>
-            <Link href="/login"
-              className="w-full py-3 rounded-xl font-semibold text-sm text-center border-2 border-emerald-600 text-emerald-600 hover:bg-emerald-100 transition-colors">
-              Comienza ahora
-            </Link>
-          </div>
-
-          {/* Plan Profesional */}
-          <div className="border-2 border-indigo-500 rounded-2xl p-7 flex flex-col shadow-lg shadow-indigo-100 relative">
-            <div className="absolute -top-3 left-6 bg-indigo-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-              Recomendado
-            </div>
-            <p className="text-xs font-semibold text-indigo-600 uppercase tracking-wider mb-2">Profesional</p>
-            <p className="text-4xl font-black text-gray-900">Plan base</p>
-            <p className="text-sm text-gray-400 mt-0.5 mb-5">+ colas y reportes avanzados</p>
-            <ul className="flex flex-col gap-3 mb-8 flex-1">
-              {[
-                '✓ Todo del plan gratuito',
-                '✓ Panel de asesores en tiempo real',
-                '✓ Pantalla TV de llamado',
-                '✓ Reportes de espera y analítica',
-                '✓ Múltiples sucursales',
-                '✓ Soporte prioritario',
-              ].map((f, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm text-gray-700">
-                  <CheckCircle size={14} className="text-indigo-500 shrink-0" /> {f}
-                </li>
-              ))}
-            </ul>
-            <a href="mailto:hola@turnflow.com.co?subject=Quiero%20conocer%20TurnFlow%20Profesional"
-              className="w-full py-3 rounded-xl font-semibold text-sm text-center bg-indigo-600 text-white hover:bg-indigo-700 transition-colors">
-              Solicitar demo
-            </a>
+          {/* Annual / Monthly toggle */}
+          <div className="inline-flex items-center gap-3 bg-white border border-gray-200 rounded-full px-1.5 py-1.5 shadow-sm">
+            <button
+              onClick={() => setAnnual(false)}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${!annual ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Mensual
+            </button>
+            <button
+              onClick={() => setAnnual(true)}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors flex items-center gap-1.5 ${annual ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-700'}`}
+            >
+              Anual
+              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${annual ? 'bg-emerald-500 text-white' : 'bg-emerald-100 text-emerald-700'}`}>
+                2 meses gratis
+              </span>
+            </button>
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">Precios incluyen IVA · Facturación mensual en COP · Sin permanencia</p>
+        {/* Plan cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-14">
+          {plans.map(({ plan, badge, badgeBg, border, bg, textAccent, checkColor, cta, features, sub }) => {
+            const price = annual && plan.price > 0
+              ? Math.round(plan.priceAnnual / 12)
+              : plan.price
+            return (
+              <div key={plan.key} className={`relative border-2 ${border} ${bg} rounded-2xl p-7 flex flex-col shadow-sm`}>
+                {badge && (
+                  <div className={`absolute -top-3.5 left-1/2 -translate-x-1/2 ${badgeBg} text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap`}>
+                    {badge}
+                  </div>
+                )}
+                <p className={`text-xs font-bold uppercase tracking-widest mb-3 ${textAccent}`}>{plan.name}</p>
+                <div className="mb-1">
+                  {plan.price === 0 ? (
+                    <p className="text-4xl font-black text-gray-900">Gratis</p>
+                  ) : (
+                    <p className="text-4xl font-black text-gray-900">
+                      {formatCurrency(price)}
+                      <span className="text-base font-normal text-gray-400">/mes</span>
+                    </p>
+                  )}
+                </div>
+                <p className="text-xs text-gray-400 mb-6">{sub}</p>
+                <ul className="flex flex-col gap-2.5 mb-8 flex-1">
+                  {features.map((f, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
+                      <CheckCircle size={14} className={`${checkColor} shrink-0 mt-0.5`} />
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={cta.href}
+                  className={`w-full py-3 rounded-xl font-semibold text-sm text-center transition-colors ${cta.style}`}
+                >
+                  {cta.label}
+                </Link>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Add-ons */}
+        <div className="bg-white border border-gray-200 rounded-2xl p-8">
+          <p className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-5">Add-ons opcionales</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {addons.map(a => (
+              <div key={a.key} className="flex flex-col gap-1">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-xl font-black text-gray-900">{formatCurrency(a.price)}</span>
+                  <span className="text-xs text-gray-400">/mes</span>
+                </div>
+                <p className="text-sm font-semibold text-gray-800">{a.name}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{a.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-center text-xs text-gray-400 mt-6">
+          Precios incluyen IVA · Facturación en COP · Sin permanencia · Cancela cuando quieras
+        </p>
       </div>
     </section>
   )
