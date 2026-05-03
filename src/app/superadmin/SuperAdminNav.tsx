@@ -9,6 +9,7 @@ const links = [
   { href: '/superadmin', label: 'Marcas', icon: Building2, exact: true },
   { href: '/superadmin/users', label: 'Usuarios', icon: Users },
   { href: '/superadmin/memberships', label: 'Membresías', icon: CreditCard },
+  { href: '/superadmin/analytics', label: 'Analytics', icon: BarChart2 },
   { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
   { href: '/superadmin/translations', label: 'Traducciones', icon: Languages },
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },

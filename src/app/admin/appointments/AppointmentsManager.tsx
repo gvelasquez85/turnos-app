@@ -9,11 +9,12 @@ import {
   Plus, CalendarClock, Clock, User, Phone,
   CheckCircle, XCircle, AlertCircle, ChevronLeft, ChevronRight,
   Building2, Link2, LayoutList, CalendarDays, MessageCircle, Search,
+  Settings2, Save, ToggleLeft, ToggleRight, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 type ApptStatus = 'pending' | 'confirmed' | 'attended' | 'cancelled' | 'no_show'
-type ViewMode = 'list' | 'week'
+type ViewMode = 'week' | 'list' | 'settings'
 
 interface Appointment {
   id: string
@@ -32,15 +33,40 @@ interface Appointment {
   profiles: { full_name: string | null } | null
 }
 
-const STATUS_CONFIG: Record<ApptStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
-  pending:   { label: 'Pendiente',  color: 'bg-amber-50 text-amber-700 border-amber-200',   dot: 'bg-amber-400',   icon: Clock },
-  confirmed: { label: 'Confirmada', color: 'bg-blue-50 text-blue-700 border-blue-200',      dot: 'bg-blue-500',    icon: CheckCircle },
-  attended:  { label: 'Atendida',   color: 'bg-green-50 text-green-700 border-green-200',   dot: 'bg-green-500',   icon: CheckCircle },
-  cancelled: { label: 'Cancelada',  color: 'bg-gray-50 text-gray-500 border-gray-200',      dot: 'bg-gray-300',    icon: XCircle },
-  no_show:   { label: 'No asistió', color: 'bg-red-50 text-red-600 border-red-200',         dot: 'bg-red-400',     icon: AlertCircle },
+interface AppointmentSettings {
+  id?: string
+  establishment_id: string
+  slot_minutes: number
+  max_per_slot: number
+  open_days: number[]
+  open_time: string
+  close_time: string
+  advance_days: number
+  buffer_minutes: number
+  is_active: boolean
 }
 
-const HOURS = Array.from({ length: 13 }, (_, i) => i + 7) // 7am – 7pm
+const DEFAULT_SETTINGS: Omit<AppointmentSettings, 'establishment_id'> = {
+  slot_minutes: 30,
+  max_per_slot: 1,
+  open_days: [1, 2, 3, 4, 5],
+  open_time: '08:00',
+  close_time: '18:00',
+  advance_days: 30,
+  buffer_minutes: 0,
+  is_active: true,
+}
+
+const STATUS_CONFIG: Record<ApptStatus, { label: string; color: string; dot: string; icon: React.ElementType }> = {
+  pending:   { label: 'Pendiente',  color: 'bg-amber-50 text-amber-700 border-amber-200',  dot: 'bg-amber-400',  icon: Clock },
+  confirmed: { label: 'Confirmada', color: 'bg-blue-50 text-blue-700 border-blue-200',     dot: 'bg-blue-500',   icon: CheckCircle },
+  attended:  { label: 'Atendida',   color: 'bg-green-50 text-green-700 border-green-200',  dot: 'bg-green-500',  icon: CheckCircle },
+  cancelled: { label: 'Cancelada',  color: 'bg-gray-50 text-gray-500 border-gray-200',     dot: 'bg-gray-300',   icon: XCircle },
+  no_show:   { label: 'No asistió', color: 'bg-red-50 text-red-600 border-red-200',        dot: 'bg-red-400',    icon: AlertCircle },
+}
+
+const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
+const DAY_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
 interface Props {
   appointments: Appointment[]
@@ -59,32 +85,260 @@ const emptyForm = {
   duration_minutes: 30, advisor_id: '', notes: '',
 }
 
-// ── helpers ──────────────────────────────────────────────────────────────────
+// ── date helpers ──────────────────────────────────────────────────────────────
 function startOfWeek(d: Date): Date {
-  const day = d.getDay() // 0=Sun
+  const day = d.getDay()
   const diff = day === 0 ? -6 : 1 - day
   const m = new Date(d)
   m.setDate(m.getDate() + diff)
   m.setHours(0, 0, 0, 0)
   return m
 }
-
 function addDays(d: Date, n: number): Date {
-  const m = new Date(d)
-  m.setDate(m.getDate() + n)
-  return m
+  const m = new Date(d); m.setDate(m.getDate() + n); return m
 }
-
 function sameDay(a: Date, b: Date) {
-  return a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
 }
-
 function fmtDate(d: Date, opts?: Intl.DateTimeFormatOptions) {
   return d.toLocaleDateString('es', opts ?? { weekday: 'short', day: 'numeric', month: 'short' })
 }
+function dayKey(d: Date) {
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
 
+// ── slot helpers ──────────────────────────────────────────────────────────────
+function generateSlots(settings: AppointmentSettings): string[] {
+  const slots: string[] = []
+  const [oh, om] = settings.open_time.split(':').map(Number)
+  const [ch, cm] = settings.close_time.split(':').map(Number)
+  let cur = oh * 60 + om
+  const end = ch * 60 + cm
+  const step = settings.slot_minutes + settings.buffer_minutes
+  while (cur + settings.slot_minutes <= end) {
+    const h = Math.floor(cur / 60).toString().padStart(2, '0')
+    const m = (cur % 60).toString().padStart(2, '0')
+    slots.push(`${h}:${m}`)
+    cur += step
+  }
+  return slots
+}
+
+// ── Settings Panel ────────────────────────────────────────────────────────────
+function SettingsPanel({
+  establishments,
+  defaultEstId,
+}: {
+  establishments: { id: string; name: string; brand_id: string; slug: string }[]
+  defaultEstId: string | null
+}) {
+  const [estId, setEstId] = useState(defaultEstId || establishments[0]?.id || '')
+  const [cfg, setCfg] = useState<AppointmentSettings>({ ...DEFAULT_SETTINGS, establishment_id: estId })
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [copied, setCopied] = useState(false)
+  const supabase = createClient()
+
+  useEffect(() => {
+    if (!estId) return
+    setLoading(true)
+    setCfg({ ...DEFAULT_SETTINGS, establishment_id: estId })
+    supabase
+      .from('appointment_settings')
+      .select('*')
+      .eq('establishment_id', estId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setCfg(data as AppointmentSettings)
+        else setCfg({ ...DEFAULT_SETTINGS, establishment_id: estId })
+        setLoading(false)
+      })
+  }, [estId]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleSave() {
+    setSaving(true)
+    const payload = { ...cfg, establishment_id: estId, updated_at: new Date().toISOString() }
+    if (cfg.id) {
+      await supabase.from('appointment_settings').update(payload).eq('id', cfg.id)
+    } else {
+      const { data } = await supabase.from('appointment_settings').insert(payload).select().single()
+      if (data) setCfg(data as AppointmentSettings)
+    }
+    setSaving(false)
+    setSaved(true)
+    setTimeout(() => setSaved(false), 2500)
+  }
+
+  function toggleDay(day: number) {
+    setCfg(c => ({
+      ...c,
+      open_days: c.open_days.includes(day)
+        ? c.open_days.filter(d => d !== day)
+        : [...c.open_days, day].sort(),
+    }))
+  }
+
+  const est = establishments.find(e => e.id === estId)
+  const bookingUrl = est ? `${typeof window !== 'undefined' ? window.location.origin : ''}/book/${est.slug}` : ''
+  const previewSlots = generateSlots(cfg)
+
+  function copyLink() {
+    navigator.clipboard.writeText(bookingUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="space-y-5">
+      {/* Establishment selector */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
+        <Building2 size={16} className="text-gray-400 shrink-0" />
+        <select
+          value={estId}
+          onChange={e => setEstId(e.target.value)}
+          className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+        >
+          {establishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+        </select>
+      </div>
+
+      {/* Booking link */}
+      {est && (
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4">
+          <p className="text-xs font-semibold text-indigo-600 mb-2 uppercase tracking-wide">Link público de reserva</p>
+          <div className="flex items-center gap-2">
+            <span className="flex-1 text-sm text-indigo-800 font-mono bg-white border border-indigo-200 rounded-lg px-3 py-2 truncate">{bookingUrl}</span>
+            <button onClick={copyLink}
+              className={cn('flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors',
+                copied ? 'bg-green-600 text-white' : 'bg-indigo-600 text-white hover:bg-indigo-700')}>
+              <Copy size={13} />
+              {copied ? '¡Copiado!' : 'Copiar'}
+            </button>
+          </div>
+          <p className="text-xs text-indigo-500 mt-2">Comparte este link con tus clientes para que agenden directamente.</p>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center text-gray-400">Cargando configuración…</div>
+      ) : (
+        <>
+          {/* Active toggle */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4 flex items-center justify-between">
+            <div>
+              <p className="font-medium text-gray-900 text-sm">Reservas activas</p>
+              <p className="text-xs text-gray-500 mt-0.5">Los clientes pueden agendar citas desde el link público</p>
+            </div>
+            <button onClick={() => setCfg(c => ({ ...c, is_active: !c.is_active }))}>
+              {cfg.is_active
+                ? <ToggleRight size={32} className="text-indigo-600" />
+                : <ToggleLeft size={32} className="text-gray-400" />}
+            </button>
+          </div>
+
+          {/* Days of week */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Días de atención</p>
+            <div className="flex gap-2 flex-wrap">
+              {[1, 2, 3, 4, 5, 6, 0].map(day => (
+                <button
+                  key={day}
+                  onClick={() => toggleDay(day)}
+                  className={cn(
+                    'w-12 h-12 rounded-xl font-semibold text-sm transition-colors',
+                    cfg.open_days.includes(day)
+                      ? 'bg-indigo-600 text-white'
+                      : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                  )}
+                >
+                  {DAY_NAMES[day]}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-400 mt-2">
+              {cfg.open_days.length === 0
+                ? 'Sin días seleccionados'
+                : cfg.open_days.map(d => DAY_FULL[d]).join(', ')}
+            </p>
+          </div>
+
+          {/* Hours + slot config */}
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Horario y duración de turnos</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Apertura</label>
+                <input type="time" value={cfg.open_time}
+                  onChange={e => setCfg(c => ({ ...c, open_time: e.target.value }))}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Cierre</label>
+                <input type="time" value={cfg.close_time}
+                  onChange={e => setCfg(c => ({ ...c, close_time: e.target.value }))}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Duración (min)</label>
+                <select value={cfg.slot_minutes}
+                  onChange={e => setCfg(c => ({ ...c, slot_minutes: Number(e.target.value) }))}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none bg-white">
+                  {[10, 15, 20, 30, 45, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Max por slot</label>
+                <input type="number" min={1} max={20} value={cfg.max_per_slot}
+                  onChange={e => setCfg(c => ({ ...c, max_per_slot: Number(e.target.value) }))}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Anticipación máx (días)</label>
+                <input type="number" min={1} max={365} value={cfg.advance_days}
+                  onChange={e => setCfg(c => ({ ...c, advance_days: Number(e.target.value) }))}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Buffer entre turnos (min)</label>
+                <input type="number" min={0} max={60} step={5} value={cfg.buffer_minutes}
+                  onChange={e => setCfg(c => ({ ...c, buffer_minutes: Number(e.target.value) }))}
+                  className="w-full h-9 rounded-lg border border-gray-300 px-2.5 text-sm focus:border-indigo-500 focus:outline-none" />
+              </div>
+            </div>
+          </div>
+
+          {/* Slot preview */}
+          {previewSlots.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">
+                Vista previa — {previewSlots.length} turnos disponibles por día
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {previewSlots.map(s => (
+                  <span key={s} className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-lg px-2 py-1 font-mono">{s}</span>
+                ))}
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                Capacidad total: {previewSlots.length * cfg.max_per_slot} citas/día · Duración: {cfg.slot_minutes} min c/u
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button loading={saving} onClick={handleSave}>
+              <Save size={15} className="mr-1.5" />
+              Guardar configuración
+            </Button>
+            {saved && <span className="text-sm text-green-600 font-medium flex items-center gap-1"><CheckCircle size={14} /> Guardado</span>}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+// ── Main component ─────────────────────────────────────────────────────────────
 export function AppointmentsManager({
   appointments: initial, establishments, brands, visitReasons, advisors,
   defaultBrandId, defaultEstId,
@@ -127,30 +381,38 @@ export function AppointmentsManager({
     return true
   }), [appointments, filterEst, filterStatus, search])
 
-  // Week days
   const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)), [weekStart])
 
-  // Group by day for week view
   const byDay = useMemo(() => {
     const map: Record<string, Appointment[]> = {}
     filtered.forEach(a => {
       const d = new Date(a.scheduled_at)
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      const key = dayKey(d)
       if (!map[key]) map[key] = []
       map[key].push(a)
     })
     return map
   }, [filtered])
 
-  function dayKey(d: Date) {
-    return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
-  }
-
   const stats = {
     total: appointments.length,
     confirmed: appointments.filter(a => a.status === 'confirmed').length,
     attended: appointments.filter(a => a.status === 'attended').length,
     pending: appointments.filter(a => a.status === 'pending').length,
+  }
+
+  // Conflict detection: check if slot is already taken for same establishment
+  function hasConflict(estId: string, date: string, time: string, durationMin: number): boolean {
+    if (!estId || !date || !time) return false
+    const start = new Date(`${date}T${time}`).getTime()
+    const end = start + durationMin * 60_000
+    return appointments.some(a => {
+      if (a.establishment_id !== estId) return false
+      if (['cancelled', 'no_show'].includes(a.status)) return false
+      const aStart = new Date(a.scheduled_at).getTime()
+      const aEnd = aStart + a.duration_minutes * 60_000
+      return start < aEnd && end > aStart
+    })
   }
 
   async function handleSave() {
@@ -181,7 +443,6 @@ export function AppointmentsManager({
     setAppointments(prev => [...prev, data as any].sort((a, b) =>
       new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
     ))
-    // Navigate week view to the new appointment's week
     const newWeek = startOfWeek(new Date(`${form.scheduled_date}T${form.scheduled_time}`))
     setWeekStart(newWeek)
     setShowForm(false)
@@ -206,8 +467,11 @@ export function AppointmentsManager({
 
   const bookingEst = establishments.find(e => e.id === (filterEst || brandEstablishments[0]?.id))
   const today = new Date()
+  const conflict = form.scheduled_date && form.scheduled_time && form.establishment_id
+    ? hasConflict(form.establishment_id, form.scheduled_date, form.scheduled_time, form.duration_minutes)
+    : false
 
-  // ── Appointment detail panel ─────────────────────────────────────────────
+  // ── Detail panel ─────────────────────────────────────────────────────────
   function ApptDetail({ appt, onClose }: { appt: Appointment; onClose: () => void }) {
     const sc = STATUS_CONFIG[appt.status]
     const d = new Date(appt.scheduled_at)
@@ -232,12 +496,11 @@ export function AppointmentsManager({
             {appt.customer_email && <p><span className="text-gray-400">Email:</span> {appt.customer_email}</p>}
             {appt.notes && <p className="italic text-gray-400">{appt.notes}</p>}
           </div>
-          {/* Actions */}
           <div className="flex flex-wrap gap-2">
             {appt.customer_phone && (
               <button onClick={() => openWhatsApp(appt.customer_phone!, appt.customer_name, appt.scheduled_at)}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-500 text-white rounded-lg hover:bg-green-600">
-                <MessageCircle size={13} /> Recordatorio WhatsApp
+                <MessageCircle size={13} /> WhatsApp
               </button>
             )}
             {appt.status === 'pending' && (
@@ -280,7 +543,7 @@ export function AppointmentsManager({
               <Link2 size={13} /> Link de reserva
             </button>
           )}
-          <Button onClick={() => { setShowForm(true); setError('') }}>
+          <Button onClick={() => { setShowForm(true); setError(''); setView('week') }}>
             <Plus size={16} className="mr-1" /> Nueva cita
           </Button>
         </div>
@@ -301,40 +564,43 @@ export function AppointmentsManager({
         ))}
       </div>
 
-      {/* Controls row */}
+      {/* View / filter controls */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        {/* Filters */}
-        <select className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
-          value={filterEst} onChange={e => setFilterEst(e.target.value)}>
-          <option value="">Todas las sucursales</option>
-          {brandEstablishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
-        </select>
-        <select className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
-          value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
-          <option value="">Todos los estados</option>
-          {(Object.keys(STATUS_CONFIG) as ApptStatus[]).map(s => (
-            <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-          ))}
-        </select>
-        <div className="relative">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            placeholder="Buscar cliente…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            className="pl-8 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none w-44"
-          />
-        </div>
+        {view !== 'settings' && (
+          <>
+            <select className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+              value={filterEst} onChange={e => setFilterEst(e.target.value)}>
+              <option value="">Todas las sucursales</option>
+              {brandEstablishments.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+            <select className="px-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none"
+              value={filterStatus} onChange={e => setFilterStatus(e.target.value as any)}>
+              <option value="">Todos los estados</option>
+              {(Object.keys(STATUS_CONFIG) as ApptStatus[]).map(s => (
+                <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
+              ))}
+            </select>
+            <div className="relative">
+              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input placeholder="Buscar cliente…" value={search}
+                onChange={e => setSearch(e.target.value)}
+                className="pl-8 pr-3 py-2 rounded-lg border border-gray-300 bg-white text-sm text-gray-900 focus:border-indigo-500 focus:outline-none w-44" />
+            </div>
+          </>
+        )}
         {/* View toggle */}
         <div className="ml-auto flex rounded-lg border border-gray-200 overflow-hidden">
-          <button onClick={() => setView('week')}
-            className={cn('flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors', view === 'week' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}>
-            <CalendarDays size={13} /> Semana
-          </button>
-          <button onClick={() => setView('list')}
-            className={cn('flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors', view === 'list' ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}>
-            <LayoutList size={13} /> Lista
-          </button>
+          {([
+            ['week', <CalendarDays size={13} />, 'Semana'],
+            ['list', <LayoutList size={13} />, 'Lista'],
+            ['settings', <Settings2 size={13} />, 'Config'],
+          ] as const).map(([v, icon, label]) => (
+            <button key={v} onClick={() => setView(v as ViewMode)}
+              className={cn('flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors',
+                view === v ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50')}>
+              {icon} {label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -361,8 +627,15 @@ export function AppointmentsManager({
               onChange={e => setForm(f => ({ ...f, customer_email: e.target.value }))} />
             <Input label="Fecha *" type="date" value={form.scheduled_date}
               onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} />
-            <Input label="Hora *" type="time" value={form.scheduled_time}
-              onChange={e => setForm(f => ({ ...f, scheduled_time: e.target.value }))} />
+            <div>
+              <Input label="Hora *" type="time" value={form.scheduled_time}
+                onChange={e => setForm(f => ({ ...f, scheduled_time: e.target.value }))} />
+              {conflict && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <AlertCircle size={12} /> Posible conflicto con otra cita en este horario
+                </p>
+              )}
+            </div>
             <Select label="Duración" value={String(form.duration_minutes)}
               onChange={e => setForm(f => ({ ...f, duration_minutes: Number(e.target.value) }))}>
               {[15, 20, 30, 45, 60, 90].map(m => <option key={m} value={m}>{m} min</option>)}
@@ -374,7 +647,8 @@ export function AppointmentsManager({
             </Select>
             <div className="flex flex-col gap-1 md:col-span-2">
               <label className="text-sm font-medium text-gray-700">Notas internas</label>
-              <textarea rows={2} value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
+              <textarea rows={2} value={form.notes}
+                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 className="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-indigo-500 focus:outline-none" />
             </div>
           </div>
@@ -386,10 +660,14 @@ export function AppointmentsManager({
         </div>
       )}
 
-      {/* ── WEEK VIEW ──────────────────────────────────────────────────────── */}
+      {/* ── SETTINGS VIEW ─────────────────────────────────────────────────── */}
+      {view === 'settings' && (
+        <SettingsPanel establishments={brandEstablishments.length > 0 ? brandEstablishments : establishments} defaultEstId={filterEst || defaultEstId} />
+      )}
+
+      {/* ── WEEK VIEW ─────────────────────────────────────────────────────── */}
       {view === 'week' && (
         <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          {/* Week navigation */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <button onClick={() => setWeekStart(w => addDays(w, -7))} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600">
               <ChevronLeft size={16} />
@@ -407,8 +685,6 @@ export function AppointmentsManager({
               <ChevronRight size={16} />
             </button>
           </div>
-
-          {/* Days header */}
           <div className="grid grid-cols-7 border-b border-gray-100">
             {weekDays.map(d => {
               const isToday = sameDay(d, today)
@@ -422,16 +698,12 @@ export function AppointmentsManager({
                     {d.getDate()}
                   </div>
                   {count > 0 && (
-                    <div className="mt-0.5">
-                      <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">{count}</span>
-                    </div>
+                    <span className="text-xs bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full font-medium">{count}</span>
                   )}
                 </div>
               )
             })}
           </div>
-
-          {/* Day cells */}
           <div className="grid grid-cols-7 min-h-[320px]">
             {weekDays.map(d => {
               const isToday = sameDay(d, today)
@@ -463,7 +735,7 @@ export function AppointmentsManager({
         </div>
       )}
 
-      {/* ── LIST VIEW ──────────────────────────────────────────────────────── */}
+      {/* ── LIST VIEW ─────────────────────────────────────────────────────── */}
       {view === 'list' && (
         <div className="flex flex-col gap-3">
           {filtered.length === 0 && (
@@ -475,16 +747,15 @@ export function AppointmentsManager({
           {filtered.map(appt => {
             const sc = STATUS_CONFIG[appt.status]
             const d = new Date(appt.scheduled_at)
-            const dateLabel = d.toLocaleDateString('es', { weekday: 'short', day: 'numeric', month: 'short' })
-            const timeLabel = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
             return (
-              <div key={appt.id} className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 transition-colors cursor-pointer"
+              <div key={appt.id}
+                className="bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-200 transition-colors cursor-pointer"
                 onClick={() => setSelectedAppt(appt)}>
                 <div className="flex items-start gap-4">
                   <div className="shrink-0 w-14 text-center bg-indigo-50 rounded-lg p-2">
-                    <div className="text-xs text-indigo-400 font-medium uppercase">{dateLabel.split(',')[0]}</div>
+                    <div className="text-xs text-indigo-400 font-medium uppercase">{d.toLocaleDateString('es', { weekday: 'short' })}</div>
                     <div className="text-lg font-black text-indigo-700">{d.getDate()}</div>
-                    <div className="text-xs font-bold text-indigo-600">{timeLabel}</div>
+                    <div className="text-xs font-bold text-indigo-600">{d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -499,10 +770,9 @@ export function AppointmentsManager({
                       <span><Clock size={10} className="inline mr-0.5" />{appt.duration_minutes} min</span>
                     </div>
                   </div>
-                  {/* Quick WhatsApp reminder */}
                   {appt.customer_phone && (appt.status === 'pending' || appt.status === 'confirmed') && (
                     <button onClick={e => { e.stopPropagation(); openWhatsApp(appt.customer_phone!, appt.customer_name, appt.scheduled_at) }}
-                      className="shrink-0 p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Enviar recordatorio WhatsApp">
+                      className="shrink-0 p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Recordatorio WhatsApp">
                       <MessageCircle size={16} />
                     </button>
                   )}
@@ -513,7 +783,6 @@ export function AppointmentsManager({
         </div>
       )}
 
-      {/* Appointment detail modal */}
       {selectedAppt && <ApptDetail appt={selectedAppt} onClose={() => setSelectedAppt(null)} />}
     </div>
   )
