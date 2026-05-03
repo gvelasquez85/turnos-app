@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { calcQueuePrice, fmtCOP, PRICING, getPlanDef } from '@/lib/planLimits'
+import { fmtCOP, PRICING, getPlanDef } from '@/lib/planLimits'
 import { PayPalButton } from '@/components/PayPalButton'
 
 // Free modules — always included, shown in "Incluido" section
@@ -154,23 +154,22 @@ export function MarketplaceClient({
 
   /** Compute full monthly price for a module (COP) */
   function modulePrice(mod: MarketplaceModule): number {
-    if (mod.module_key === 'queue') return calcQueuePrice(maxEstablishments)
     const base = mod.price_monthly ?? 0
-    const perUser = mod.price_per_user ? (mod.price_per_user_amount ?? 0) * maxAdvisors : 0
+    // Only add per-user charge if price_per_user_amount > 0
+    const perUser = (mod.price_per_user && (mod.price_per_user_amount ?? 0) > 0)
+      ? (mod.price_per_user_amount ?? 0) * maxAdvisors
+      : 0
     const perEst = (mod.price_per_establishment ?? 0) * maxEstablishments
     return base + perUser + perEst
   }
 
   /** Human-readable price breakdown for a module */
   function modulePriceBreakdown(mod: MarketplaceModule): string {
-    if (mod.module_key === 'queue') {
-      return `${fmtCOP(80_000)} base + ${fmtCOP(20_000)}/sucursal adicional`
-    }
     const parts: string[] = []
-    if (mod.price_monthly) parts.push(`${fmtCOP(mod.price_monthly)} base`)
+    if (mod.price_monthly) parts.push(`${fmtCOP(mod.price_monthly)}/mes`)
     if (mod.price_per_establishment) parts.push(`+ ${fmtCOP(mod.price_per_establishment)}/sucursal`)
-    if (mod.price_per_user && mod.price_per_user_amount) parts.push(`+ ${fmtCOP(mod.price_per_user_amount)}/usuario`)
-    return parts.join(' ') || 'Gratis'
+    if (mod.price_per_user && (mod.price_per_user_amount ?? 0) > 0) parts.push(`+ ${fmtCOP(mod.price_per_user_amount!)}/usuario`)
+    return parts.join(' ') || 'Incluido en tu plan'
   }
 
   async function startTrial(moduleKey: string) {

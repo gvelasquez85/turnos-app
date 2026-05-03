@@ -3,17 +3,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Settings, CreditCard, Mail, Puzzle, Check, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save, Key, Trash2, Send, FileText, Languages } from 'lucide-react'
+import { Settings, CreditCard, Mail, Puzzle, Plus, Edit2, Building2, Eye, EyeOff, CheckCircle, AlertCircle, ExternalLink, Loader2, Save, Key, Trash2, Send, FileText, Languages } from 'lucide-react'
 import { TranslationsManager } from '@/app/superadmin/translations/TranslationsManager'
 import { getTranslations, SUPPORTED_LANGUAGES } from '@/lib/i18n/translations'
 
-const MODULE_LIST = [
-  { key: 'queue', label: 'Cola de turnos', desc: 'Sistema de turnos en espera' },
-  { key: 'appointments', label: 'Citas', desc: 'Reserva de citas programadas' },
-  { key: 'surveys', label: 'Encuestas', desc: 'NPS / CSAT / CES' },
-  { key: 'menu', label: 'Menú / Preorden', desc: 'Pedidos anticipados' },
-  { key: 'display', label: 'Pantalla sala', desc: 'TV de sala de espera' },
-]
 
 const PLAN_LABELS: Record<string, string> = { basic: 'Básico', professional: 'Profesional', enterprise: 'Empresarial' }
 const PLAN_COLORS: Record<string, string> = { basic: 'bg-gray-100 text-gray-700', professional: 'bg-blue-100 text-blue-700', enterprise: 'bg-purple-100 text-purple-700' }
@@ -786,32 +779,17 @@ function MembershipModal({ brand, existing, onClose, onSave }: { brand: Brand; e
 }
 
 export function SuperadminSettings({ brands: initialBrands, memberships: initialMemberships }: Props) {
-  const [tab, setTab] = useState<'modules' | 'comms' | 'apikeys' | 'integrations' | 'translations'>('modules')
+  const [tab, setTab] = useState<'comms' | 'apikeys' | 'integrations' | 'translations'>('comms')
   const [brands, setBrands] = useState(initialBrands)
   const [memberships, setMemberships] = useState(initialMemberships)
   const [saving, setSaving] = useState<string | null>(null)
   const [membershipModal, setMembershipModal] = useState<{ brand: Brand; existing: Membership | null } | null>(null)
-
-  function getModules(brand: Brand): Record<string, boolean> {
-    return brand.active_modules ?? { queue: true, appointments: false, surveys: false, menu: false, display: false }
-  }
-
-  async function toggleModule(brand: Brand, key: string) {
-    const current = getModules(brand)
-    const updated = { ...current, [key]: !current[key] }
-    setSaving(brand.id + key)
-    const supabase = createClient()
-    await supabase.from('brands').update({ active_modules: updated }).eq('id', brand.id)
-    setBrands(bs => bs.map(b => b.id === brand.id ? { ...b, active_modules: updated } : b))
-    setSaving(null)
-  }
 
   function getBrandMembership(brandId: string) {
     return memberships.find(m => m.brand_id === brandId) || null
   }
 
   const TABS = [
-    { key: 'modules', label: 'Módulos por marca', icon: Settings },
     { key: 'translations', label: 'Traducciones', icon: Languages },
     { key: 'comms', label: 'Comunicaciones', icon: Mail },
     { key: 'apikeys', label: 'API Keys por marca', icon: Key },
@@ -839,50 +817,6 @@ export function SuperadminSettings({ brands: initialBrands, memberships: initial
           </button>
         ))}
       </div>
-
-      {/* Módulos por marca */}
-      {tab === 'modules' && (
-        <div className="flex flex-col gap-4">
-          {brands.map(brand => {
-            const mods = getModules(brand)
-            return (
-              <div key={brand.id} className="bg-white rounded-xl border border-gray-200 p-5">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: brand.primary_color ?? '#6366f1' }}>
-                    <Building2 size={14} className="text-white" />
-                  </div>
-                  <h3 className="font-semibold text-gray-900">{brand.name}</h3>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-                  {MODULE_LIST.map(mod => {
-                    const active = mods[mod.key] ?? false
-                    const isLoading = saving === brand.id + mod.key
-                    return (
-                      <button
-                        key={mod.key}
-                        onClick={() => toggleModule(brand, mod.key)}
-                        disabled={isLoading || mod.key === 'queue'}
-                        className={`rounded-xl p-3 text-left border-2 transition-all ${
-                          active
-                            ? 'border-indigo-400 bg-indigo-50'
-                            : 'border-gray-200 bg-gray-50 opacity-60'
-                        } ${mod.key === 'queue' ? 'cursor-default' : 'cursor-pointer hover:opacity-80'}`}
-                      >
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-xs font-bold text-gray-700">{mod.label}</span>
-                          {active && <Check size={12} className="text-indigo-600" />}
-                        </div>
-                        <p className="text-[10px] text-gray-500">{mod.desc}</p>
-                        {mod.key === 'queue' && <p className="text-[10px] text-gray-400 mt-1">Siempre activo</p>}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
 
       {/* Comunicaciones */}
       {tab === 'comms' && <CommsTab brands={brands} />}
