@@ -137,7 +137,7 @@ export function MarketplaceManager({ modules: initialModules }: Props) {
 
       {/* Module list */}
       <div className="flex flex-col gap-3">
-        {modules.map(mod => {
+        {modules.filter(mod => !['crm', 'clientes'].includes(mod.module_key)).map(mod => {
           const Icon = getIcon(mod.icon ?? '')
           const isSavingThis = saving === mod.module_key
           const isSavingCS = saving === mod.module_key + '_cs'

@@ -69,6 +69,7 @@ const QUEUE_ITEMS: NavItem[] = [
 
 const APPOINTMENTS_ITEMS: NavItem[] = [
   { href: '/admin/appointments', label: 'Citas', labelKey: 'nav.appointments', icon: CalendarClock },
+  { href: '/admin/visit-reasons', label: 'Motivos de visita', labelKey: 'nav.reasons', icon: MessageSquare },
 ]
 
 const SURVEYS_ITEMS: NavItem[] = [
@@ -135,6 +136,7 @@ function buildSections(
           { href: '/superadmin', label: 'Marcas', labelKey: 'nav.brands', icon: Building2, exact: true },
           { href: '/superadmin/memberships', label: 'Membresías', labelKey: 'nav.memberships', icon: CreditCard },
           { href: '/superadmin/users', label: 'Usuarios', labelKey: 'nav.users', icon: Users },
+          { href: '/superadmin/analytics', label: 'Analytics', icon: BarChart2 },
           { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
           { href: '/superadmin/settings', label: 'Configuración', labelKey: 'nav.settings', icon: Settings },
         ],

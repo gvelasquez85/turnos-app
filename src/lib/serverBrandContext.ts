@@ -38,7 +38,7 @@ export async function getVerifiedActiveModules(
     .from('module_subscriptions')
     .select('module_key, status')
     .eq('brand_id', brandId)
-    .in('status', ['active', 'trialing'])
+    .in('status', ['active', 'trial', 'trialing'])
 
   const activeSubs = new Set((subs ?? []).map((s: any) => s.module_key as string))
   for (const mod of PAID_MODULES) {

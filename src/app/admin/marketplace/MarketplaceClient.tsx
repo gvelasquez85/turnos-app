@@ -155,19 +155,18 @@ export function MarketplaceClient({
   /** Compute full monthly price for a module (COP) */
   function modulePrice(mod: MarketplaceModule): number {
     const base = mod.price_monthly ?? 0
-    // Only add per-user charge if price_per_user_amount > 0
+    // Per-user only if amount > 0 (avoids $0 × n multiplier)
     const perUser = (mod.price_per_user && (mod.price_per_user_amount ?? 0) > 0)
       ? (mod.price_per_user_amount ?? 0) * maxAdvisors
       : 0
-    const perEst = (mod.price_per_establishment ?? 0) * maxEstablishments
-    return base + perUser + perEst
+    // price_per_establishment is a legacy field — not used in the new plan-tier model
+    return base + perUser
   }
 
   /** Human-readable price breakdown for a module */
   function modulePriceBreakdown(mod: MarketplaceModule): string {
     const parts: string[] = []
     if (mod.price_monthly) parts.push(`${fmtCOP(mod.price_monthly)}/mes`)
-    if (mod.price_per_establishment) parts.push(`+ ${fmtCOP(mod.price_per_establishment)}/sucursal`)
     if (mod.price_per_user && (mod.price_per_user_amount ?? 0) > 0) parts.push(`+ ${fmtCOP(mod.price_per_user_amount!)}/usuario`)
     return parts.join(' ') || 'Incluido en tu plan'
   }

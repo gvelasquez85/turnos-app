@@ -465,7 +465,9 @@ export function AppointmentsManager({
     window.open(`https://wa.me/${clean}?text=${msg}`, '_blank')
   }
 
-  const bookingEst = establishments.find(e => e.id === (filterEst || brandEstablishments[0]?.id))
+  const bookingEst = establishments.find(e => e.id === filterEst)
+    ?? brandEstablishments[0]
+    ?? establishments[0]
   const today = new Date()
   const conflict = form.scheduled_date && form.scheduled_time && form.establishment_id
     ? hasConflict(form.establishment_id, form.scheduled_date, form.scheduled_time, form.duration_minutes)
@@ -535,13 +537,23 @@ export function AppointmentsManager({
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           {bookingEst && (
-            <button
-              onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/book/${bookingEst.slug}`) }}
-              className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium border border-indigo-200 bg-indigo-50 rounded-lg px-3 py-2 hover:bg-indigo-100"
-              title="Copiar link de reserva"
-            >
-              <Link2 size={13} /> Link de reserva
-            </button>
+            <div className="flex items-center gap-1">
+              <a
+                href={`/book/${bookingEst.slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium border border-indigo-200 bg-indigo-50 rounded-l-lg px-3 py-2 hover:bg-indigo-100"
+              >
+                <Link2 size={13} /> Ver formulario
+              </a>
+              <button
+                onClick={() => navigator.clipboard.writeText(`${window.location.origin}/book/${bookingEst.slug}`)}
+                className="text-xs text-indigo-600 font-medium border border-indigo-200 border-l-0 bg-indigo-50 rounded-r-lg px-2 py-2 hover:bg-indigo-100"
+                title="Copiar link"
+              >
+                <Copy size={13} />
+              </button>
+            </div>
           )}
           <Button onClick={() => { setShowForm(true); setError(''); setView('week') }}>
             <Plus size={16} className="mr-1" /> Nueva cita
