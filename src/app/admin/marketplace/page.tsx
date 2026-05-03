@@ -87,7 +87,7 @@ export default async function MarketplacePage() {
   const { data: membership } = brandId
     ? await supabase
         .from('memberships')
-        .select('max_establishments, max_advisors')
+        .select('plan, max_establishments, max_advisors')
         .eq('brand_id', brandId)
         .eq('status', 'active')
         .single()
@@ -101,6 +101,7 @@ export default async function MarketplacePage() {
       subscriptions={subscriptions}
       modules={marketplaceModules || []}
       isSuperadmin={profile.role === 'superadmin'}
+      membershipPlan={(membership as any)?.plan ?? null}
       maxEstablishments={(membership as any)?.max_establishments ?? 1}
       maxAdvisors={(membership as any)?.max_advisors ?? 1}
     />

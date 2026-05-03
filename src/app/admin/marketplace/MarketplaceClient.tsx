@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { calcMonthlyBase, calcQueuePrice, fmtCOP, PRICING } from '@/lib/planLimits'
+import { calcQueuePrice, fmtCOP, PRICING, getPlanDef } from '@/lib/planLimits'
 import { PayPalButton } from '@/components/PayPalButton'
 
 // Free modules — always included, shown in "Incluido" section
@@ -79,6 +79,7 @@ interface Props {
   isSuperadmin: boolean
   maxEstablishments: number
   maxAdvisors: number
+  membershipPlan?: string | null
 }
 
 function daysLeft(dateStr: string | null): number {
@@ -126,6 +127,7 @@ export function MarketplaceClient({
   modules,
   maxEstablishments,
   maxAdvisors,
+  membershipPlan,
 }: Props) {
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
   const [brandModules, setBrandModules] = useState(initialModules)
@@ -241,7 +243,8 @@ export function MarketplaceClient({
   const activeSubs = subs.filter(s =>
     ['trial', 'active'].includes(s.status) && !FREE_MODULE_KEYS.includes(s.module_key)
   )
-  const baseMonthly = calcMonthlyBase(maxEstablishments, maxAdvisors)
+  const currentPlanDef = getPlanDef(membershipPlan)
+  const baseMonthly = currentPlanDef.price
   const addonMonthly = activeSubs.reduce((sum, sub) => {
     const mod = modules.find(m => m.module_key === sub.module_key)
     if (!mod) return sum
@@ -327,7 +330,7 @@ export function MarketplaceClient({
             )}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">
-            {fmtCOP(PRICING.perEstablishment)}/sucursal · {fmtCOP(PRICING.perAdditionalAdvisor)}/usuario adicional
+            Plan {currentPlanDef.name} · {fmtCOP(currentPlanDef.price)}/mes
           </p>
         </div>
       </div>

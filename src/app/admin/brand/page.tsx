@@ -42,16 +42,24 @@ export default async function BrandSettingsPage() {
     .select('module_key, label, price_monthly, price_per_user, price_per_user_amount')
     .or('is_visible_to_brands.eq.true,is_coming_soon.eq.true')
 
-  const { count: estCount } = await supabase
-    .from('establishments')
-    .select('id', { count: 'exact', head: true })
-    .eq('brand_id', brandId)
-
-  const { count: advCount } = await supabase
-    .from('profiles')
-    .select('id', { count: 'exact', head: true })
-    .eq('brand_id', brandId)
-    .neq('role', 'brand_admin')
+  const [
+    { count: estCount },
+    { count: advCount },
+    { count: clientCount },
+    { count: productCount },
+    { count: salesThisMonth },
+  ] = await Promise.all([
+    supabase.from('establishments').select('id', { count: 'exact', head: true }).eq('brand_id', brandId),
+    supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('brand_id', brandId),
+    supabase.from('customers').select('id', { count: 'exact', head: true }).eq('brand_id', brandId),
+    supabase.from('products').select('id', { count: 'exact', head: true }).eq('brand_id', brandId),
+    supabase.from('sales')
+      .select('id', { count: 'exact', head: true })
+      .eq('brand_id', brandId)
+      .eq('type', 'sale')
+      .neq('status', 'cancelled')
+      .gte('created_at', new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString()),
+  ])
 
   return (
     <BrandSettings
@@ -61,6 +69,9 @@ export default async function BrandSettingsPage() {
       availableModules={marketplaceModules ?? []}
       currentEstablishments={estCount ?? 1}
       currentAdvisors={advCount ?? 0}
+      currentClients={clientCount ?? 0}
+      currentProducts={productCount ?? 0}
+      currentSalesThisMonth={salesThisMonth ?? 0}
       isSuperAdmin={profile.role === 'superadmin'}
     />
   )
