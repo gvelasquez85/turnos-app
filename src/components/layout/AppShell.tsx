@@ -190,7 +190,9 @@ function buildSections(
   }
 
   sections.push({ key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS })
-  sections.push({ key: 'mensajes', section: 'Mensajes', items: MENSAJES_ITEMS })
+  if (activeModules?.mensajes) {
+    sections.push({ key: 'mensajes', section: 'Mensajes', items: MENSAJES_ITEMS })
+  }
 
   const reportesItems: NavItem[] = [...REPORTES_ITEMS_BASE]
   if (activeModules?.queue) reportesItems.push(REPORTES_QUEUE_ITEM)

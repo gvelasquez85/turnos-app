@@ -5,12 +5,12 @@ import {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, CheckCircle, Clock, AlertTriangle,
   Zap, Star, ArrowRight, UserCheck, Lock, Building2, Users,
-  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Trash2, Download, Loader2,
+  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Trash2, Download, Loader2, MessageSquare,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { fmtCOP, PRICING, getPlanDef } from '@/lib/planLimits'
-import { PayPalButton } from '@/components/PayPalButton'
+import { WompiModulePayment } from '@/components/WompiModulePayment'
 
 // Free modules — always included, shown in "Incluido" section
 const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales', 'ventas']
@@ -19,7 +19,7 @@ const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales', 'ventas']
 const ICON_MAP: Record<string, LucideIcon> = {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, UserCheck, Zap, Users, Clock,
-  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Building2,
+  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Building2, MessageSquare,
 }
 
 // Fallback icons by module_key (when DB icon field is missing/unknown)
@@ -32,6 +32,7 @@ const MODULE_ICON_FALLBACK: Record<string, LucideIcon> = {
   menu: UtensilsCrossed,
   sales: ShoppingCart,
   promotions: Tag,
+  mensajes: MessageSquare,
 }
 
 function getIcon(name: string | null | undefined, moduleKey?: string): LucideIcon {
@@ -80,6 +81,7 @@ interface Props {
   maxEstablishments: number
   maxAdvisors: number
   membershipPlan?: string | null
+  hasStoredCard?: boolean
 }
 
 function daysLeft(dateStr: string | null): number {
@@ -128,6 +130,7 @@ export function MarketplaceClient({
   maxEstablishments,
   maxAdvisors,
   membershipPlan,
+  hasStoredCard = false,
 }: Props) {
   const [subs, setSubs] = useState<Subscription[]>(initialSubs)
   const [brandModules, setBrandModules] = useState(initialModules)
@@ -137,8 +140,6 @@ export function MarketplaceClient({
   const [deleteModal, setDeleteModal] = useState<string | null>(null)
   const [deleteStep, setDeleteStep] = useState<'confirm' | 'exporting' | 'done'>('confirm')
   const [exportedBlob, setExportedBlob] = useState<string | null>(null)
-
-  const isColombiaAccount = brandCountry === 'Colombia'
 
   // Handle module key aliases when looking up subscriptions
   function getSub(key: string) {
@@ -665,52 +666,40 @@ export function MarketplaceClient({
                   </div>
 
                   <div className="mb-4">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Método de pago</p>
                     {price > 0 ? (
-                      <>
-                        <PayPalButton
-                          moduleKey={contractModal}
-                          amount={price}
-                          currency="COP"
-                          onSuccess={(expiresAt) => {
-                            setSubs(prev => {
-                              const idx = prev.findIndex(s => s.module_key === contractModal)
-                              const next: Subscription = {
-                                id: `${brandId}_${contractModal}`,
-                                brand_id: brandId,
-                                module_key: contractModal,
-                                status: 'active',
-                                trial_started_at: new Date().toISOString(),
-                                trial_expires_at: null,
-                                activated_at: new Date().toISOString(),
-                                expires_at: expiresAt,
-                                price_monthly: price,
-                              }
-                              if (idx >= 0) { const a = [...prev]; a[idx] = next; return a }
-                              return [...prev, next]
-                            })
-                            setBrandModules(m => ({ ...m, [contractModal]: true }))
-                            setPaymentSuccess(expiresAt)
-                          }}
-                        />
-                        {isColombiaAccount && (
-                          <p className="text-xs text-gray-400 mt-3 text-center">
-                            Próximamente: Wompi, PSE, Nequi y más opciones para Colombia.
-                          </p>
-                        )}
-                      </>
+                      <WompiModulePayment
+                        moduleKey={contractModal}
+                        priceMonthly={price}
+                        currency="COP"
+                        hasStoredCard={hasStoredCard}
+                        onSuccess={(expiresAt) => {
+                          setSubs(prev => {
+                            const idx = prev.findIndex(s => s.module_key === contractModal)
+                            const next: Subscription = {
+                              id: `${brandId}_${contractModal}`,
+                              brand_id: brandId,
+                              module_key: contractModal,
+                              status: 'active',
+                              trial_started_at: new Date().toISOString(),
+                              trial_expires_at: null,
+                              activated_at: new Date().toISOString(),
+                              expires_at: expiresAt,
+                              price_monthly: price,
+                            }
+                            if (idx >= 0) { const a = [...prev]; a[idx] = next; return a }
+                            return [...prev, next]
+                          })
+                          setBrandModules(m => ({ ...m, [contractModal]: true }))
+                          setPaymentSuccess(expiresAt)
+                        }}
+                        onCancel={() => setContractModal(null)}
+                      />
                     ) : (
                       <p className="text-sm text-gray-500 text-center py-3">Este módulo es gratuito.</p>
                     )}
                   </div>
 
                   <div className="border-t border-gray-100 pt-3">
-                    <a
-                      href={`mailto:soporte@turnflow.co?subject=Contratar módulo: ${contractModal}`}
-                      className="block w-full py-2 px-4 text-center text-sm text-gray-500 hover:text-gray-700 underline"
-                    >
-                      Prefiero pagar por otro medio
-                    </a>
                     <button onClick={() => setContractModal(null)} className="w-full text-xs text-gray-400 hover:text-gray-600 py-1">
                       Cancelar
                     </button>

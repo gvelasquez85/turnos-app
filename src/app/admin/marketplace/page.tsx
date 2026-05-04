@@ -83,11 +83,11 @@ export default async function MarketplacePage() {
         .single()
     : { data: null }
 
-  // Load membership for pricing display
+  // Load membership for pricing display + stored card check
   const { data: membership } = brandId
     ? await supabase
         .from('memberships')
-        .select('plan, max_establishments, max_advisors')
+        .select('plan, max_establishments, max_advisors, wompi_payment_source_id')
         .eq('brand_id', brandId)
         .eq('status', 'active')
         .single()
@@ -104,6 +104,7 @@ export default async function MarketplacePage() {
       membershipPlan={(membership as any)?.plan ?? null}
       maxEstablishments={(membership as any)?.max_establishments ?? 1}
       maxAdvisors={(membership as any)?.max_advisors ?? 1}
+      hasStoredCard={!!((membership as any)?.wompi_payment_source_id)}
     />
   )
 }

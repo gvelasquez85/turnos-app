@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getEffectiveBrandId } from '@/lib/serverBrandContext'
 import { NoBrandContext } from '@/components/NoBrandContext'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import { WaTemplatesManager } from './WaTemplatesManager'
 import { WA_TEMPLATE_DEFS, type WaCategory } from '@/lib/waTemplates'
 
@@ -21,6 +22,23 @@ export default async function MensajesPage() {
 
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role ?? '')
   if (!brandId) return <NoBrandContext />
+
+  // Check module subscription (superadmin always has access)
+  let isExpired = false
+  let expiredAt: string | null = null
+  if (profile.role !== 'superadmin') {
+    const { data: sub } = await supabase
+      .from('module_subscriptions')
+      .select('status, trial_expires_at, expires_at')
+      .eq('brand_id', brandId)
+      .eq('module_key', 'mensajes')
+      .maybeSingle()
+
+    if (!sub || sub.status === 'expired') {
+      isExpired = true
+      expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
+    }
+  }
 
   // Load brand's customized templates
   const { data: brandTemplates } = await supabase
@@ -44,9 +62,11 @@ export default async function MensajesPage() {
   }))
 
   return (
-    <WaTemplatesManager
-      brandId={brandId}
-      templates={templates}
-    />
+    <TrialExpiredGate isExpired={isExpired} moduleLabel="Mensajes WhatsApp" expiredAt={expiredAt}>
+      <WaTemplatesManager
+        brandId={brandId}
+        templates={templates}
+      />
+    </TrialExpiredGate>
   )
 }
