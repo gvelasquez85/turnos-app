@@ -964,7 +964,7 @@ function CreateModal({ brandId, onClose, onCreated }: {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-export function CRMDashboard({ customers: initialCustomers, establishments, brandId, businessType = 'otros', waTemplates = [], brandName = 'Tu negocio' }: Props) {
+export function ClientesManager({ customers: initialCustomers, establishments, brandId, businessType = 'otros', waTemplates = [], brandName = 'Tu negocio' }: Props) {
   const bv = BIZ_VOCAB[businessType] ?? BIZ_VOCAB.otros
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [search, setSearch] = useState('')

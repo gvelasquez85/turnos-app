@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NoBrandContext } from '@/components/NoBrandContext'
 import { getEffectiveBrandId } from '@/lib/serverBrandContext'
-import { CRMDashboard } from './CRMDashboard'
+import { ClientesManager } from './ClientesManager'
 
 export default async function ClientesPage() {
   const supabase = await createClient()
@@ -50,7 +50,7 @@ export default async function ClientesPage() {
   const waTemplates = Object.entries({ ...waDefaultMap, ...waBrandMap }).map(([category, body]) => ({ category, body: body as string }))
 
   return (
-    <CRMDashboard
+    <ClientesManager
       customers={customers as any[]}
       establishments={establishments ?? []}
       brandId={brandId}

@@ -598,9 +598,12 @@ export function LandingPage() {
             <div className="tf-nav-left">
               <a href="#" className="tf-brand">
                 <div className="tf-brand-mark">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 2L13 5V11L8 14L3 11V5L8 2Z" stroke="white" strokeWidth="1.5" fill="none" />
-                    <circle cx="8" cy="8" r="2" fill="white" />
+                  <svg width="16" height="16" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="4" y="4.4" width="20" height="3.5" rx="1.75" fill="white"/>
+                    <rect x="12.25" y="4.4" width="3.5" height="15" rx="1.75" fill="white"/>
+                    <circle cx="5.2" cy="21.2" r="2.2" fill="white" fillOpacity="0.65"/>
+                    <circle cx="12.2" cy="21.2" r="2.2" fill="white" fillOpacity="0.65"/>
+                    <circle cx="19.2" cy="21.2" r="2.2" fill="white" fillOpacity="0.65"/>
                   </svg>
                 </div>
                 TurnFlow
@@ -1257,9 +1260,12 @@ export function LandingPage() {
             <div>
               <a href="#" className="tf-brand" style={{ marginBottom: 16, display: 'inline-flex' }}>
                 <div className="tf-brand-mark">
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                    <path d="M8 2L13 5V11L8 14L3 11V5L8 2Z" stroke="white" strokeWidth="1.5" fill="none" />
-                    <circle cx="8" cy="8" r="2" fill="white" />
+                  <svg width="16" height="16" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="4" y="4.4" width="20" height="3.5" rx="1.75" fill="white"/>
+                    <rect x="12.25" y="4.4" width="3.5" height="15" rx="1.75" fill="white"/>
+                    <circle cx="5.2" cy="21.2" r="2.2" fill="white" fillOpacity="0.65"/>
+                    <circle cx="12.2" cy="21.2" r="2.2" fill="white" fillOpacity="0.65"/>
+                    <circle cx="19.2" cy="21.2" r="2.2" fill="white" fillOpacity="0.65"/>
                   </svg>
                 </div>
                 TurnFlow

@@ -127,7 +127,7 @@ const TRANSLATIONS: Record<string, Record<LangCode, string>> = {
   'membership.nextBill': { es: 'Próxima factura', en: 'Next invoice', pt: 'Próxima fatura' },
   'membership.totalEst': { es: 'Total estimado', en: 'Estimated total', pt: 'Total estimado' },
   'membership.payment': { es: 'Medio de pago', en: 'Payment method', pt: 'Meio de pagamento' },
-  'membership.subscribe': { es: 'Suscribirse con PayPal', en: 'Subscribe with PayPal', pt: 'Assinar com PayPal' },
+  'membership.subscribe': { es: 'Suscribirse', en: 'Subscribe', pt: 'Assinar' },
   'membership.update': { es: 'Actualizar suscripción', en: 'Update subscription', pt: 'Atualizar assinatura' },
   'membership.noRefunds': { es: 'No aplican reembolsos.', en: 'No refunds apply.', pt: 'Sem reembolsos.' },
   'membership.freeNotice': { es: 'Plan gratuito — sin costo mientras estés en los límites incluidos', en: 'Free plan — no cost while within included limits', pt: 'Plano gratuito — sem custo dentro dos limites incluídos' },
