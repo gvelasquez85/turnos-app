@@ -19,7 +19,7 @@ export async function getEffectiveBrandId(
   return null
 }
 
-const PAID_MODULES = ['queue', 'appointments', 'surveys', 'menu'] as const
+const PAID_MODULES = ['queue', 'appointments', 'surveys', 'menu', 'mensajes'] as const
 
 /**
  * Returns a verified activeModules map where paid modules are validated
