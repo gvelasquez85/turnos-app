@@ -4,10 +4,11 @@ import { createClient } from '@/lib/supabase/client'
 import {
   FileCheck, Plus, Search, Clock, CheckCircle, XCircle,
   Send, ShoppingCart, Eye, Edit3, X, Loader2,
-  User, Building2, Calendar, Hash, Mail, MessageSquare,
+  User, Building2, Calendar, Hash, Mail, MessageSquare, MessageCircle,
   Minus, Trash2, AlertCircle, CheckCheck, ExternalLink, Copy,
 } from 'lucide-react'
 import Link from 'next/link'
+import { buildWaMessage } from '@/lib/waTemplates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -57,10 +58,12 @@ function fmtDateTime(d: string) {
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function CotizacionesManager({ brandId, quotes: initial, establishments }: {
+export function CotizacionesManager({ brandId, quotes: initial, establishments, waTemplates = [], brandName = 'Tu negocio' }: {
   brandId: string
   quotes: Quote[]
   establishments: { id: string; name: string }[]
+  waTemplates?: { category: string; body: string }[]
+  brandName?: string
 }) {
   const [quotes, setQuotes] = useState<Quote[]>(initial)
   const [search, setSearch] = useState('')
@@ -86,6 +89,29 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
   const [sendResult, setSendResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
+  const waTemplateMap = useMemo(() => Object.fromEntries(waTemplates.map(t => [t.category, t.body])), [waTemplates])
+
+  function openQuoteWa(quote: Quote, category: 'quote_sent' | 'quote_followup') {
+    const phone = quote.customers?.phone
+    if (!phone) return
+    const quoteLink = `${window.location.origin}/cotizacion/${quote.id}`
+    const vars: Record<string, string> = {
+      nombre: quote.customers?.name ?? '',
+      negocio: brandName,
+      total: fmt(quote.total),
+      link: quoteLink,
+      dias: quote.sent_at
+        ? String(Math.floor((Date.now() - new Date(quote.sent_at).getTime()) / 86400000))
+        : '1',
+    }
+    const defaults: Record<string, string> = {
+      quote_sent:      `Hola {{nombre}} 👋, te enviamos tu cotización de {{negocio}} por *{{total}}*. Puedes verla aquí: {{link}}`,
+      quote_followup:  `Hola {{nombre}}, hace {{dias}} días te enviamos una cotización de *{{total}}* en {{negocio}}. ¿Pudiste revisarla? Estamos listos para ayudarte: {{link}}`,
+    }
+    const body = waTemplateMap[category] ?? defaults[category]
+    const url = buildWaMessage(body, vars, phone)
+    window.open(url, '_blank')
+  }
 
   const filtered = useMemo(() => {
     let list = [...quotes]
@@ -608,34 +634,54 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments }
                   {/* Action buttons */}
                   <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
                     {openQuote.status === 'draft' && (
-                      <button
-                        onClick={() => {
-                          setPanelMode('send')
-                          setSendEmail(openQuote.customers?.email ?? '')
-                          setSendName(openQuote.customers?.name ?? '')
-                          setSendSubject(`Cotización #COT-${openQuote.id.slice(-6).toUpperCase()}`)
-                          setSendMessage('')
-                          setSendResult(null)
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-700"
-                      >
-                        <Send size={14} /> Enviar cotización por email
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setPanelMode('send')
+                            setSendEmail(openQuote.customers?.email ?? '')
+                            setSendName(openQuote.customers?.name ?? '')
+                            setSendSubject(`Cotización #COT-${openQuote.id.slice(-6).toUpperCase()}`)
+                            setSendMessage('')
+                            setSendResult(null)
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-700"
+                        >
+                          <Send size={14} /> Enviar por email
+                        </button>
+                        {openQuote.customers?.phone && (
+                          <button
+                            onClick={() => openQuoteWa(openQuote, 'quote_sent')}
+                            className="flex-1 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 border border-green-200"
+                          >
+                            <MessageCircle size={14} /> Enviar por WA
+                          </button>
+                        )}
+                      </div>
                     )}
                     {openQuote.status === 'sent' && (
-                      <button
-                        onClick={() => {
-                          setPanelMode('send')
-                          setSendEmail(openQuote.sent_to_email ?? openQuote.customers?.email ?? '')
-                          setSendName(openQuote.customers?.name ?? '')
-                          setSendSubject(`[Recordatorio] Cotización #COT-${openQuote.id.slice(-6).toUpperCase()}`)
-                          setSendMessage('Te enviamos un recordatorio sobre la cotización que te enviamos anteriormente.')
-                          setSendResult(null)
-                        }}
-                        className="w-full py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-100 border border-blue-200"
-                      >
-                        <Send size={14} /> Reenviar recordatorio
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => {
+                            setPanelMode('send')
+                            setSendEmail(openQuote.sent_to_email ?? openQuote.customers?.email ?? '')
+                            setSendName(openQuote.customers?.name ?? '')
+                            setSendSubject(`[Recordatorio] Cotización #COT-${openQuote.id.slice(-6).toUpperCase()}`)
+                            setSendMessage('Te enviamos un recordatorio sobre la cotización que te enviamos anteriormente.')
+                            setSendResult(null)
+                          }}
+                          className="flex-1 py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-100 border border-blue-200"
+                        >
+                          <Send size={14} /> Recordatorio email
+                        </button>
+                        {openQuote.customers?.phone && (
+                          <button
+                            onClick={() => openQuoteWa(openQuote, 'quote_followup')}
+                            className="flex-1 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 border border-green-200"
+                          >
+                            <MessageCircle size={14} /> Seguimiento WA
+                          </button>
+                        )}
+                      </div>
                     )}
                     {openQuote.status === 'sent' && (
                       <div className="flex gap-2">

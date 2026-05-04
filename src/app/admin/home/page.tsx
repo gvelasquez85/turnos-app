@@ -80,6 +80,37 @@ export default async function HomeDashboardPage() {
       .eq('brand_id', brandId),
   ])
 
+  // ── Appointments module ─────────────────────────────────────────────────────
+  const { data: apptSub } = brandId
+    ? await supabase.from('module_subscriptions')
+        .select('status')
+        .eq('brand_id', brandId)
+        .eq('module_key', 'appointments')
+        .in('status', ['active', 'trial', 'trialing'])
+        .maybeSingle()
+    : { data: null }
+  const hasAppointments = !!apptSub
+
+  let appointments: { id: string; status: string; scheduled_at: string; customer_name: string }[] = []
+  if (hasAppointments) {
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0)
+    const weekEnd    = new Date(todayStart); weekEnd.setDate(weekEnd.getDate() + 7)
+
+    const { data: ests } = await supabase.from('establishments')
+      .select('id').eq('brand_id', brandId).eq('active', true)
+    const estIds = (ests ?? []).map((e: { id: string }) => e.id)
+
+    const apptData = estIds.length > 0
+      ? await supabase.from('appointments')
+          .select('id, status, scheduled_at, customer_name')
+          .in('establishment_id', estIds)
+          .gte('scheduled_at', todayStart.toISOString())
+          .lte('scheduled_at', weekEnd.toISOString())
+          .order('scheduled_at')
+      : { data: [] }
+    appointments = (apptData.data ?? []) as typeof appointments
+  }
+
   const brand          = brandRes.status === 'fulfilled' ? brandRes.value.data : null
   const salesRecent    = salesRecentRes.status === 'fulfilled' ? (salesRecentRes.value.data ?? []) : []
   const salesWeek      = salesWeekRes.status === 'fulfilled' ? (salesWeekRes.value.data ?? []) : []
@@ -100,6 +131,8 @@ export default async function HomeDashboardPage() {
       inactiveClients={inactiveClients as any[]}
       openQuotes={openQuotes as any[]}
       lowStock={lowStock as any[]}
+      hasAppointments={hasAppointments}
+      appointments={appointments}
     />
   )
 }

@@ -7,8 +7,9 @@ import {
   ChevronDown, ChevronUp, X, Plus, Edit2, Check,
   MessageSquare, Tag, Clock, FileText, ChevronRight,
   Cake, Wifi, Smartphone, Save, Loader2, ShoppingCart, CalendarCheck,
-  Sparkles, Copy, RefreshCw, Send,
+  Sparkles, Copy, RefreshCw, Send, MessageCircle,
 } from 'lucide-react'
+import { buildWaMessage } from '@/lib/waTemplates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,8 @@ interface Props {
   establishments: Establishment[]
   brandId: string
   businessType?: string
+  waTemplates?: { category: string; body: string }[]
+  brandName?: string
 }
 
 // Business-type vocabulary
@@ -121,12 +124,16 @@ function CustomerSlideOver({
   onClose,
   onUpdate,
   businessType = 'otros',
+  waTemplates = [],
+  brandName = 'Tu negocio',
 }: {
   customer: Customer
   establishments: Establishment[]
   onClose: () => void
   onUpdate: (c: Customer) => void
   businessType?: string
+  waTemplates?: { category: string; body: string }[]
+  brandName?: string
 }) {
   const [tab, setTab] = useState<Tab>('perfil')
   const [editing, setEditing] = useState(false)
@@ -144,6 +151,16 @@ function CustomerSlideOver({
   const [aiCopied, setAiCopied] = useState(false)
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
+  const waTemplateMap = useMemo(() => Object.fromEntries(waTemplates.map(t => [t.category, t.body])), [waTemplates])
+
+  function openReactivationWa() {
+    const phone = customer.celular || customer.phone
+    if (!phone) return
+    const defaultBody = `Hola {{nombre}} 👋, hace tiempo que no te vemos en {{negocio}}. ¡Te extrañamos! ¿Cuándo volvemos a verte?`
+    const body = waTemplateMap['customer_reactivation'] ?? defaultBody
+    const url = buildWaMessage(body, { nombre: customer.name, negocio: brandName }, phone)
+    window.open(url, '_blank')
+  }
 
   const loadTabData = useCallback(async () => {
     if (tab === 'etiquetas' || tab === 'historial' || tab === 'notas') {
@@ -366,6 +383,15 @@ function CustomerSlideOver({
             <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${vtag.color}`}>{vtag.label}</span>
           </div>
           <div className="flex items-center gap-1 ml-auto">
+            {(customer.phone || customer.celular) && (
+              <button
+                onClick={openReactivationWa}
+                title="Enviar mensaje de reactivación por WhatsApp"
+                className="p-2 rounded-lg text-green-600 hover:bg-green-50 transition-colors"
+              >
+                <MessageCircle size={15} />
+              </button>
+            )}
             {tab === 'perfil' && !editing && (
               <button
                 onClick={() => setEditing(true)}
@@ -938,7 +964,7 @@ function CreateModal({ brandId, onClose, onCreated }: {
 
 // ─── Main Dashboard ───────────────────────────────────────────────────────────
 
-export function CRMDashboard({ customers: initialCustomers, establishments, brandId, businessType = 'otros' }: Props) {
+export function CRMDashboard({ customers: initialCustomers, establishments, brandId, businessType = 'otros', waTemplates = [], brandName = 'Tu negocio' }: Props) {
   const bv = BIZ_VOCAB[businessType] ?? BIZ_VOCAB.otros
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers)
   const [search, setSearch] = useState('')
@@ -1198,6 +1224,8 @@ export function CRMDashboard({ customers: initialCustomers, establishments, bran
           customer={selectedCustomer}
           establishments={establishments}
           businessType={businessType}
+          waTemplates={waTemplates}
+          brandName={brandName}
           onClose={() => setSelectedCustomer(null)}
           onUpdate={updated => {
             setCustomers(cs => cs.map(c => c.id === updated.id ? updated : c))

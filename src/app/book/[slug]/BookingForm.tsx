@@ -1,12 +1,26 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { CalendarClock, CheckCircle, ChevronRight, Clock } from 'lucide-react'
+import { CalendarClock, CheckCircle, ChevronRight } from 'lucide-react'
+
+interface AppointmentSettings {
+  slot_minutes: number
+  max_per_slot: number
+  open_days: number[]
+  open_time: string
+  close_time: string
+  buffer_minutes: number
+}
 
 interface Props {
-  establishment: { id: string; name: string; brand_id: string; brands: { name: string } }
+  establishment: {
+    id: string
+    name: string
+    brand_id: string
+    brands: { name: string; logo_url: string | null; primary_color: string | null }
+  }
   visitReasons: { id: string; name: string; description: string | null }[]
 }
 
@@ -21,8 +35,95 @@ export function BookingForm({ establishment, visitReasons }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [appointmentId, setAppointmentId] = useState<string | null>(null)
 
+  // Slot picker state
+  const [settings, setSettings] = useState<AppointmentSettings | null | undefined>(undefined) // undefined = not loaded yet
+  const [slotsLoading, setSlotsLoading] = useState(false)
+  const [availableSlots, setAvailableSlots] = useState<string[]>([])
+  const [unavailableSlots, setUnavailableSlots] = useState<Set<string>>(new Set())
+  const [dayBlocked, setDayBlocked] = useState(false)
+
   const brand = establishment.brands
-  const primaryColor = (brand as any)?.primary_color ?? '#6366f1'
+  const primaryColor = brand?.primary_color ?? '#6366f1'
+
+  // Load settings once
+  useEffect(() => {
+    const supabase = createClient()
+    supabase
+      .from('appointment_settings')
+      .select('*')
+      .eq('establishment_id', establishment.id)
+      .eq('is_active', true)
+      .maybeSingle()
+      .then(({ data }) => {
+        setSettings(data as AppointmentSettings | null)
+      })
+  }, [establishment.id])
+
+  // Load slots when date changes
+  useEffect(() => {
+    if (!form.scheduled_date || !settings) return
+
+    const dayOfWeek = new Date(form.scheduled_date + 'T12:00:00').getDay()
+    if (!settings.open_days.includes(dayOfWeek)) {
+      setDayBlocked(true)
+      setAvailableSlots([])
+      setUnavailableSlots(new Set())
+      setForm(f => ({ ...f, scheduled_time: '' }))
+      return
+    }
+    setDayBlocked(false)
+
+    // Generate all slots for the day
+    const slots: string[] = []
+    const [oh, om] = settings.open_time.split(':').map(Number)
+    const [ch, cm] = settings.close_time.split(':').map(Number)
+    let cur = oh * 60 + om
+    const end = ch * 60 + cm
+    const step = settings.slot_minutes + settings.buffer_minutes
+    while (cur + settings.slot_minutes <= end) {
+      const h = Math.floor(cur / 60).toString().padStart(2, '0')
+      const m = (cur % 60).toString().padStart(2, '0')
+      slots.push(`${h}:${m}`)
+      cur += step
+    }
+    setAvailableSlots(slots)
+
+    // Fetch booked appointments for that date
+    setSlotsLoading(true)
+    const dayStart = `${form.scheduled_date}T00:00:00`
+    const dayEnd = `${form.scheduled_date}T23:59:59`
+    const supabase = createClient()
+    supabase
+      .from('appointments')
+      .select('scheduled_at, duration_minutes, status')
+      .eq('establishment_id', establishment.id)
+      .gte('scheduled_at', dayStart)
+      .lte('scheduled_at', dayEnd)
+      .not('status', 'in', '("cancelled","no_show")')
+      .then(({ data }) => {
+        const booked = data || []
+        // Count bookings per slot
+        const slotCounts: Record<string, number> = {}
+        for (const slot of slots) {
+          const [sh, sm] = slot.split(':').map(Number)
+          const slotMinutes = sh * 60 + sm
+          let count = 0
+          for (const appt of booked) {
+            const apptDate = new Date(appt.scheduled_at)
+            const apptMinutes = apptDate.getHours() * 60 + apptDate.getMinutes()
+            if (Math.abs(apptMinutes - slotMinutes) < settings!.slot_minutes) {
+              count++
+            }
+          }
+          slotCounts[slot] = count
+        }
+        const unavail = new Set(
+          slots.filter(s => slotCounts[s] >= settings!.max_per_slot)
+        )
+        setUnavailableSlots(unavail)
+        setSlotsLoading(false)
+      })
+  }, [form.scheduled_date, settings, establishment.id])
 
   function validateForm() {
     const errs: Record<string, string> = {}
@@ -30,7 +131,6 @@ export function BookingForm({ establishment, visitReasons }: Props) {
     if (!form.phone.trim()) errs.phone = 'El teléfono es requerido'
     if (!form.scheduled_date) errs.date = 'La fecha es requerida'
     if (!form.scheduled_time) errs.time = 'La hora es requerida'
-    // No past dates
     if (form.scheduled_date) {
       const selected = new Date(`${form.scheduled_date}T${form.scheduled_time || '00:00'}`)
       if (selected < new Date()) errs.date = 'La fecha no puede ser en el pasado'
@@ -55,7 +155,7 @@ export function BookingForm({ establishment, visitReasons }: Props) {
         customer_phone: form.phone.trim(),
         customer_email: form.email.trim() || null,
         scheduled_at,
-        duration_minutes: 30,
+        duration_minutes: settings?.slot_minutes ?? 30,
         notes: form.notes.trim() || null,
         status: 'pending',
       })
@@ -69,7 +169,6 @@ export function BookingForm({ establishment, visitReasons }: Props) {
     }
   }
 
-  // Min date: today
   const today = new Date().toISOString().split('T')[0]
 
   if (step === 'done') {
@@ -109,8 +208,10 @@ export function BookingForm({ establishment, visitReasons }: Props) {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <div className="text-white text-center py-6 px-4" style={{ backgroundColor: primaryColor }}>
-        <div className="flex items-center justify-center gap-2 mb-1">
-          <CalendarClock size={20} />
+        <div className="flex items-center justify-center gap-3 mb-1">
+          {brand.logo_url && (
+            <img src={brand.logo_url} alt={brand.name} className="rounded-xl w-12 h-12 object-cover" />
+          )}
           <h1 className="text-xl font-bold">{brand.name}</h1>
         </div>
         <p className="text-white/70 text-sm">Agenda tu cita en {establishment.name}</p>
@@ -128,12 +229,63 @@ export function BookingForm({ establishment, visitReasons }: Props) {
                 onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} error={errors.phone} />
               <Input label="Correo electrónico" type="email" value={form.email}
                 onChange={e => setForm(f => ({ ...f, email: e.target.value }))} />
-              <div className="grid grid-cols-2 gap-3">
-                <Input label="Fecha *" type="date" min={today} value={form.scheduled_date}
-                  onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} error={errors.date} />
+
+              {/* Date picker - always shown */}
+              <Input label="Fecha *" type="date" min={today} value={form.scheduled_date}
+                onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value, scheduled_time: '' }))}
+                error={errors.date} />
+
+              {/* Time: slot grid or fallback input */}
+              {settings === undefined ? null : settings === null ? (
+                /* No settings → fallback to plain time input */
                 <Input label="Hora *" type="time" value={form.scheduled_time}
                   onChange={e => setForm(f => ({ ...f, scheduled_time: e.target.value }))} error={errors.time} />
-              </div>
+              ) : (
+                /* Settings exist → slot grid */
+                form.scheduled_date && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Hora *</label>
+                    {dayBlocked ? (
+                      <p className="text-sm text-gray-500 bg-gray-100 rounded-lg px-3 py-2">
+                        No hay turnos disponibles para este día
+                      </p>
+                    ) : slotsLoading ? (
+                      <div className="flex flex-wrap gap-2">
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <div key={i} className="h-8 w-16 bg-gray-100 animate-pulse rounded-lg" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {availableSlots.map(slot => {
+                          const isUnavailable = unavailableSlots.has(slot)
+                          const isSelected = form.scheduled_time === slot
+                          return (
+                            <button
+                              key={slot}
+                              type="button"
+                              disabled={isUnavailable}
+                              onClick={() => !isUnavailable && setForm(f => ({ ...f, scheduled_time: slot }))}
+                              className={[
+                                'px-3 py-1.5 rounded-lg text-sm font-mono font-medium border transition-colors',
+                                isUnavailable
+                                  ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                                  : isSelected
+                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white text-indigo-700 border-indigo-200 hover:bg-indigo-50',
+                              ].join(' ')}
+                            >
+                              {slot}
+                            </button>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {errors.time && <p className="text-xs text-red-500 mt-1">{errors.time}</p>}
+                  </div>
+                )
+              )}
+
               <div className="flex flex-col gap-1">
                 <label className="text-sm font-medium text-gray-700">Comentarios</label>
                 <textarea rows={2} value={form.notes}

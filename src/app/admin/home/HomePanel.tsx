@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   TrendingUp, Users, ShoppingCart, Package, FileCheck,
   Sparkles, Bell, ChevronRight, MessageSquare,
-  CheckCircle, ArrowRight, Clock,
+  CheckCircle, ArrowRight, Clock, CalendarClock,
 } from 'lucide-react'
 import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
 
@@ -23,6 +23,8 @@ interface Props {
   inactiveClients: { id: string; name: string; phone: string | null; updated_at: string }[]
   openQuotes: { id: string; total: number; created_at: string; customers: any }[]
   lowStock: { id: string; name: string; stock: number }[]
+  hasAppointments?: boolean
+  appointments?: { id: string; status: string; scheduled_at: string; customer_name: string }[]
 }
 
 const VOCAB: Record<string, { service: string; client: string; clients: string }> = {
@@ -49,10 +51,32 @@ function greeting() {
   return 'Buenas noches'
 }
 
+const APPT_STATUS: Record<string, { label: string; color: string }> = {
+  pending:   { label: 'Pendiente',   color: 'bg-amber-100 text-amber-700' },
+  confirmed: { label: 'Confirmada',  color: 'bg-blue-100 text-blue-700'   },
+  attended:  { label: 'Atendida',    color: 'bg-green-100 text-green-700' },
+  cancelled: { label: 'Cancelada',   color: 'bg-gray-100 text-gray-500'   },
+  no_show:   { label: 'No asistió',  color: 'bg-red-100 text-red-600'     },
+}
+
+function fmtTime(iso: string) {
+  return new Date(iso).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function dayLabel(iso: string) {
+  const d = new Date(iso)
+  const today = new Date(); today.setHours(0,0,0,0)
+  const diff = Math.round((new Date(d.toDateString()).getTime() - today.getTime()) / 86400000)
+  if (diff === 0) return null
+  if (diff === 1) return 'mañana'
+  return d.toLocaleDateString('es', { weekday: 'short', day: 'numeric' })
+}
+
 export function HomePanel({
   brandName, businessType, userName,
   salesRecent, salesWeek, totalClients,
   inactiveClients, openQuotes, lowStock,
+  hasAppointments, appointments = [],
 }: Props) {
   const v = VOCAB[businessType] || VOCAB.otros
   const firstName = userName.split(' ')[0]
@@ -178,6 +202,67 @@ export function HomePanel({
           <p className="text-xs text-gray-400 mt-1">{v.clients} inactivos</p>
         </div>
       </div>
+
+      {/* Appointments widget */}
+      {hasAppointments && (() => {
+        const now = new Date()
+        const todayStr2 = now.toDateString()
+        const todayPending   = appointments.filter(a => new Date(a.scheduled_at).toDateString() === todayStr2 && a.status === 'pending').length
+        const todayConfirmed = appointments.filter(a => new Date(a.scheduled_at).toDateString() === todayStr2 && a.status === 'confirmed').length
+        const weekActive     = appointments.filter(a => ['pending', 'confirmed'].includes(a.status)).length
+        const upcoming       = appointments.filter(a => new Date(a.scheduled_at) >= now).slice(0, 4)
+        return (
+          <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <CalendarClock size={16} className="text-indigo-500" />
+                <p className="text-sm font-semibold text-gray-800">Citas programadas</p>
+              </div>
+              <Link href="/admin/appointments" className="text-xs font-medium text-indigo-600 hover:text-indigo-800">Ver todas →</Link>
+            </div>
+
+            {/* KPI chips */}
+            <div className="flex gap-2 mb-4 flex-wrap">
+              <div className="flex-1 min-w-[90px] bg-amber-50 rounded-lg px-3 py-2 text-center">
+                <p className="text-lg font-black text-amber-700">{todayPending}</p>
+                <p className="text-[10px] text-amber-600 font-medium leading-tight">Pendientes hoy</p>
+              </div>
+              <div className="flex-1 min-w-[90px] bg-blue-50 rounded-lg px-3 py-2 text-center">
+                <p className="text-lg font-black text-blue-700">{todayConfirmed}</p>
+                <p className="text-[10px] text-blue-600 font-medium leading-tight">Confirmadas hoy</p>
+              </div>
+              <div className="flex-1 min-w-[90px] bg-indigo-50 rounded-lg px-3 py-2 text-center">
+                <p className="text-lg font-black text-indigo-700">{weekActive}</p>
+                <p className="text-[10px] text-indigo-600 font-medium leading-tight">Esta semana</p>
+              </div>
+            </div>
+
+            {/* Upcoming list */}
+            {upcoming.length > 0 ? (
+              <div className="space-y-2">
+                {upcoming.map(appt => {
+                  const statusCfg = APPT_STATUS[appt.status] ?? APPT_STATUS.pending
+                  const label = dayLabel(appt.scheduled_at)
+                  return (
+                    <div key={appt.id} className="flex items-center gap-3 py-1">
+                      <div className="text-center shrink-0 w-12">
+                        <p className="text-sm font-bold text-gray-800 leading-none">{fmtTime(appt.scheduled_at)}</p>
+                        {label && <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>}
+                      </div>
+                      <p className="flex-1 text-sm text-gray-700 truncate">{appt.customer_name}</p>
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${statusCfg.color}`}>
+                        {statusCfg.label}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-gray-400 text-center py-2">Sin citas próximas</p>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Fila principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

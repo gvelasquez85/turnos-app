@@ -72,6 +72,10 @@ const APPOINTMENTS_ITEMS: NavItem[] = [
   { href: '/admin/visit-reasons', label: 'Motivos de visita', labelKey: 'nav.reasons', icon: MessageSquare },
 ]
 
+const MENSAJES_ITEMS: NavItem[] = [
+  { href: '/admin/mensajes', label: 'Mensajes WhatsApp', icon: MessageSquare },
+]
+
 const SURVEYS_ITEMS: NavItem[] = [
   { href: '/admin/surveys', label: 'Encuestas', labelKey: 'nav.surveys', icon: ClipboardList },
 ]
@@ -148,6 +152,7 @@ function buildSections(
       { key: 'encuestas', section: 'Encuestas', sectionKey: 'section.surveys', items: SURVEYS_ITEMS },
       { key: 'menu_preorden', section: 'Menú / Preorden', sectionKey: 'section.menu', items: MENU_ITEMS },
       { key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS },
+      { key: 'mensajes', section: 'Mensajes', items: MENSAJES_ITEMS },
       {
         key: 'reportes', section: 'Reportes', sectionKey: 'section.reportsSection', items: [
           ...REPORTES_ITEMS_BASE,
@@ -185,6 +190,7 @@ function buildSections(
   }
 
   sections.push({ key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS })
+  sections.push({ key: 'mensajes', section: 'Mensajes', items: MENSAJES_ITEMS })
 
   const reportesItems: NavItem[] = [...REPORTES_ITEMS_BASE]
   if (activeModules?.queue) reportesItems.push(REPORTES_QUEUE_ITEM)

@@ -8,7 +8,7 @@ export default async function BookingPage({ params }: { params: Promise<{ slug: 
 
   const { data: est } = await supabase
     .from('establishments')
-    .select('*, brands(name, logo_url)')
+    .select('*, brands(name, logo_url, primary_color)')
     .eq('slug', slug)
     .eq('active', true)
     .single()

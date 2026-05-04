@@ -62,6 +62,23 @@ export default async function AppointmentsPage() {
     appointments = data || []
   }
 
+  // WA templates for this brand
+  const brandId = profile.brand_id
+  let waTemplates: { category: string; body: string }[] = []
+  let brandName = ''
+  if (brandId) {
+    const [{ data: waData }, { data: brandData }] = await Promise.all([
+      supabase.from('wa_templates').select('category, body').eq('brand_id', brandId),
+      supabase.from('brands').select('name').eq('id', brandId).single(),
+    ])
+    // Merge with defaults for missing categories
+    const { data: defaults } = await supabase.from('wa_default_templates').select('category, body')
+    const brandMap = Object.fromEntries((waData ?? []).map((t: any) => [t.category, t.body]))
+    const mergedMap = { ...Object.fromEntries((defaults ?? []).map((d: any) => [d.category, d.body])), ...brandMap }
+    waTemplates = Object.entries(mergedMap).map(([category, body]) => ({ category, body: body as string }))
+    brandName = brandData?.name ?? ''
+  }
+
   // Check trial expiry
   let isExpired = false
   let expiredAt: string | null = null
@@ -88,6 +105,9 @@ export default async function AppointmentsPage() {
         advisors={advisors || []}
         defaultBrandId={profile.brand_id || null}
         defaultEstId={profile.establishment_id || null}
+        isModuleActive={!isExpired}
+        waTemplates={waTemplates}
+        brandName={brandName}
       />
     </TrialExpiredGate>
   )

@@ -7,8 +7,9 @@ import {
   ShoppingCart, TrendingUp, FileCheck,
   ArrowRight, DollarSign, Clock, CheckCircle, XCircle, AlertTriangle,
   Eye, Edit3, Truck, X, Loader2,
-  User, Building2, Calendar, Package,
+  User, Building2, Calendar, Package, MessageCircle,
 } from 'lucide-react'
+import { buildWaMessage } from '@/lib/waTemplates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -22,7 +23,7 @@ interface Sale {
   created_at: string
   establishment_id: string | null
   customer_id: string | null
-  customers: { name: string; email?: string | null } | null
+  customers: { name: string; email?: string | null; phone?: string | null } | null
   fulfillment_type?: string | null
   notes?: string | null
 }
@@ -37,11 +38,15 @@ interface SaleItem {
 
 interface Establishment { id: string; name: string }
 
+interface WaTemplateRow { category: string; body: string }
+
 interface Props {
   brandId: string
   recentSales: Sale[]
   pendingSales: Sale[]
   establishments: Establishment[]
+  waTemplates?: WaTemplateRow[]
+  brandName?: string
 }
 
 // ─── Status config ──────────────────────────────────────────────────────────────
@@ -86,7 +91,7 @@ function fmtDateFull(d: string) {
 
 // ─── Main component ─────────────────────────────────────────────────────────────
 
-export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSales: initialPending, establishments }: Props) {
+export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSales: initialPending, establishments, waTemplates = [], brandName = 'Tu negocio' }: Props) {
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
   const [recentSales, setRecentSales] = useState<Sale[]>(initialRecent)
@@ -130,6 +135,33 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   // Pending (separate indicator — all time in window)
   const pendingSalesKPI = useMemo(() => allSales.filter(s => s.status === 'pending'), [allSales])
   const pendingRevenue = pendingSalesKPI.reduce((s, x) => s + (x.total ?? 0), 0)
+
+  // ── WA helpers ────────────────────────────────────────────────────────────
+  const waTemplateMap = useMemo(() => Object.fromEntries(waTemplates.map(t => [t.category, t.body])), [waTemplates])
+
+  function openSaleWa(sale: Sale, category: 'sale_receipt' | 'sale_pending_payment') {
+    const phone = sale.customers?.phone
+    if (!phone) return
+    const fecha = new Date(sale.created_at).toLocaleDateString('es', { day: 'numeric', month: 'long', year: 'numeric' })
+    const referencia = `VTA-${sale.id.slice(-6).toUpperCase()}`
+    const total = fmt(sale.total)
+    const vencimiento = new Date(Date.now() + 3 * 86400000).toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })
+    const vars: Record<string, string> = {
+      nombre: sale.customers?.name ?? '',
+      negocio: brandName,
+      total,
+      referencia,
+      fecha,
+      vencimiento,
+    }
+    const defaults: Record<string, string> = {
+      sale_receipt:          `Hola {{nombre}} 👋, tu compra en {{negocio}} ha sido registrada. Total: *{{total}}* (Ref. {{referencia}}). ¡Gracias por tu preferencia!`,
+      sale_pending_payment:  `Hola {{nombre}}, tienes un pago pendiente de *{{total}}* en {{negocio}} con vencimiento el {{vencimiento}}. Por favor contáctanos para coordinar el pago.`,
+    }
+    const body = waTemplateMap[category] ?? defaults[category]
+    const url = buildWaMessage(body, vars, phone)
+    window.open(url, '_blank')
+  }
 
   // ── Open panel ─────────────────────────────────────────────────────────────
   async function openPanel(saleId: string, mode: 'view' | 'edit' | 'status' = 'view') {
@@ -502,13 +534,31 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
 
 
                   {/* Quick status change */}
-                  <div className="border-t border-gray-100 pt-3">
+                  <div className="border-t border-gray-100 pt-3 space-y-2">
                     <button
                       onClick={() => switchMode('status')}
                       className="w-full py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-indigo-100 border border-indigo-200"
                     >
                       <Truck size={14} /> Actualizar estado
                     </button>
+                    {openSale.customers?.phone && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => openSaleWa(openSale, 'sale_receipt')}
+                          className="flex-1 py-2 rounded-xl bg-green-50 text-green-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 border border-green-200"
+                        >
+                          <MessageCircle size={13} /> Comprobante WA
+                        </button>
+                        {openSale.status === 'pending' && (
+                          <button
+                            onClick={() => openSaleWa(openSale, 'sale_pending_payment')}
+                            className="flex-1 py-2 rounded-xl bg-amber-50 text-amber-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-amber-100 border border-amber-200"
+                          >
+                            <MessageCircle size={13} /> Cobro pendiente WA
+                          </button>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

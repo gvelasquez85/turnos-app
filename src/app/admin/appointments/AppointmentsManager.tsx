@@ -12,6 +12,7 @@ import {
   Settings2, Save, ToggleLeft, ToggleRight, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { buildWaMessage } from '@/lib/waTemplates'
 
 type ApptStatus = 'pending' | 'confirmed' | 'attended' | 'cancelled' | 'no_show'
 type ViewMode = 'week' | 'list' | 'settings'
@@ -68,6 +69,8 @@ const STATUS_CONFIG: Record<ApptStatus, { label: string; color: string; dot: str
 const DAY_NAMES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb']
 const DAY_FULL  = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
 
+interface WaTemplateRow { category: string; body: string }
+
 interface Props {
   appointments: Appointment[]
   establishments: { id: string; name: string; brand_id: string; slug: string }[]
@@ -76,6 +79,9 @@ interface Props {
   advisors: { id: string; full_name: string | null; establishment_id: string | null }[]
   defaultBrandId: string | null
   defaultEstId: string | null
+  isModuleActive?: boolean
+  waTemplates?: WaTemplateRow[]
+  brandName?: string
 }
 
 const emptyForm = {
@@ -341,7 +347,7 @@ function SettingsPanel({
 // ── Main component ─────────────────────────────────────────────────────────────
 export function AppointmentsManager({
   appointments: initial, establishments, brands, visitReasons, advisors,
-  defaultBrandId, defaultEstId,
+  defaultBrandId, defaultEstId, isModuleActive, waTemplates = [], brandName = 'Tu negocio',
 }: Props) {
   const [appointments, setAppointments] = useState(initial)
   const [showForm, setShowForm] = useState(false)
@@ -456,13 +462,35 @@ export function AppointmentsManager({
     if (selectedAppt?.id === id) setSelectedAppt(prev => prev ? { ...prev, status } : null)
   }
 
-  function openWhatsApp(phone: string, name: string, scheduledAt: string) {
-    const d = new Date(scheduledAt)
+  const waTemplateMap = Object.fromEntries(waTemplates.map(t => [t.category, t.body]))
+
+  function openWhatsApp(
+    phone: string,
+    appt: Appointment,
+    category: 'appointment_reminder' | 'appointment_confirmation' | 'appointment_cancelled' | 'appointment_no_show' = 'appointment_reminder',
+  ) {
+    const d = new Date(appt.scheduled_at)
     const dateStr = d.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' })
     const timeStr = d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-    const msg = encodeURIComponent(`Hola ${name} 👋, te recordamos tu cita el ${dateStr} a las ${timeStr}. ¡Te esperamos!`)
-    const clean = phone.replace(/\D/g, '')
-    window.open(`https://wa.me/${clean}?text=${msg}`, '_blank')
+    const estName = appt.establishments?.name ?? ''
+    const vars: Record<string, string> = {
+      nombre: appt.customer_name,
+      negocio: brandName,
+      fecha: dateStr,
+      hora: timeStr,
+      sucursal: estName,
+      motivo: appt.visit_reasons?.name ?? '',
+      link: '',
+    }
+    const defaultMsgs: Record<string, string> = {
+      appointment_reminder:      `Hola {{nombre}} 👋, te recordamos tu cita en {{negocio}} el {{fecha}} a las {{hora}}. ¡Te esperamos!`,
+      appointment_confirmation:  `Hola {{nombre}} 👋, tu cita en {{negocio}} para el {{fecha}} a las {{hora}} ha sido *confirmada*. ¡Te esperamos!`,
+      appointment_cancelled:     `Hola {{nombre}}, lamentamos informarte que tu cita del {{fecha}} a las {{hora}} en {{negocio}} ha sido *cancelada*. Puedes reagendar en {{link}}.`,
+      appointment_no_show:       `Hola {{nombre}}, notamos que no pudiste asistir a tu cita de {{fecha}} en {{negocio}}. ¿Te gustaría reprogramarla?`,
+    }
+    const templateBody = waTemplateMap[category] ?? defaultMsgs[category] ?? defaultMsgs.appointment_reminder
+    const url = buildWaMessage(templateBody, vars, phone)
+    window.open(url, '_blank')
   }
 
   const bookingEst = establishments.find(e => e.id === filterEst)
@@ -500,12 +528,18 @@ export function AppointmentsManager({
           </div>
           <div className="flex flex-wrap gap-2">
             {appt.customer_phone && (
-              <button onClick={() => openWhatsApp(appt.customer_phone!, appt.customer_name, appt.scheduled_at)}
+              <button onClick={() => openWhatsApp(appt.customer_phone!, appt, 'appointment_reminder')}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-500 text-white rounded-lg hover:bg-green-600">
-                <MessageCircle size={13} /> WhatsApp
+                <MessageCircle size={13} /> Recordatorio WA
               </button>
             )}
-            {appt.status === 'pending' && (
+            {appt.status === 'pending' && appt.customer_phone && (
+              <button onClick={() => { updateStatus(appt.id, 'confirmed'); openWhatsApp(appt.customer_phone!, appt, 'appointment_confirmation') }}
+                className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1">
+                <MessageCircle size={12} /> Confirmar + WA
+              </button>
+            )}
+            {appt.status === 'pending' && !appt.customer_phone && (
               <button onClick={() => updateStatus(appt.id, 'confirmed')}
                 className="px-3 py-1.5 text-xs font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700">Confirmar</button>
             )}
@@ -513,11 +547,23 @@ export function AppointmentsManager({
               <button onClick={() => updateStatus(appt.id, 'attended')}
                 className="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700">Atendida ✓</button>
             )}
-            {(appt.status === 'pending' || appt.status === 'confirmed') && (
+            {(appt.status === 'pending' || appt.status === 'confirmed') && appt.customer_phone && (
+              <button onClick={() => { updateStatus(appt.id, 'no_show'); openWhatsApp(appt.customer_phone!, appt, 'appointment_no_show') }}
+                className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600 flex items-center gap-1">
+                <MessageCircle size={12} /> No asistió + WA
+              </button>
+            )}
+            {(appt.status === 'pending' || appt.status === 'confirmed') && !appt.customer_phone && (
               <button onClick={() => updateStatus(appt.id, 'no_show')}
                 className="px-3 py-1.5 text-xs font-medium bg-amber-500 text-white rounded-lg hover:bg-amber-600">No asistió</button>
             )}
-            {(appt.status === 'pending' || appt.status === 'confirmed') && (
+            {(appt.status === 'pending' || appt.status === 'confirmed') && appt.customer_phone && (
+              <button onClick={() => { updateStatus(appt.id, 'cancelled'); openWhatsApp(appt.customer_phone!, appt, 'appointment_cancelled') }}
+                className="px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 flex items-center gap-1">
+                <MessageCircle size={12} /> Cancelar + WA
+              </button>
+            )}
+            {(appt.status === 'pending' || appt.status === 'confirmed') && !appt.customer_phone && (
               <button onClick={() => updateStatus(appt.id, 'cancelled')}
                 className="px-3 py-1.5 text-xs font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50">Cancelar</button>
             )}
@@ -536,7 +582,7 @@ export function AppointmentsManager({
           <p className="text-sm text-gray-500 mt-0.5">Agenda y gestión de citas de clientes</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          {bookingEst && (
+          {isModuleActive !== false && bookingEst && (
             <div className="flex items-center gap-1">
               <a
                 href={`/book/${bookingEst.slug}`}
@@ -783,7 +829,7 @@ export function AppointmentsManager({
                     </div>
                   </div>
                   {appt.customer_phone && (appt.status === 'pending' || appt.status === 'confirmed') && (
-                    <button onClick={e => { e.stopPropagation(); openWhatsApp(appt.customer_phone!, appt.customer_name, appt.scheduled_at) }}
+                    <button onClick={e => { e.stopPropagation(); openWhatsApp(appt.customer_phone!, appt, 'appointment_reminder') }}
                       className="shrink-0 p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100" title="Recordatorio WhatsApp">
                       <MessageCircle size={16} />
                     </button>
