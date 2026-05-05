@@ -37,6 +37,7 @@ import { updateSession } from '@/lib/supabase/middleware'
 /** Rutas de la app — se redirigen a app.* cuando se accede desde el dominio marketing */
 const APP_ROUTES = [
   '/login',
+  '/register',
   '/admin',
   '/advisor',
   '/superadmin',

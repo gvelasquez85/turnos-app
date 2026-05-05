@@ -482,11 +482,11 @@ export function MarketplaceClient({
                         </button>
                       ) : status === 'available' ? (
                         <Button onClick={() => startTrial(mod.module_key)} disabled={isLoading} className="w-full">
-                          Probar gratis 7 días <ArrowRight size={14} className="ml-1" />
+                          {price === 0 ? 'Activar módulo' : 'Probar gratis 7 días'} <ArrowRight size={14} className="ml-1" />
                         </Button>
                       ) : status === 'trial' ? (
                         <div className="flex gap-2">
-                          <Button onClick={() => setContractModal(mod.module_key)} className="flex-1 text-sm">Contratar</Button>
+                          <Button onClick={() => price === 0 ? startTrial(mod.module_key) : setContractModal(mod.module_key)} className="flex-1 text-sm">Contratar</Button>
                           <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="flex-1 text-sm">Cancelar</Button>
                           <button
                             onClick={() => { setDeleteModal(mod.module_key); setDeleteStep('confirm'); setExportedBlob(null) }}
@@ -502,8 +502,8 @@ export function MarketplaceClient({
                         </Button>
                       ) : (
                         <div className="flex gap-2">
-                          <Button onClick={() => setContractModal(mod.module_key)} className="flex-1">
-                            Contratar módulo
+                          <Button onClick={() => price === 0 ? startTrial(mod.module_key) : setContractModal(mod.module_key)} className="flex-1">
+                            {price === 0 ? 'Activar módulo' : 'Contratar módulo'}
                           </Button>
                           {(status === 'expired' || status === 'cancelled') && (
                             <button
@@ -695,7 +695,18 @@ export function MarketplaceClient({
                         onCancel={() => setContractModal(null)}
                       />
                     ) : (
-                      <p className="text-sm text-gray-500 text-center py-3">Este módulo es gratuito.</p>
+                      <div className="text-center py-3">
+                        <p className="text-sm text-gray-500 mb-4">Este módulo es gratuito.</p>
+                        <Button
+                          className="w-full"
+                          onClick={async () => {
+                            await startTrial(contractModal)
+                            setContractModal(null)
+                          }}
+                        >
+                          Activar módulo <ArrowRight size={14} className="ml-1" />
+                        </Button>
+                      </div>
                     )}
                   </div>
 

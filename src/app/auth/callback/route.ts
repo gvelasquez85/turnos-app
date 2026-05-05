@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
+async function ensureProfile(supabase: Awaited<ReturnType<typeof createClient>>) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return
+
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('id', user.id)
+    .single()
+
+  if (!existing) {
+    await supabase.from('profiles').insert({
+      id: user.id,
+      email: user.email,
+      full_name: user.user_metadata?.full_name ?? null,
+      role: 'brand_admin',
+    })
+  }
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const supabase = await createClient()
@@ -11,7 +31,8 @@ export async function GET(request: Request) {
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error) {
-      const next = searchParams.get('next') ?? '/'
+      await ensureProfile(supabase)
+      const next = searchParams.get('next') ?? '/admin'
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
@@ -22,7 +43,8 @@ export async function GET(request: Request) {
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({ type, token_hash })
     if (!error) {
-      const next = searchParams.get('next') ?? '/'
+      await ensureProfile(supabase)
+      const next = searchParams.get('next') ?? '/admin'
       return NextResponse.redirect(`${origin}${next}`)
     }
   }
