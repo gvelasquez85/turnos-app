@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getEffectiveBrandId } from '@/lib/serverBrandContext'
+import { getEffectiveBrandId, checkModuleAccess } from '@/lib/serverBrandContext'
 import { NoBrandContext } from '@/components/NoBrandContext'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import { WaTemplatesManager } from './WaTemplatesManager'
@@ -26,18 +26,10 @@ export default async function MensajesPage() {
   // Check module subscription (superadmin always has access)
   let isExpired = false
   let expiredAt: string | null = null
-  if (profile.role !== 'superadmin') {
-    const { data: sub } = await supabase
-      .from('module_subscriptions')
-      .select('status, trial_expires_at, expires_at')
-      .eq('brand_id', brandId)
-      .eq('module_key', 'mensajes')
-      .maybeSingle()
-
-    if (!sub || sub.status === 'expired') {
-      isExpired = true
-      expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
-    }
+  if (profile.role !== 'superadmin' && brandId) {
+    const access = await checkModuleAccess(supabase, brandId, 'mensajes')
+    isExpired = access.isExpired
+    expiredAt = access.expiredAt
   }
 
   // Load brand's customized templates

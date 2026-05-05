@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { MenuBuilder } from './MenuBuilder'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { checkModuleAccess } from '@/lib/serverBrandContext'
 
 export default async function MenuPage() {
   const supabase = await createClient()
@@ -47,16 +48,9 @@ export default async function MenuPage() {
   let isExpired = false
   let expiredAt: string | null = null
   if (profile.role !== 'superadmin' && profile.brand_id) {
-    const { data: sub } = await supabase
-      .from('module_subscriptions')
-      .select('status, trial_expires_at, expires_at')
-      .eq('brand_id', profile.brand_id)
-      .eq('module_key', 'menu')
-      .maybeSingle()
-    if (sub?.status === 'expired') {
-      isExpired = true
-      expiredAt = sub.trial_expires_at ?? sub.expires_at ?? null
-    }
+    const access = await checkModuleAccess(supabase, profile.brand_id, 'menu')
+    isExpired = access.isExpired
+    expiredAt = access.expiredAt
   }
 
   return (

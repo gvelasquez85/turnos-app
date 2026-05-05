@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppointmentsManager } from './AppointmentsManager'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { checkModuleAccess } from '@/lib/serverBrandContext'
 
 export default async function AppointmentsPage() {
   const supabase = await createClient()
@@ -82,17 +83,10 @@ export default async function AppointmentsPage() {
   // Check trial expiry
   let isExpired = false
   let expiredAt: string | null = null
-  if (profile.role !== 'superadmin' && profile.brand_id) {
-    const { data: sub } = await supabase
-      .from('module_subscriptions')
-      .select('status, trial_expires_at, expires_at')
-      .eq('brand_id', profile.brand_id)
-      .eq('module_key', 'appointments')
-      .maybeSingle()
-    if (sub?.status === 'expired') {
-      isExpired = true
-      expiredAt = sub.trial_expires_at ?? sub.expires_at ?? null
-    }
+  if (profile.role !== 'superadmin' && brandId) {
+    const access = await checkModuleAccess(supabase, brandId, 'appointments')
+    isExpired = access.isExpired
+    expiredAt = access.expiredAt
   }
 
   return (

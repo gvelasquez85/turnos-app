@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { BrandQueueMonitor } from './BrandQueueMonitor'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { checkModuleAccess } from '@/lib/serverBrandContext'
 
 export default async function QueueMonitorPage() {
   const supabase = await createClient()
@@ -20,16 +21,9 @@ export default async function QueueMonitorPage() {
   let isExpired = false
   let expiredAt: string | null = null
   if (profile.role !== 'superadmin' && profile.brand_id) {
-    const { data: sub } = await supabase
-      .from('module_subscriptions')
-      .select('status, trial_expires_at, expires_at')
-      .eq('brand_id', profile.brand_id)
-      .eq('module_key', 'queue')
-      .maybeSingle()
-    if (!sub || sub.status === 'expired') {
-      isExpired = true
-      expiredAt = sub?.trial_expires_at ?? sub?.expires_at ?? null
-    }
+    const access = await checkModuleAccess(supabase, profile.brand_id, 'queue')
+    isExpired = access.isExpired
+    expiredAt = access.expiredAt
   }
 
   // Cargar marcas (superadmin ve todas, brand_admin solo la suya)

@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DisplayConfig } from './DisplayConfig'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
+import { checkModuleAccess } from '@/lib/serverBrandContext'
 
 export default async function DisplayPage() {
   const supabase = await createClient()
@@ -36,26 +37,19 @@ export default async function DisplayPage() {
   }
 
   // Check if display module trial has expired (superadmin always has access)
-  let displayExpired = false
-  let displayExpiredAt: string | null = null
+  let isExpired = false
+  let expiredAt: string | null = null
   if (profile.role !== 'superadmin' && profile.brand_id) {
-    const { data: sub } = await supabase
-      .from('module_subscriptions')
-      .select('status, trial_expires_at, expires_at')
-      .eq('brand_id', profile.brand_id)
-      .eq('module_key', 'display')
-      .maybeSingle()
-    if (sub?.status === 'expired') {
-      displayExpired = true
-      displayExpiredAt = sub.trial_expires_at ?? sub.expires_at ?? null
-    }
+    const access = await checkModuleAccess(supabase, profile.brand_id, 'display')
+    isExpired = access.isExpired
+    expiredAt = access.expiredAt
   }
 
   return (
     <TrialExpiredGate
-      isExpired={displayExpired}
+      isExpired={isExpired}
       moduleLabel="Pantalla TV"
-      expiredAt={displayExpiredAt}
+      expiredAt={expiredAt}
     >
       <div>
         <div className="mb-6">
