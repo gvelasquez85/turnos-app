@@ -175,15 +175,21 @@ export function MarketplaceClient({
   async function startTrial(moduleKey: string) {
     setLoading(moduleKey)
     const supabase = createClient()
+    // If the module is free (price=0), activate directly as 'active' with no expiry
+    const mod = allModules.find(m => m.module_key === moduleKey)
+    const isFree = (mod?.price_monthly ?? 0) === 0 && !mod?.price_per_user
+    const now = new Date().toISOString()
     const trialExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString()
     const { data, error } = await supabase
       .from('module_subscriptions')
       .upsert({
         brand_id: brandId,
         module_key: moduleKey,
-        status: 'trial',
-        trial_started_at: new Date().toISOString(),
-        trial_expires_at: trialExpires,
+        status: isFree ? 'active' : 'trial',
+        trial_started_at: now,
+        trial_expires_at: isFree ? null : trialExpires,
+        activated_at: isFree ? now : null,
+        expires_at: null,
       }, { onConflict: 'brand_id,module_key' })
       .select().single()
 
