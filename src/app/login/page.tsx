@@ -53,7 +53,7 @@ function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-white px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-white px-4 py-8">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-indigo-600 text-white text-2xl font-bold mb-4">T</div>
@@ -105,14 +105,16 @@ function LoginForm() {
           <Button type="submit" loading={loading} size="lg" className="w-full mt-1">
             Ingresar
           </Button>
-        </form>
 
-        <p className="text-center text-sm text-gray-500 mt-5">
-          ¿No tienes cuenta?{' '}
-          <Link href="/register" className="text-indigo-600 hover:underline font-medium">
-            Regístrate gratis
-          </Link>
-        </p>
+          <div className="border-t border-gray-100 pt-4 text-center">
+            <p className="text-sm text-gray-500">
+              ¿No tienes cuenta?{' '}
+              <Link href="/register" className="text-indigo-600 hover:underline font-semibold">
+                Regístrate gratis
+              </Link>
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   )
