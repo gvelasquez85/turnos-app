@@ -27,7 +27,7 @@ export async function updateSession(request: NextRequest) {
   // Public routes - no auth needed
   // Todas las rutas /api/ manejan su propia autenticación — no redirigir
   const publicRoutes = [
-    '/login', '/forgot-password', '/reset-password', '/auth/',
+    '/login', '/register', '/forgot-password', '/reset-password', '/auth/',
     '/t/', '/espera/', '/book/', '/order/', '/display/', '/survey/',
     '/validar/', '/validarautorizacion',
     '/api/',   // ← todas las APIs se autentican solas (incl. Wompi webhook)
