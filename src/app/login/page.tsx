@@ -106,6 +106,13 @@ function LoginForm() {
             Ingresar
           </Button>
         </form>
+
+        <p className="text-center text-sm text-gray-500 mt-5">
+          ¿No tienes cuenta?{' '}
+          <Link href="/register" className="text-indigo-600 hover:underline font-medium">
+            Regístrate gratis
+          </Link>
+        </p>
       </div>
     </div>
   )
