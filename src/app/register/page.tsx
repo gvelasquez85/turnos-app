@@ -63,8 +63,8 @@ function RegisterForm() {
       },
     })
 
-    setLoading(false)
     if (authError) {
+      setLoading(false)
       const msg = authError.message.toLowerCase()
       if (msg.includes('already registered') || msg.includes('already exists') || msg.includes('user already registered')) {
         setError('Ya existe una cuenta con ese correo. Intenta iniciar sesión o recupera tu contraseña.')
@@ -73,9 +73,18 @@ function RegisterForm() {
       } else {
         setError(`Error: ${authError.message}`)
       }
-    } else {
-      setSuccess(true)
+      return
     }
+
+    // Send branded confirmation email via Brevo (bypasses Supabase's own mailer)
+    await fetch('/api/auth/send-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), fullName: fullName.trim() }),
+    })
+
+    setLoading(false)
+    setSuccess(true)
   }
 
   /* ── Éxito: correo enviado ─────────────────────────────────────────────── */
@@ -132,7 +141,7 @@ function RegisterForm() {
 
         {/* Beneficios */}
         <div className="flex items-center justify-center gap-4 mb-5 flex-wrap">
-          {['7 días de prueba', 'Sin tarjeta', 'Cancela cuando quieras'].map(b => (
+          {['Gratis para siempre', 'Sin tarjeta', 'Cancela cuando quieras'].map(b => (
             <span key={b} className="flex items-center gap-1 text-xs text-gray-500">
               <CheckCircle size={11} className="text-green-500" /> {b}
             </span>
