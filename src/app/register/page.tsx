@@ -58,7 +58,7 @@ function RegisterForm() {
       email: email.trim().toLowerCase(),
       password,
       options: {
-        data: { full_name: fullName.trim() },
+        data: { full_name: fullName.trim(), role: 'brand_admin' },
         emailRedirectTo: `${siteUrl}/auth/callback`,
       },
     })
