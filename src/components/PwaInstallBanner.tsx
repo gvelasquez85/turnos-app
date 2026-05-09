@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Download, X, Smartphone, ExternalLink } from 'lucide-react'
 
-type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'desktop-chrome' | 'desktop-edge' | 'desktop-firefox' | 'other'
+type Platform = 'ios' | 'android-chrome' | 'desktop-chrome' | 'desktop-edge' | 'desktop-firefox' | 'other'
 
 function detectPlatform(): Platform {
   if (typeof navigator === 'undefined') return 'other'
@@ -12,10 +12,9 @@ function detectPlatform(): Platform {
   const isChrome = /Chrome/.test(ua) && !/Edg/.test(ua)
   const isEdge = /Edg/.test(ua)
   const isFirefox = /Firefox/.test(ua)
-  const isSafari = /Safari/.test(ua) && !isChrome && !isEdge
 
-  if (isIOS && isSafari) return 'ios-safari'
-  if (isIOS) return 'ios-other'
+  // All iOS browsers use WebKit — same install flow via share button
+  if (isIOS) return 'ios'
   if (isAndroid && isChrome) return 'android-chrome'
   if (isChrome) return 'desktop-chrome'
   if (isEdge) return 'desktop-edge'
@@ -34,30 +33,17 @@ function isStandalone(): boolean {
 type StepItem = { text: string; link?: string; linkLabel?: string }
 
 const INSTRUCTIONS: Record<Platform, { title: string; steps: StepItem[] }> = {
-  'ios-safari': {
-    title: 'Instalar en iPhone / iPad (Safari)',
+  'ios': {
+    title: 'Instalar en iPhone / iPad',
     steps: [
-      { text: 'Abre esta página en Safari (si no la tienes abierta allí)' },
       { text: 'Toca el botón de Compartir (el ícono cuadrado con la flecha hacia arriba ⬆) en la barra inferior del navegador' },
-      { text: 'Desplázate hacia abajo en el menú que aparece y busca la opción "Agregar a pantalla de inicio"' },
-      { text: 'Toca "Agregar" en la esquina superior derecha. Se creará un ícono en tu pantalla de inicio' },
+      { text: 'En el menú que aparece, busca la opción "Agregar al escritorio" (o "Add to Home Screen")' },
+      { text: 'Toca "Agregar" en la esquina superior derecha. Se creará un ícono de TurnFlow en tu pantalla de inicio' },
+      { text: 'Abre TurnFlow desde el nuevo ícono — se abrirá como una app independiente, sin barras del navegador' },
       {
         text: 'Para más detalles, consulta la guía oficial de Apple',
         link: 'https://support.apple.com/en-mide/104996',
         linkLabel: 'Ver guía de Apple →',
-      },
-    ],
-  },
-  'ios-other': {
-    title: 'Instalar en iPhone / iPad',
-    steps: [
-      { text: 'Para instalar como app, necesitas abrir TurnFlow en Safari (no en Chrome ni otro navegador)' },
-      { text: 'En Safari, toca el botón de Compartir (⬆) en la barra inferior' },
-      { text: 'Selecciona "Agregar a pantalla de inicio" y luego "Agregar"' },
-      {
-        text: 'Guía detallada de Apple',
-        link: 'https://support.apple.com/en-mide/104996',
-        linkLabel: 'Ver guía →',
       },
     ],
   },
