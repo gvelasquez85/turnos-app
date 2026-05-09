@@ -99,6 +99,7 @@ export function CmsEditor() {
   const [original, setOriginal] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [toast, setToast] = useState('')
 
   useEffect(() => {
@@ -141,6 +142,18 @@ export function CmsEditor() {
     setSaving(false)
   }
 
+  async function refreshCache() {
+    setRefreshing(true)
+    const res = await fetch('/api/superadmin/site-content', { method: 'POST' })
+    if (res.ok) {
+      setToast('Cache actualizado correctamente')
+    } else {
+      setToast('Error al refrescar cache')
+    }
+    setTimeout(() => setToast(''), 3000)
+    setRefreshing(false)
+  }
+
   if (loading) {
     return <div className="p-8 text-center text-gray-500">Cargando contenido...</div>
   }
@@ -153,6 +166,14 @@ export function CmsEditor() {
           <p className="text-sm text-gray-500 mt-1">Edita los textos de la landing page</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={refreshCache}
+            disabled={refreshing}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+            title="Refresca el cache del servidor sin guardar cambios"
+          >
+            {refreshing ? 'Refrescando...' : '🔄 Refrescar cache'}
+          </button>
           <a
             href="/"
             target="_blank"

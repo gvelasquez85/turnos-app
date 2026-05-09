@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createServiceClient } from '@supabase/supabase-js'
-import { SITE_CONTENT_DEFAULTS, invalidateSiteContentCache } from '@/lib/siteContent'
+import { SITE_CONTENT_DEFAULTS, refreshSiteContentCache } from '@/lib/siteContent'
 
 async function requireSuperadmin() {
   const supabase = await createClient()
@@ -57,7 +57,18 @@ export async function PUT(req: NextRequest) {
     )
   }
 
-  invalidateSiteContentCache()
+  // Refresh file cache with latest DB data
+  await refreshSiteContentCache()
 
   return NextResponse.json({ success: true })
+}
+
+/** POST: on-demand cache refresh without saving anything */
+export async function POST() {
+  const user = await requireSuperadmin()
+  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+
+  await refreshSiteContentCache()
+
+  return NextResponse.json({ success: true, message: 'Cache actualizado' })
 }

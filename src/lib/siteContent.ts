@@ -1,4 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
+import fs from 'fs'
+import path from 'path'
 
 export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   // Hero
@@ -56,42 +58,94 @@ export const SITE_CONTENT_DEFAULTS: Record<string, string> = {
   footer_tagline: 'El CRM simple para negocios locales que quieren crecer con sus clientes.',
 }
 
-let cache: { data: Record<string, string>; ts: number } | null = null
-const CACHE_TTL = 60_000 // 60 seconds
+/* ─── File-based cache ──────────────────────────────────────────────────────── */
 
-export async function getSiteContent(): Promise<Record<string, string>> {
-  if (cache && Date.now() - cache.ts < CACHE_TTL) {
-    return cache.data
-  }
+const CACHE_DIR = path.join(process.cwd(), '.cache')
+const CACHE_FILE = path.join(CACHE_DIR, 'site-content.json')
+const CACHE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
 
-  try {
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
-
-    const { data: rows, error } = await supabase
-      .from('site_content')
-      .select('key, value')
-
-    if (error || !rows || rows.length === 0) {
-      return { ...SITE_CONTENT_DEFAULTS }
-    }
-
-    const dbValues: Record<string, string> = {}
-    for (const row of rows) {
-      dbValues[row.key] = row.value
-    }
-
-    const merged = { ...SITE_CONTENT_DEFAULTS, ...dbValues }
-    cache = { data: merged, ts: Date.now() }
-    return merged
-  } catch {
-    return { ...SITE_CONTENT_DEFAULTS }
+function ensureCacheDir() {
+  if (!fs.existsSync(CACHE_DIR)) {
+    fs.mkdirSync(CACHE_DIR, { recursive: true })
   }
 }
 
-/** Bust the in-memory cache after an update */
+function readCacheFile(): Record<string, string> | null {
+  try {
+    if (!fs.existsSync(CACHE_FILE)) return null
+    const stat = fs.statSync(CACHE_FILE)
+    // Expire after 30 days
+    if (Date.now() - stat.mtimeMs > CACHE_MAX_AGE_MS) return null
+    const raw = fs.readFileSync(CACHE_FILE, 'utf-8')
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+function writeCacheFile(data: Record<string, string>) {
+  try {
+    ensureCacheDir()
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2), 'utf-8')
+  } catch {
+    // Silently fail — cache is optional
+  }
+}
+
+async function fetchFromDb(): Promise<Record<string, string>> {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+
+  const { data: rows, error } = await supabase
+    .from('site_content')
+    .select('key, value')
+
+  if (error || !rows || rows.length === 0) {
+    return { ...SITE_CONTENT_DEFAULTS }
+  }
+
+  const dbValues: Record<string, string> = {}
+  for (const row of rows) {
+    dbValues[row.key] = row.value
+  }
+
+  return { ...SITE_CONTENT_DEFAULTS, ...dbValues }
+}
+
+/**
+ * Get site content. Reads from file cache first (valid for 30 days).
+ * Only hits DB if no cache exists or it expired.
+ */
+export async function getSiteContent(): Promise<Record<string, string>> {
+  // 1. Try file cache
+  const cached = readCacheFile()
+  if (cached) return cached
+
+  // 2. Fetch from DB and write cache
+  const data = await fetchFromDb()
+  writeCacheFile(data)
+  return data
+}
+
+/**
+ * Refresh cache on demand — fetches from DB and writes to file.
+ * Called after saving changes in the CMS.
+ */
+export async function refreshSiteContentCache(): Promise<Record<string, string>> {
+  const data = await fetchFromDb()
+  writeCacheFile(data)
+  return data
+}
+
+/** @deprecated Use refreshSiteContentCache instead */
 export function invalidateSiteContentCache() {
-  cache = null
+  try {
+    if (fs.existsSync(CACHE_FILE)) {
+      fs.unlinkSync(CACHE_FILE)
+    }
+  } catch {
+    // ignore
+  }
 }
