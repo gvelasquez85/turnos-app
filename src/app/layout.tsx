@@ -16,8 +16,14 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TurnFlow",
-  description: "Sistema de gestión de turnos",
+  description: "El CRM simple para negocios locales que quieren crecer con sus clientes.",
   icons: { icon: '/favicon.svg' },
+  openGraph: {
+    title: 'TurnFlow',
+    description: 'El CRM simple para negocios locales que quieren crecer con sus clientes.',
+    siteName: 'TurnFlow',
+    type: 'website',
+  },
 };
 
 export default function RootLayout({

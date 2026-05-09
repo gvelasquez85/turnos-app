@@ -8,7 +8,7 @@ import {
   Minus, Trash2, AlertCircle, CheckCheck, ExternalLink, Copy,
 } from 'lucide-react'
 import Link from 'next/link'
-import { buildWaMessage } from '@/lib/waTemplates'
+import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -104,11 +104,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
         ? String(Math.floor((Date.now() - new Date(quote.sent_at).getTime()) / 86400000))
         : '1',
     }
-    const defaults: Record<string, string> = {
-      quote_sent:      `Hola {{nombre}} 👋, te enviamos tu cotización de {{negocio}} por *{{total}}*. Puedes verla aquí: {{link}}`,
-      quote_followup:  `Hola {{nombre}}, hace {{dias}} días te enviamos una cotización de *{{total}}* en {{negocio}}. ¿Pudiste revisarla? Estamos listos para ayudarte: {{link}}`,
-    }
-    const body = waTemplateMap[category] ?? defaults[category]
+    const body = waTemplateMap[category] ?? WA_TEMPLATE_BY_CATEGORY[category]?.defaultBody ?? ''
     const url = buildWaMessage(body, vars, phone)
     window.open(url, '_blank')
 

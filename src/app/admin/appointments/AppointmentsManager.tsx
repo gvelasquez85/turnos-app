@@ -12,7 +12,7 @@ import {
   Settings2, Save, ToggleLeft, ToggleRight, Copy,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { buildWaMessage } from '@/lib/waTemplates'
+import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
 
 type ApptStatus = 'pending' | 'confirmed' | 'attended' | 'cancelled' | 'no_show'
 type ViewMode = 'week' | 'list' | 'settings'
@@ -482,13 +482,7 @@ export function AppointmentsManager({
       motivo: appt.visit_reasons?.name ?? '',
       link: '',
     }
-    const defaultMsgs: Record<string, string> = {
-      appointment_reminder:      `Hola {{nombre}} 👋, te recordamos tu cita en {{negocio}} el {{fecha}} a las {{hora}}. ¡Te esperamos!`,
-      appointment_confirmation:  `Hola {{nombre}} 👋, tu cita en {{negocio}} para el {{fecha}} a las {{hora}} ha sido *confirmada*. ¡Te esperamos!`,
-      appointment_cancelled:     `Hola {{nombre}}, lamentamos informarte que tu cita del {{fecha}} a las {{hora}} en {{negocio}} ha sido *cancelada*. Puedes reagendar en {{link}}.`,
-      appointment_no_show:       `Hola {{nombre}}, notamos que no pudiste asistir a tu cita de {{fecha}} en {{negocio}}. ¿Te gustaría reprogramarla?`,
-    }
-    const templateBody = waTemplateMap[category] ?? defaultMsgs[category] ?? defaultMsgs.appointment_reminder
+    const templateBody = waTemplateMap[category] ?? WA_TEMPLATE_BY_CATEGORY[category]?.defaultBody ?? ''
     const url = buildWaMessage(templateBody, vars, phone)
     window.open(url, '_blank')
   }

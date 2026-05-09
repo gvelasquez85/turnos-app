@@ -9,7 +9,7 @@ import {
   Cake, Wifi, Smartphone, Save, Loader2, ShoppingCart, CalendarCheck,
   Sparkles, Copy, RefreshCw, Send, MessageCircle,
 } from 'lucide-react'
-import { buildWaMessage } from '@/lib/waTemplates'
+import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -156,8 +156,7 @@ function CustomerSlideOver({
   function openReactivationWa() {
     const phone = customer.celular || customer.phone
     if (!phone) return
-    const defaultBody = `Hola {{nombre}} 👋, hace tiempo que no te vemos en {{negocio}}. ¡Te extrañamos! ¿Cuándo volvemos a verte?`
-    const body = waTemplateMap['customer_reactivation'] ?? defaultBody
+    const body = waTemplateMap['customer_reactivation'] ?? WA_TEMPLATE_BY_CATEGORY['customer_reactivation']?.defaultBody ?? ''
     const url = buildWaMessage(body, { nombre: customer.name, negocio: brandName }, phone)
     window.open(url, '_blank')
   }

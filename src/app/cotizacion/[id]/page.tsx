@@ -2,6 +2,55 @@ import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 import { resolveTemplate } from '@/lib/quoteTemplate'
 import { QuoteView } from '@/components/QuoteView'
+import type { Metadata } from 'next'
+
+function getService() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>
+}): Promise<Metadata> {
+  const { id } = await params
+  const service = getService()
+
+  const { data: quote } = await service
+    .from('sales')
+    .select('id, total, brands ( name, logo_url, primary_color )')
+    .eq('id', id)
+    .eq('type', 'quote')
+    .maybeSingle()
+
+  if (!quote) return { title: 'Cotización no encontrada' }
+
+  const brand = quote.brands as any
+  const brandName = brand?.name ?? 'TurnFlow'
+  const fmt = (n: number) => new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(n)
+  const title = `Cotización de ${brandName} · ${fmt(quote.total)}`
+  const description = `Cotización #COT-${id.slice(-6).toUpperCase()} por ${fmt(quote.total)}. Revisa los detalles y acepta en línea.`
+
+  const images: { url: string; width?: number; height?: number; alt?: string }[] = []
+  if (brand?.logo_url) {
+    images.push({ url: brand.logo_url, alt: brandName })
+  }
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      siteName: brandName,
+      type: 'website',
+      ...(images.length > 0 && { images }),
+    },
+  }
+}
 
 export default async function PublicQuotePage({
   params,
@@ -10,10 +59,7 @@ export default async function PublicQuotePage({
 }) {
   const { id } = await params
 
-  const service = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  )
+  const service = getService()
 
   // Load quote + brand (including saved template) + establishment
   // Use * for joins to avoid errors from columns that may not exist yet in the DB

@@ -9,7 +9,7 @@ import {
   Eye, Edit3, Truck, X, Loader2,
   User, Building2, Calendar, Package, MessageCircle,
 } from 'lucide-react'
-import { buildWaMessage } from '@/lib/waTemplates'
+import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -154,11 +154,7 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
       fecha,
       vencimiento,
     }
-    const defaults: Record<string, string> = {
-      sale_receipt:          `Hola {{nombre}} 👋, tu compra en {{negocio}} ha sido registrada. Total: *{{total}}* (Ref. {{referencia}}). ¡Gracias por tu preferencia!`,
-      sale_pending_payment:  `Hola {{nombre}}, tienes un pago pendiente de *{{total}}* en {{negocio}} con vencimiento el {{vencimiento}}. Por favor contáctanos para coordinar el pago.`,
-    }
-    const body = waTemplateMap[category] ?? defaults[category]
+    const body = waTemplateMap[category] ?? WA_TEMPLATE_BY_CATEGORY[category]?.defaultBody ?? ''
     const url = buildWaMessage(body, vars, phone)
     window.open(url, '_blank')
   }
