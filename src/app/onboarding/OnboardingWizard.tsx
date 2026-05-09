@@ -33,16 +33,6 @@ const VOCAB: Record<string, { service: string; client: string; agenda: string; p
   otros:       { service: 'servicio', client: 'cliente',  agenda: 'pedido',  product: 'producto',     clients: 'clientes' },
 }
 
-function generateSlug(name: string): string {
-  return name
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 40) || 'mi-negocio'
-}
-
 export function OnboardingWizard({ userId, brandId: initialBrandId, userName }: Props) {
   const router = useRouter()
   const [step, setStep]     = useState(0)
@@ -76,65 +66,40 @@ export function OnboardingWizard({ userId, brandId: initialBrandId, userName }: 
   const totalSteps = needsName ? 5 : 4  // +1 for name step
   const stepOffset  = needsName ? 1 : 0  // visual step 0 = name when needed
 
-  // ── Step 0: Create brand (only when no brand_id) ─────────────────────────
+  // ── Step 0: Create brand via API (bypasses RLS) ────────────────────────────
   async function handleCreateBrand() {
     if (!brandName.trim()) return
     setSaving(true)
     setError('')
-    const supabase = createClient()
 
-    const slug = generateSlug(brandName.trim())
-
-    // Create brand
-    const { data: brand, error: brandErr } = await supabase
-      .from('brands')
-      .insert({
-        name: brandName.trim(),
-        slug,
-        active: true,
-        country: 'Colombia',
-        active_modules: {
-          queue: false, appointments: false, surveys: false,
-          menu: false, display: false, mensajes: false,
-        },
-        onboarding_completed: false,
+    try {
+      const res = await fetch('/api/auth/setup-brand', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandName: brandName.trim() }),
       })
-      .select('id')
-      .single()
+      const json = await res.json()
 
-    if (brandErr || !brand) {
-      // Slug conflict — append random suffix and retry
-      const { data: brand2, error: err2 } = await supabase
-        .from('brands')
-        .insert({
-          name: brandName.trim(),
-          slug: `${slug}-${Math.floor(Math.random() * 9000) + 1000}`,
-          active: true,
-          country: 'Colombia',
-          active_modules: { queue: false, appointments: false, surveys: false, menu: false, display: false, mensajes: false },
-          onboarding_completed: false,
-        })
-        .select('id')
-        .single()
-
-      if (err2 || !brand2) {
-        setError('No se pudo crear el negocio. Intenta de nuevo.')
+      if (!res.ok) {
+        // If brand already exists (409), use the returned brandId
+        if (res.status === 409 && json.brandId) {
+          setResolvedBrandId(json.brandId)
+          setSaving(false)
+          setStep(1)
+          return
+        }
+        setError(json.error || 'No se pudo crear el negocio. Intenta de nuevo.')
         setSaving(false)
         return
       }
-      setResolvedBrandId(brand2.id)
-      // Link brand to profile
-      await supabase.from('profiles').update({ brand_id: brand2.id }).eq('id', userId)
-      // Create free membership
-      await supabase.from('memberships').insert({ brand_id: brand2.id, plan: 'free', status: 'active', max_establishments: 1, max_advisors: 1, billing_anchor_day: new Date().getDate() })
-    } else {
-      setResolvedBrandId(brand.id)
-      await supabase.from('profiles').update({ brand_id: brand.id }).eq('id', userId)
-      await supabase.from('memberships').insert({ brand_id: brand.id, plan: 'free', status: 'active', max_establishments: 1, max_advisors: 1, billing_anchor_day: new Date().getDate() })
-    }
 
-    setSaving(false)
-    setStep(1)
+      setResolvedBrandId(json.brandId)
+      setSaving(false)
+      setStep(1)
+    } catch {
+      setError('Error de conexión. Intenta de nuevo.')
+      setSaving(false)
+    }
   }
 
   // ── Final step: save everything ───────────────────────────────────────────

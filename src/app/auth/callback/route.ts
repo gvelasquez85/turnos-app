@@ -4,113 +4,57 @@ import { createClient as serviceClient } from '@supabase/supabase-js'
 import type { EmailOtpType } from '@supabase/supabase-js'
 
 /**
- * After confirming email, ensure the user has:
- *   1. A profile row (role = brand_admin)
- *   2. A brand row (name from signup metadata, slug auto-generated)
- *   3. profile.brand_id linked to the brand
- *   4. A free membership row for the brand
- *
- * Uses service role to bypass RLS on insert.
- * Returns the redirect target: '/onboarding' for new users, '/admin' for existing.
+ * After email confirmation or magic link, ensures the user has a profile
+ * with role=brand_admin, then redirects:
+ *   - Users with a brand that completed onboarding → /admin
+ *   - Everyone else → /onboarding (which handles brand creation if needed)
  */
-async function provisionNewUser(userId: string, email: string, fullName: string | null): Promise<string> {
+async function resolveDestination(userId: string, email: string, fullName: string | null): Promise<string> {
   const service = serviceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
-  // 1. Check if profile already exists (re-confirmation or password reset)
-  const { data: existingProfile } = await service
+  // Check if profile exists
+  const { data: profile } = await service
     .from('profiles')
-    .select('id, brand_id, role, full_name')
+    .select('id, brand_id, role')
     .eq('id', userId)
     .maybeSingle()
 
-  // Existing user with brand already set up → just go to admin
-  if (existingProfile?.brand_id) {
-    return '/admin'
+  if (profile?.brand_id) {
+    // Has a brand — check if onboarding is done
+    const { data: brand } = await service
+      .from('brands')
+      .select('onboarding_completed')
+      .eq('id', profile.brand_id)
+      .single()
+
+    if (brand?.onboarding_completed) {
+      return '/admin'
+    }
+    // Brand exists but onboarding not finished
+    return '/onboarding'
   }
 
-  // 2. Create or update profile
-  if (!existingProfile) {
-    await service.from('profiles').insert({
+  // No brand yet — ensure profile exists with brand_admin role
+  if (!profile) {
+    // DB trigger may have already created it; use upsert to be safe
+    await service.from('profiles').upsert({
       id: userId,
       email,
-      full_name: fullName ?? null,
+      full_name: fullName,
       role: 'brand_admin',
-    })
-  } else {
-    // Profile exists but no brand yet — ensure role and name
+    }, { onConflict: 'id' })
+  } else if (profile.role !== 'brand_admin' && profile.role !== 'superadmin') {
+    // Profile exists but with wrong role (e.g. trigger set 'advisor')
     await service.from('profiles').update({
       role: 'brand_admin',
-      full_name: fullName ?? (existingProfile as any).full_name ?? null,
+      full_name: fullName ?? undefined,
     }).eq('id', userId)
   }
 
-  // 3. Generate a unique slug from the name or email
-  const baseName = fullName?.trim() || email.split('@')[0]
-  const baseSlug = baseName
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')   // strip accents
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .slice(0, 30) || 'mi-negocio'
-
-  // Ensure slug uniqueness
-  let slug = baseSlug
-  let attempt = 0
-  while (true) {
-    const { data: existing } = await service
-      .from('brands')
-      .select('id')
-      .eq('slug', slug)
-      .maybeSingle()
-    if (!existing) break
-    attempt++
-    slug = `${baseSlug}-${attempt}`
-  }
-
-  // 4. Create the brand (name + slug; onboarding will complete the rest)
-  const { data: brand, error: brandError } = await service
-    .from('brands')
-    .insert({
-      name: baseName,
-      slug,
-      active: true,
-      country: 'Colombia',
-      active_modules: {
-        queue: false,
-        appointments: false,
-        surveys: false,
-        menu: false,
-        display: false,
-        mensajes: false,
-      },
-      onboarding_completed: false,
-    })
-    .select('id')
-    .single()
-
-  if (brandError || !brand) {
-    console.error('[auth/callback] Error creating brand:', brandError)
-    return '/admin'
-  }
-
-  // 5. Link brand to profile
-  await service.from('profiles').update({ brand_id: brand.id }).eq('id', userId)
-
-  // 6. Create free membership
-  await service.from('memberships').insert({
-    brand_id: brand.id,
-    plan: 'free',
-    status: 'active',
-    max_establishments: 1,
-    max_advisors: 1,
-    billing_anchor_day: new Date().getDate(),
-  })
-
-  // New user → onboarding to complete brand setup
+  // → Onboarding will create the brand
   return '/onboarding'
 }
 
@@ -122,14 +66,13 @@ export async function GET(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return '/login?error=auth_callback_error'
 
-    // Explicit next param wins (e.g. password reset flows)
     const next = searchParams.get('next')
     if (next) return next
 
-    return provisionNewUser(user.id, user.email!, user.user_metadata?.full_name ?? null)
+    return resolveDestination(user.id, user.email!, user.user_metadata?.full_name ?? null)
   }
 
-  // Flujo PKCE: code (confirmación email moderna, magic link, OAuth)
+  // PKCE flow: code (modern email confirmation, magic link, OAuth)
   const code = searchParams.get('code')
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code)
@@ -139,7 +82,7 @@ export async function GET(request: Request) {
     }
   }
 
-  // Flujo legacy: token_hash (invitaciones, confirmaciones antiguas)
+  // Legacy flow: token_hash (invitations, old-style confirmations)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
   if (token_hash && type) {
