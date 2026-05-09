@@ -437,28 +437,8 @@ function AppShellInner({
           })}
         </nav>
 
-        {/* Footer */}
+        {/* Footer — quick actions only */}
         <div className="shrink-0 border-t border-gray-100 dark:border-gray-800 p-2">
-          <Link
-            href="/profile"
-            onClick={() => setMobileOpen(false)}
-            title={isCollapsed ? 'Mi perfil' : undefined}
-            className={cn(
-              'flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors mb-1 w-full text-left',
-              isCollapsed && 'justify-center',
-            )}
-          >
-            <UserCircle size={18} className="text-gray-400 dark:text-gray-500 shrink-0" />
-            {!isCollapsed && (
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{fullName || email}</p>
-                {subtitle
-                  ? <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{subtitle}</p>
-                  : <p className="text-xs text-gray-400 dark:text-gray-500">{roleLabel[role]}</p>
-                }
-              </div>
-            )}
-          </Link>
           {/* Pantalla TV (advisor with establishment) — solo si módulo queue activo */}
           {activeRole === 'advisor' && establishmentSlug && activeModules?.queue === true && (
             <a
@@ -503,43 +483,17 @@ function AppShellInner({
               {!isCollapsed && <span>Salir de vista asesor</span>}
             </button>
           )}
-          {/* Language selector — superadmin only */}
-          {!isCollapsed && role === 'superadmin' && (
-            <div className="px-2 py-1">
-              <select
-                value={lang}
-                onChange={e => setLang(e.target.value as LangCode)}
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 focus:border-indigo-400 focus:outline-none cursor-pointer"
-                title="Idioma / Language"
-              >
-                {SUPPORTED_LANGUAGES.map(l => (
-                  <option key={l.code} value={l.code}>{l.label}</option>
-                ))}
-              </select>
-            </div>
-          )}
           {/* Dark mode toggle */}
           <button
             onClick={toggleDark}
             title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
             className={cn(
-              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 w-full transition-colors mb-1',
+              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 w-full transition-colors',
               isCollapsed && 'justify-center',
             )}
           >
             {dark ? <Sun size={15} /> : <Moon size={15} />}
             {!isCollapsed && <span>{dark ? 'Modo claro' : 'Modo oscuro'}</span>}
-          </button>
-          <button
-            onClick={handleLogout}
-            title={isCollapsed ? 'Cerrar sesión' : undefined}
-            className={cn(
-              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 w-full transition-colors',
-              isCollapsed && 'justify-center',
-            )}
-          >
-            <LogOut size={15} />
-            {!isCollapsed && <span>{t('action.signOut')}</span>}
           </button>
         </div>
       </>
@@ -550,7 +504,7 @@ function AppShellInner({
     <div className="min-h-screen flex bg-gray-50 dark:bg-gray-950">
       {/* Desktop sidebar */}
       <aside className={cn(
-        'fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col z-30 transition-all duration-200 hidden md:flex',
+        'fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col z-30 transition-all duration-200 hidden md:flex overflow-hidden',
         collapsed ? 'w-16' : 'w-56',
       )}>
         <SidebarContent />
@@ -566,7 +520,7 @@ function AppShellInner({
 
       {/* Mobile sidebar */}
       <aside className={cn(
-        'fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col z-30 transition-transform duration-200 w-64 md:hidden',
+        'fixed left-0 top-0 h-full bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex flex-col z-30 transition-transform duration-200 w-64 md:hidden overflow-hidden',
         mobileOpen ? 'translate-x-0' : '-translate-x-full',
       )}>
         <SidebarContent mobile />
@@ -577,13 +531,48 @@ function AppShellInner({
         'flex-1 min-h-screen transition-all duration-200',
         collapsed ? 'md:ml-16' : 'md:ml-56',
       )}>
-        {/* Mobile topbar */}
-        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 h-14 flex items-center gap-3 md:hidden">
-          <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
-            <Menu size={20} />
-          </button>
-          <TurnFlowLogo size={24} />
-          <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">TurnFlow</span>
+        {/* Top bar — profile, logout, lang */}
+        <div className="sticky top-0 z-10 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 h-14 flex items-center justify-between">
+          {/* Left: mobile hamburger + logo */}
+          <div className="flex items-center gap-3 md:hidden">
+            <button onClick={() => setMobileOpen(true)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
+              <Menu size={20} />
+            </button>
+            <TurnFlowLogo size={24} />
+            <span className="font-bold text-gray-900 dark:text-gray-100 text-sm">TurnFlow</span>
+          </div>
+          {/* Left spacer on desktop */}
+          <div className="hidden md:block" />
+
+          {/* Right: profile + actions */}
+          <div className="flex items-center gap-2">
+            {role === 'superadmin' && (
+              <select
+                value={lang}
+                onChange={e => setLang(e.target.value as LangCode)}
+                className="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 focus:border-indigo-400 focus:outline-none cursor-pointer"
+                title="Idioma / Language"
+              >
+                {SUPPORTED_LANGUAGES.map(l => (
+                  <option key={l.code} value={l.code}>{l.label}</option>
+                ))}
+              </select>
+            )}
+            <Link
+              href="/profile"
+              className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+            >
+              <UserCircle size={20} className="text-gray-400 dark:text-gray-500 shrink-0" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden sm:inline truncate max-w-[140px]">{fullName || email}</span>
+            </Link>
+            <button
+              onClick={handleLogout}
+              title="Cerrar sesión"
+              className="p-2 rounded-lg text-gray-400 dark:text-gray-500 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+            >
+              <LogOut size={17} />
+            </button>
+          </div>
         </div>
         <div className="p-4 md:p-6 lg:p-8">
           {children}

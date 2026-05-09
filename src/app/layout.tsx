@@ -18,12 +18,22 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TurnFlow",
   description: "El CRM simple para negocios locales que quieren crecer con sus clientes.",
-  icons: { icon: '/favicon.svg', apple: '/icons/icon-192.png' },
+  icons: {
+    icon: '/favicon.svg',
+    apple: [
+      { url: '/icons/icon-192.png', sizes: '192x192' },
+      { url: '/icons/icon-512.png', sizes: '512x512' },
+    ],
+  },
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: 'TurnFlow',
+    startupImage: '/icons/icon-512.png',
+  },
+  other: {
+    'mobile-web-app-capable': 'yes',
   },
   openGraph: {
     title: 'TurnFlow',
