@@ -893,6 +893,18 @@ function CreateModal({ brandId, onClose, onCreated }: {
   async function handleCreate() {
     if (!form.name.trim()) return
     setSaving(true); setError('')
+
+    // Check plan limits
+    try {
+      const limitRes = await fetch('/api/plan-limits/check?resource=clients')
+      const limitData = await limitRes.json()
+      if (!limitData.allowed) {
+        setError(`Has alcanzado el límite de ${limitData.max} clientes de tu plan ${limitData.plan === 'free' ? 'Gratis' : limitData.plan}. Actualiza tu plan para agregar más.`)
+        setSaving(false)
+        return
+      }
+    } catch {}
+
     const supabase = createClient()
     const { data, error: err } = await supabase
       .from('customers')

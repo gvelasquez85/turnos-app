@@ -18,8 +18,7 @@ type ProfileRow = {
 
 // Roles que brand_admin puede crear dentro de su marca
 const BRAND_ROLES: { value: UserRole; label: string; description: string }[] = [
-  { value: 'advisor', label: 'Agente', description: 'Atiende la cola de espera' },
-  { value: 'manager', label: 'Manager', description: 'Configura sucursales, motivos y promociones' },
+  { value: 'advisor', label: 'Agente', description: 'Encargado de atención de clientes' },
   { value: 'reporting', label: 'Reporting', description: 'Solo accede a reportes' },
 ]
 

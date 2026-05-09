@@ -100,9 +100,25 @@ export function InventarioManager({ brandId, products: initial, establishments }
     setShowForm(true)
   }
 
+  const [saveError, setSaveError] = useState('')
+
   async function handleSave() {
     if (!form.name.trim()) return
-    setSaving(true)
+    setSaving(true); setSaveError('')
+
+    // Check plan limits when creating (not editing)
+    if (!editProduct) {
+      try {
+        const limitRes = await fetch('/api/plan-limits/check?resource=products')
+        const limitData = await limitRes.json()
+        if (!limitData.allowed) {
+          setSaveError(`Has alcanzado el límite de ${limitData.max} productos de tu plan ${limitData.plan === 'free' ? 'Gratis' : limitData.plan}. Actualiza tu plan para agregar más.`)
+          setSaving(false)
+          return
+        }
+      } catch {}
+    }
+
     const supabase = createClient()
     const payload = {
       brand_id: brandId,
@@ -528,6 +544,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
                 </div>
               )}
             </div>
+            {saveError && (
+              <div className="mx-5 mb-0 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{saveError}</div>
+            )}
             <div className="p-5 border-t border-gray-100 flex gap-2">
               <button
                 onClick={handleSave}

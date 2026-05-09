@@ -185,5 +185,10 @@ export async function getVerifiedActiveModules(
     }
   }
 
+  // Consents module depends on queue being active
+  if (!base.queue) {
+    base.consents = false
+  }
+
   return base
 }

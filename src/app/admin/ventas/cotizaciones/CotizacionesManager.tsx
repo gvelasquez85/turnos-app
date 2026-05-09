@@ -91,7 +91,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
   const waTemplateMap = useMemo(() => Object.fromEntries(waTemplates.map(t => [t.category, t.body])), [waTemplates])
 
-  function openQuoteWa(quote: Quote, category: 'quote_sent' | 'quote_followup') {
+  async function openQuoteWa(quote: Quote, category: 'quote_sent' | 'quote_followup') {
     const phone = quote.customers?.phone
     if (!phone) return
     const quoteLink = `${window.location.origin}/cotizacion/${quote.id}`
@@ -111,6 +111,17 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
     const body = waTemplateMap[category] ?? defaults[category]
     const url = buildWaMessage(body, vars, phone)
     window.open(url, '_blank')
+
+    // Ask to mark as sent
+    if (quote.status === 'draft') {
+      const markSent = window.confirm('¿Deseas marcar esta cotización como enviada?')
+      if (markSent) {
+        const supabase = createClient()
+        const now = new Date().toISOString()
+        await supabase.from('sales').update({ status: 'sent', sent_at: now }).eq('id', quote.id)
+        setQuotes(qs => qs.map(q => q.id === quote.id ? { ...q, status: 'sent', sent_at: now } : q))
+      }
+    }
   }
 
   const filtered = useMemo(() => {

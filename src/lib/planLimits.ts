@@ -181,10 +181,12 @@ export const CORE_MODULES = [
   'crm',
   'sales',
   'display',
-  'consents',
   'advisor_fields',
   'forms',
 ]
+
+/** Modules that require the queue module to be active */
+export const QUEUE_DEPENDENT_MODULES = ['consents']
 
 export const PLAN_LIMITS: Record<string, PlanLimits> = {
   free: {

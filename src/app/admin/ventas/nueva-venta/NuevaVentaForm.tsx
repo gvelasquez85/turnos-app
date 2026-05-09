@@ -85,6 +85,18 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
   async function handleSave() {
     if (items.length === 0) return
     setSaving(true)
+
+    // Check plan limits for sales
+    try {
+      const limitRes = await fetch('/api/plan-limits/check?resource=sales')
+      const limitData = await limitRes.json()
+      if (!limitData.allowed) {
+        setSaving(false)
+        alert(`Has alcanzado el límite de ${limitData.max} ventas mensuales de tu plan. Actualiza tu plan para registrar más ventas.`)
+        return
+      }
+    } catch {}
+
     const supabase = createClient()
 
     const salePayload = {
@@ -115,6 +127,30 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
       line_total: it.qty * it.unit_price - it.discount,
     }))
     await supabase.from('sale_items').insert(lineItems)
+
+    // Auto-send email for quotes if customer has email
+    if (type === 'quote' && sale?.id && customerId) {
+      try {
+        const { data: customer } = await supabase
+          .from('customers')
+          .select('email, name')
+          .eq('id', customerId)
+          .single()
+        if (customer?.email) {
+          await fetch('/api/admin/quotes/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              quoteId: sale.id,
+              recipientEmail: customer.email,
+              recipientName: customer.name ?? '',
+              subject: `Cotización #COT-${sale.id.slice(-6).toUpperCase()}`,
+              message: '',
+            }),
+          })
+        }
+      } catch {}
+    }
 
     // Decrease stock via server API (reads fresh stock from DB)
     if (type === 'sale' && sale?.id) {

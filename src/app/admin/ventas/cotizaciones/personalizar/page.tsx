@@ -20,7 +20,7 @@ export default async function QuoteDesignerPage() {
 
   // Load brand info including saved template
   const { data: brand } = await supabase
-    .from('brands').select('id, name, logo_url, quote_template').eq('id', brandId).single()
+    .from('brands').select('id, name, logo_url, quote_template, primary_color').eq('id', brandId).single()
 
   return (
     <QuoteDesigner
@@ -28,6 +28,7 @@ export default async function QuoteDesignerPage() {
       brandName={brand?.name ?? ''}
       brandLogoUrl={(brand as any)?.logo_url ?? null}
       savedTemplate={(brand as any)?.quote_template ?? null}
+      brandPrimaryColor={(brand as any)?.primary_color ?? null}
     />
   )
 }

@@ -273,11 +273,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ─── Main Designer ─────────────────────────────────────────────────────────────
 
-export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate }: {
+export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate, brandPrimaryColor }: {
   brandId: string
   brandName: string
   brandLogoUrl: string | null
   savedTemplate?: Partial<QuoteTemplate> | null
+  brandPrimaryColor?: string | null
 }) {
   const [template, setTemplate] = useState<QuoteTemplate>(() => resolveTemplate(savedTemplate))
   const [saving, setSaving] = useState(false)
@@ -366,6 +367,14 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate 
                 <div>
                   <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Paleta de colores</p>
                   <div className="flex flex-wrap gap-2 mb-3">
+                    {brandPrimaryColor && !COLOR_PRESETS.some(p => p.primary.toLowerCase() === brandPrimaryColor.toLowerCase()) && (
+                      <button
+                        onClick={() => setTemplate(prev => ({ ...prev, primaryColor: brandPrimaryColor, tableHeaderBg: brandPrimaryColor }))}
+                        title="Color de tu marca"
+                        className="w-7 h-7 rounded-full border-2 border-indigo-400 shadow-sm hover:scale-110 transition-transform ring-2 ring-offset-1 ring-indigo-300"
+                        style={{ background: brandPrimaryColor }}
+                      />
+                    )}
                     {COLOR_PRESETS.map(p => (
                       <button
                         key={p.name}

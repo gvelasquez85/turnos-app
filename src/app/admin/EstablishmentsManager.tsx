@@ -389,9 +389,11 @@ export function EstablishmentsManager({ establishments: initial, brands, default
                     <Settings2 size={15} />
                   </Button>
                 )}
-                <Button size="sm" variant="ghost" onClick={() => showQR(est.slug)}>
-                  <QrCode size={15} />
-                </Button>
+                {hasQueue && (
+                  <Button size="sm" variant="ghost" onClick={() => showQR(est.slug)}>
+                    <QrCode size={15} />
+                  </Button>
+                )}
                 <Button size="sm" variant="ghost" onClick={() => openEdit(est)}>
                   <Edit2 size={15} />
                 </Button>
