@@ -158,20 +158,37 @@ const CASES = [
 
 const FREE_FEATURES = [
   'Módulo Clientes completo',
-  '1 sucursal incluida',
-  '2 usuarios incluidos',
-  'Cola de espera lite (QR)',
-  'Historial completo',
-  'Tags y recordatorios',
+  '1 sucursal · 1 usuario',
+  'Hasta 30 clientes',
+  'Hasta 20 productos/servicios',
+  'Hasta 20 ventas al mes',
+  'Historial y tags',
 ]
 
-const PRO_FEATURES = [
-  'Todo del plan gratuito',
-  'Panel de asesores en tiempo real',
-  'Pantalla TV de llamado',
-  'Reportes de espera y analítica',
-  'Múltiples sucursales',
+const ESSENTIAL_FEATURES = [
+  'Todo del plan Gratis',
+  'Hasta 300 clientes',
+  'Hasta 100 productos',
+  'Ventas ilimitadas',
+  '2 sucursales · 6 usuarios',
+  'Cotizaciones y agenda',
+]
+
+const BUSINESS_FEATURES = [
+  'Todo del plan Esencial',
+  'Clientes ilimitados',
+  'Productos ilimitados',
+  '5 sucursales · 16 usuarios',
+  'Inventario con alertas',
   'Soporte prioritario por WhatsApp',
+]
+
+const ENTERPRISE_FEATURES = [
+  'Todo del plan Negocio',
+  'Sucursales y usuarios ilimitados',
+  'Configuración personalizada',
+  'Integraciones a medida',
+  'Soporte dedicado',
 ]
 
 /* ─── Small helpers ──────────────────────────────────────────────────────────── */
@@ -520,7 +537,7 @@ export function LandingPage() {
 .tf-case-person { font-size: 12px; color: var(--ink-500); margin-top: 12px; }
 
 /* Pricing */
-.tf-pricing-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; max-width: 880px; margin: 0 auto; }
+.tf-pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 1100px; margin: 0 auto; }
 .tf-price-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-xl); padding: 36px; display: flex; flex-direction: column; position: relative; }
 .tf-price-card-pro { background: linear-gradient(180deg, var(--ink-900) 0%, #161B30 100%); color: white; border-color: var(--ink-900); box-shadow: var(--shadow-glow); }
 .tf-price-badge { position: absolute; top: -10px; right: 24px; background: linear-gradient(135deg, var(--indigo-400), var(--indigo-600)); color: white; padding: 4px 12px; border-radius: var(--r-full); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 0 4px 10px rgba(99,102,241,0.4); }
@@ -582,6 +599,9 @@ export function LandingPage() {
   .tf-roi-inputs, .tf-roi-result { padding: 28px; }
   .tf-roi-amount { font-size: 36px; }
   .tf-cases-grid { grid-template-columns: 1fr; }
+  .tf-pricing-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
   .tf-pricing-grid { grid-template-columns: 1fr; }
   .tf-final-card { padding: 56px 24px; }
   .tf-final-form { flex-direction: column; padding: 12px; border-radius: var(--r-lg); }
@@ -1172,29 +1192,71 @@ export function LandingPage() {
                   <li key={f}><CheckIcon />{f}</li>
                 ))}
               </ul>
-              <Link href="/setup" className="tf-btn tf-btn-ghost" style={{ justifyContent: 'center' }}>
+              <Link href="/register" className="tf-btn tf-btn-ghost" style={{ justifyContent: 'center' }}>
                 Empezar gratis
               </Link>
             </div>
 
-            {/* Pro plan */}
-            <div className="tf-price-card tf-price-card-pro">
-              <span className="tf-price-badge">Más popular</span>
-              <div className="tf-price-name">Profesional</div>
-              <div className="tf-price-amount" style={{ color: 'white' }}>
+            {/* Essential plan */}
+            <div className="tf-price-card">
+              <div className="tf-price-name">Esencial</div>
+              <div className="tf-price-amount">
                 <span className="tf-price-currency">$</span>
-                119k
+                29.900
                 <span className="tf-price-suffix">/mes</span>
               </div>
-              <div className="tf-price-period">Por sucursal · cancela cuando quieras</div>
+              <div className="tf-price-period">Cancela cuando quieras</div>
               <ul className="tf-price-features">
-                {PRO_FEATURES.map(f => (
+                {ESSENTIAL_FEATURES.map(f => (
+                  <li key={f}><CheckIcon />{f}</li>
+                ))}
+              </ul>
+              <Link href="/register" className="tf-btn tf-btn-ghost" style={{ justifyContent: 'center' }}>
+                Empezar gratis
+              </Link>
+            </div>
+
+            {/* Business plan */}
+            <div className="tf-price-card tf-price-card-pro">
+              <span className="tf-price-badge">Más popular</span>
+              <div className="tf-price-name">Negocio</div>
+              <div className="tf-price-amount" style={{ color: 'white' }}>
+                <span className="tf-price-currency">$</span>
+                59.900
+                <span className="tf-price-suffix">/mes</span>
+              </div>
+              <div className="tf-price-period">Cancela cuando quieras</div>
+              <ul className="tf-price-features">
+                {BUSINESS_FEATURES.map(f => (
                   <li key={f}><CheckIcon dark />{f}</li>
                 ))}
               </ul>
-              <Link href="/setup" className="tf-btn tf-btn-indigo" style={{ justifyContent: 'center' }}>
-                Empezar prueba gratis
+              <Link href="/register" className="tf-btn tf-btn-indigo" style={{ justifyContent: 'center' }}>
+                Empezar gratis
               </Link>
+            </div>
+
+            {/* Enterprise plan */}
+            <div className="tf-price-card">
+              <div className="tf-price-name">Empresarial</div>
+              <div className="tf-price-amount">
+                <span className="tf-price-currency" style={{ fontSize: 16 }}>A medida</span>
+              </div>
+              <div className="tf-price-period">Lo construimos a tu necesidad</div>
+              <ul className="tf-price-features">
+                {ENTERPRISE_FEATURES.map(f => (
+                  <li key={f}><CheckIcon />{f}</li>
+                ))}
+              </ul>
+              <a
+                href="https://wa.me/573001234567?text=Hola%2C+quiero+información+sobre+el+plan+Empresarial+de+TurnFlow"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="tf-btn tf-btn-ghost"
+                style={{ justifyContent: 'center' }}
+              >
+                Solicitar información
+              </a>
             </div>
           </div>
         </div>

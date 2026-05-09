@@ -3,7 +3,7 @@
 // All amounts in COP (Colombian Pesos), IVA incluido.
 // ══════════════════════════════════════════════════════════════════════════════
 
-export type PlanKey = 'free' | 'essential' | 'business'
+export type PlanKey = 'free' | 'essential' | 'business' | 'enterprise'
 
 export interface PlanDef {
   key: PlanKey
@@ -72,14 +72,14 @@ export const PLANS: Record<PlanKey, PlanDef> = {
     maxClients: null,
     maxProducts: null,
     maxSalesPerMonth: null,
-    maxEstablishments: 3,
+    maxEstablishments: 5,
     maxUsers: 16,
     description: 'Para negocios que venden todos los días',
     highlighted: true,
     features: [
       'Clientes ilimitados',
       'Productos/servicios ilimitados',
-      'Hasta 3 sucursales · 16 usuarios',
+      'Hasta 5 sucursales · 16 usuarios',
       'Cotizaciones + seguimiento completo',
       'Inventario con alertas',
       'Dashboard ventas, clientes e inventario',
@@ -88,9 +88,28 @@ export const PLANS: Record<PlanKey, PlanDef> = {
       'Soporte prioritario por WhatsApp',
     ],
   },
+  enterprise: {
+    key: 'enterprise',
+    name: 'Empresarial',
+    price: 0,
+    priceAnnual: 0,
+    maxClients: null,
+    maxProducts: null,
+    maxSalesPerMonth: null,
+    maxEstablishments: 9999,
+    maxUsers: 9999,
+    description: 'Lo construimos a tu necesidad',
+    features: [
+      'Todo lo del plan Negocio',
+      'Sucursales y usuarios ilimitados',
+      'Configuración personalizada',
+      'Soporte dedicado',
+      'Integraciones a medida',
+    ],
+  },
 }
 
-export const PLAN_ORDER: PlanKey[] = ['free', 'essential', 'business']
+export const PLAN_ORDER: PlanKey[] = ['free', 'essential', 'business', 'enterprise']
 
 // ── Add-on prices (COP/mes) ──────────────────────────────────────────────────
 
@@ -110,10 +129,10 @@ export type AddonKey = keyof typeof ADDON_PRICES_COP
  */
 export function normalizePlan(plan: string | null | undefined): PlanKey {
   if (!plan) return 'free'
-  if (plan === 'essential' || plan === 'business') return plan
+  if (plan === 'essential' || plan === 'business' || plan === 'enterprise') return plan
   if (plan === 'free') return 'free'
   if (plan === 'basic') return 'essential'
-  if (['professional', 'enterprise', 'enterprise_plus', 'standard'].includes(plan)) return 'business'
+  if (['professional', 'enterprise_plus', 'standard'].includes(plan)) return 'business'
   return 'free'
 }
 
@@ -257,15 +276,15 @@ export const PLAN_LIMITS: Record<string, PlanLimits> = {
     hasMenu: false,
   },
   enterprise: {
-    label: 'Negocio (legado)',
+    label: 'Empresarial',
     priceMonthly: null,
-    maxEstablishments: 9999,
-    maxAdvisors: 9999,
-    modules: CORE_MODULES,
+    maxEstablishments: PLANS.enterprise.maxEstablishments,
+    maxAdvisors: PLANS.enterprise.maxUsers,
+    modules: [...CORE_MODULES, 'surveys', 'appointments', 'menu'],
     hasReports: true,
-    hasSurveys: false,
-    hasAppointments: false,
-    hasMenu: false,
+    hasSurveys: true,
+    hasAppointments: true,
+    hasMenu: true,
   },
   enterprise_plus: {
     label: 'Negocio (legado)',

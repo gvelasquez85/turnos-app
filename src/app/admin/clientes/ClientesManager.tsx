@@ -844,7 +844,7 @@ function CustomerSlideOver({
                   {(customer.phone || customer.celular) && (
                     <div className="px-4 pb-3">
                       <a
-                        href={`https://wa.me/57${(customer.phone || customer.celular || '').replace(/\D/g, '')}?text=${encodeURIComponent(aiMessage)}`}
+                        href={buildWaMessage(aiMessage, {}, customer.phone || customer.celular || '')}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 transition-colors"

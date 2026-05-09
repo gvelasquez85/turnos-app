@@ -127,7 +127,8 @@ function buildSections(
     if (activeModules?.menu === true) {
       advisorSections.push({ key: 'menu_preorden', section: 'Menú / Preorden', sectionKey: 'section.menu', items: MENU_ITEMS })
     }
-    advisorSections.push({ key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS })
+    const clientesItems = activeModules?.queue ? CLIENTES_ITEMS : CLIENTES_ITEMS.filter(i => i.href !== '/admin/consents')
+    advisorSections.push({ key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: clientesItems })
     advisorSections.push({ key: 'ventas', section: 'Ventas', sectionKey: 'section.sales', items: VENTAS_ITEMS })
     return [{ key: 'home', section: 'Inicio', sectionKey: 'nav.home', items: [HOME_ITEM] }, ...advisorSections]
   }
@@ -168,10 +169,11 @@ function buildSections(
   // brand_admin / manager
   const brandItems = role === 'brand_admin' ? BRAND_ITEMS : MANAGER_BRAND_ITEMS
 
+  const clientesFiltered = activeModules?.queue ? CLIENTES_ITEMS : CLIENTES_ITEMS.filter(i => i.href !== '/admin/consents')
   const sections: NavSection[] = [
     { key: 'home', section: 'Inicio', sectionKey: 'nav.home', items: [HOME_ITEM] },
     { key: 'marca', section: 'Mi Marca', sectionKey: 'section.myBrand', items: brandItems },
-    { key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: CLIENTES_ITEMS },
+    { key: 'clientes', section: 'Clientes', sectionKey: 'section.clients', items: clientesFiltered },
   ]
 
   // Queue module — paid, includes Promotions when active
