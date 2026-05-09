@@ -7,6 +7,7 @@ import {
   CheckCircle, ArrowRight, Clock, CalendarClock,
 } from 'lucide-react'
 import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
+import { PwaInstallBanner } from '@/components/PwaInstallBanner'
 
 interface Sale { id: string; total: number; status: string; created_at: string }
 
@@ -146,6 +147,9 @@ export function HomePanel({
 
   return (
     <div className="space-y-6">
+
+      {/* PWA Install Banner */}
+      <PwaInstallBanner />
 
       {/* Header */}
       <div>
