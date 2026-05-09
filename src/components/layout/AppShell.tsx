@@ -11,13 +11,12 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
   ShoppingCart, Package, FileCheck, PieChart, TrendingUp,
-  Sun, Moon,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
 import { I18nProvider, useT } from '@/lib/i18n/context'
 import { SUPPORTED_LANGUAGES, type LangCode } from '@/lib/i18n/translations'
-import { useDarkMode } from '@/hooks/useDarkMode'
+// Dark mode toggle moved to /profile → ProfileSettings.tsx
 
 export type AppRole = 'superadmin' | 'brand_admin' | 'manager' | 'advisor' | 'reporting'
 
@@ -237,7 +236,7 @@ function AppShellInner({
   brands: initialBrands, activeModules, plan,
 }: AppShellProps) {
   const { t, lang, setLang } = useT()
-  const { dark, toggle: toggleDark } = useDarkMode()
+  // Dark mode toggle moved to profile settings
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [viewAs, setViewAs] = useState<AppRole | null>(null)
@@ -430,6 +429,20 @@ function AppShellInner({
                         </Link>
                       )
                     })}
+                    {/* "Ver como agente" — inside queue section */}
+                    {section.key === 'colas' && CAN_IMPERSONATE.includes(role) && !viewAs && (
+                      <button
+                        onClick={startImpersonate}
+                        title={isCollapsed ? 'Ver como agente' : undefined}
+                        className={cn(
+                          'flex items-center gap-3 px-2 py-2 rounded-lg text-sm text-indigo-500 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 w-full transition-colors',
+                          isCollapsed && 'justify-center',
+                        )}
+                      >
+                        <Eye size={17} className="shrink-0" />
+                        {!isCollapsed && <span>Ver como agente</span>}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -455,27 +468,13 @@ function AppShellInner({
               {!isCollapsed && <span>Pantalla TV</span>}
             </a>
           )}
-          {/* Botón ver como agente */}
-          {CAN_IMPERSONATE.includes(role) && !viewAs && (
-            <button
-              onClick={startImpersonate}
-              title={isCollapsed ? 'Ver como agente' : undefined}
-              className={cn(
-                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-indigo-500 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 w-full transition-colors mb-1',
-                isCollapsed && 'justify-center',
-              )}
-            >
-              <Eye size={15} />
-              {!isCollapsed && <span>Ver como agente</span>}
-            </button>
-          )}
-          {/* Salir de vista asesor */}
+          {/* Salir de vista asesor — only shown during impersonation */}
           {viewAs && (
             <button
               onClick={stopImpersonate}
               title={isCollapsed ? 'Salir de vista asesor' : undefined}
               className={cn(
-                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 w-full transition-colors mb-1',
+                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-amber-600 dark:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 w-full transition-colors',
                 isCollapsed && 'justify-center',
               )}
             >
@@ -483,18 +482,6 @@ function AppShellInner({
               {!isCollapsed && <span>Salir de vista asesor</span>}
             </button>
           )}
-          {/* Dark mode toggle */}
-          <button
-            onClick={toggleDark}
-            title={dark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
-            className={cn(
-              'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 w-full transition-colors',
-              isCollapsed && 'justify-center',
-            )}
-          >
-            {dark ? <Sun size={15} /> : <Moon size={15} />}
-            {!isCollapsed && <span>{dark ? 'Modo claro' : 'Modo oscuro'}</span>}
-          </button>
         </div>
       </>
     )

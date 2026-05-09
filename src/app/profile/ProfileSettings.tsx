@@ -4,7 +4,8 @@ import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select } from '@/components/ui/select'
-import { User, Lock, Check, AlertCircle, Store } from 'lucide-react'
+import { User, Lock, Check, AlertCircle, Store, Settings, Sun, Moon } from 'lucide-react'
+import { useDarkMode } from '@/hooks/useDarkMode'
 
 interface Props {
   userId: string
@@ -17,7 +18,8 @@ interface Props {
 
 export function ProfileSettings({ userId, fullName, email: initialEmail, role, currentEstablishmentId, establishments = [] }: Props) {
   const showEstPicker = (role === 'advisor' || role === 'manager') && establishments.length > 0
-  const [tab, setTab] = useState<'info' | 'password' | 'sucursal'>('info')
+  const { dark, toggle: toggleDark } = useDarkMode()
+  const [tab, setTab] = useState<'info' | 'password' | 'sucursal' | 'preferences'>('info')
 
   // Info tab
   const [name, setName] = useState(fullName)
@@ -97,6 +99,7 @@ export function ProfileSettings({ userId, fullName, email: initialEmail, role, c
     { key: 'info' as const, label: 'Información', icon: User },
     { key: 'password' as const, label: 'Contraseña', icon: Lock },
     ...(showEstPicker ? [{ key: 'sucursal' as const, label: 'Mi sucursal', icon: Store }] : []),
+    { key: 'preferences' as const, label: 'Preferencias', icon: Settings },
   ]
 
   return (
@@ -150,6 +153,26 @@ export function ProfileSettings({ userId, fullName, email: initialEmail, role, c
             </div>
           )}
           <div className="pt-1"><Button onClick={handleChangePassword} loading={pwdSaving}>Cambiar contraseña</Button></div>
+        </div>
+      )}
+
+      {/* Preferences tab */}
+      {tab === 'preferences' && (
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">Modo oscuro</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Cambia entre el tema claro y oscuro</p>
+            </div>
+            <button
+              onClick={toggleDark}
+              className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${dark ? 'bg-indigo-600' : 'bg-gray-300'}`}
+            >
+              <span className={`inline-flex h-5 w-5 items-center justify-center rounded-full bg-white shadow-sm transform transition-transform ${dark ? 'translate-x-6' : 'translate-x-1'}`}>
+                {dark ? <Moon size={12} className="text-indigo-600" /> : <Sun size={12} className="text-amber-500" />}
+              </span>
+            </button>
+          </div>
         </div>
       )}
 

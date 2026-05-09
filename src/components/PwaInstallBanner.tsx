@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { Download, X, Smartphone } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+import { Download, X, Smartphone, ExternalLink } from 'lucide-react'
 
-type Platform = 'ios-safari' | 'android-chrome' | 'desktop-chrome' | 'desktop-edge' | 'desktop-firefox' | 'other'
+type Platform = 'ios-safari' | 'ios-other' | 'android-chrome' | 'desktop-chrome' | 'desktop-edge' | 'desktop-firefox' | 'other'
 
 function detectPlatform(): Platform {
   if (typeof navigator === 'undefined') return 'other'
@@ -15,7 +15,7 @@ function detectPlatform(): Platform {
   const isSafari = /Safari/.test(ua) && !isChrome && !isEdge
 
   if (isIOS && isSafari) return 'ios-safari'
-  if (isIOS) return 'ios-safari' // Chrome on iOS still uses Safari engine
+  if (isIOS) return 'ios-other'
   if (isAndroid && isChrome) return 'android-chrome'
   if (isChrome) return 'desktop-chrome'
   if (isEdge) return 'desktop-edge'
@@ -31,52 +31,82 @@ function isStandalone(): boolean {
   )
 }
 
-const INSTRUCTIONS: Record<Platform, { title: string; steps: string[] }> = {
+type StepItem = { text: string; link?: string; linkLabel?: string }
+
+const INSTRUCTIONS: Record<Platform, { title: string; steps: StepItem[] }> = {
   'ios-safari': {
+    title: 'Instalar en iPhone / iPad (Safari)',
+    steps: [
+      { text: 'Abre esta página en Safari (si no la tienes abierta allí)' },
+      { text: 'Toca el botón de Compartir (el ícono cuadrado con la flecha hacia arriba ⬆) en la barra inferior del navegador' },
+      { text: 'Desplázate hacia abajo en el menú que aparece y busca la opción "Agregar a pantalla de inicio"' },
+      { text: 'Toca "Agregar" en la esquina superior derecha. Se creará un ícono en tu pantalla de inicio' },
+      {
+        text: 'Para más detalles, consulta la guía oficial de Apple',
+        link: 'https://support.apple.com/en-mide/104996',
+        linkLabel: 'Ver guía de Apple →',
+      },
+    ],
+  },
+  'ios-other': {
     title: 'Instalar en iPhone / iPad',
     steps: [
-      'Toca el botón de compartir (📤) en la barra inferior de Safari',
-      'Desplázate hacia abajo y selecciona "Agregar a pantalla de inicio"',
-      'Toca "Agregar" en la esquina superior derecha',
+      { text: 'Para instalar como app, necesitas abrir TurnFlow en Safari (no en Chrome ni otro navegador)' },
+      { text: 'En Safari, toca el botón de Compartir (⬆) en la barra inferior' },
+      { text: 'Selecciona "Agregar a pantalla de inicio" y luego "Agregar"' },
+      {
+        text: 'Guía detallada de Apple',
+        link: 'https://support.apple.com/en-mide/104996',
+        linkLabel: 'Ver guía →',
+      },
     ],
   },
   'android-chrome': {
-    title: 'Instalar en Android',
+    title: 'Instalar en Android (Chrome)',
     steps: [
-      'Toca el menú (⋮) en la esquina superior derecha de Chrome',
-      'Selecciona "Agregar a pantalla de inicio" o "Instalar app"',
-      'Confirma tocando "Instalar"',
+      { text: 'Toca el menú de tres puntos (⋮) en la esquina superior derecha de Chrome' },
+      { text: 'Busca y selecciona "Instalar aplicación" o "Agregar a pantalla de inicio"' },
+      { text: 'En el cuadro de diálogo que aparece, toca "Instalar"' },
+      { text: 'La app aparecerá en tu pantalla de inicio y se abrirá como aplicación independiente' },
     ],
   },
   'desktop-chrome': {
-    title: 'Instalar en Chrome',
+    title: 'Instalar en Google Chrome',
     steps: [
-      'Haz clic en el ícono de instalación (⊕) en la barra de direcciones',
-      'O ve a Menú (⋮) → "Instalar TurnFlow..."',
-      'Confirma haciendo clic en "Instalar"',
+      { text: 'Busca el ícono de instalación (⊕) que aparece en el lado derecho de la barra de direcciones' },
+      { text: 'Si no lo ves, haz clic en el menú (⋮) → "Guardar y compartir" → "Instalar TurnFlow..."' },
+      { text: 'Haz clic en "Instalar" en el cuadro de diálogo que aparece' },
+      { text: 'TurnFlow se abrirá como una ventana independiente y aparecerá en tu dock/barra de tareas' },
     ],
   },
   'desktop-edge': {
-    title: 'Instalar en Edge',
+    title: 'Instalar en Microsoft Edge',
     steps: [
-      'Haz clic en el ícono de instalación en la barra de direcciones',
-      'O ve a Menú (…) → "Aplicaciones" → "Instalar TurnFlow"',
-      'Confirma haciendo clic en "Instalar"',
+      { text: 'Busca el ícono de instalación (⊕) en la barra de direcciones, al lado derecho' },
+      { text: 'Si no lo ves, ve a Menú (…) → "Aplicaciones" → "Instalar TurnFlow"' },
+      { text: 'Confirma haciendo clic en "Instalar"' },
+      { text: 'La app se abrirá en su propia ventana y podrás anclarla a tu barra de tareas' },
     ],
   },
   'desktop-firefox': {
-    title: 'Acceso rápido en Firefox',
+    title: 'Instalar en Firefox',
     steps: [
-      'Firefox no soporta instalación de PWA directamente',
-      'Puedes agregar un marcador: Ctrl+D (o ⌘+D en Mac)',
-      'Para mejor experiencia, usa Chrome o Edge',
+      { text: 'Firefox no soporta la instalación de PWAs de forma nativa, pero puedes usar la extensión "PWAs for Firefox"' },
+      {
+        text: 'Instala la extensión desde la tienda de complementos de Firefox',
+        link: 'https://addons.mozilla.org/en-US/firefox/addon/pwas-for-firefox/',
+        linkLabel: 'Instalar extensión →',
+      },
+      { text: 'Una vez instalada la extensión, recarga esta página y sigue las instrucciones de la extensión para instalar TurnFlow' },
+      { text: 'Alternativa: abre TurnFlow en Chrome o Edge para una instalación más sencilla' },
     ],
   },
   other: {
     title: 'Instalar TurnFlow',
     steps: [
-      'Busca la opción "Agregar a pantalla de inicio" o "Instalar" en el menú de tu navegador',
-      'Esto creará un acceso directo como una app nativa',
+      { text: 'Abre esta página en Google Chrome, Microsoft Edge o Safari para poder instalarla como app' },
+      { text: 'En Chrome/Edge: busca el ícono de instalación (⊕) en la barra de direcciones' },
+      { text: 'En Safari (iOS): toca Compartir (⬆) → "Agregar a pantalla de inicio"' },
     ],
   },
 }
@@ -87,6 +117,8 @@ export function PwaInstallBanner() {
   const [visible, setVisible] = useState(false)
   const [platform, setPlatform] = useState<Platform>('other')
   const [expanded, setExpanded] = useState(false)
+  const deferredPromptRef = useRef<any>(null)
+  const [canNativeInstall, setCanNativeInstall] = useState(false)
 
   useEffect(() => {
     // Don't show if already installed as PWA
@@ -97,7 +129,29 @@ export function PwaInstallBanner() {
     } catch {}
     setPlatform(detectPlatform())
     setVisible(true)
+
+    // Listen for the native install prompt (Chrome, Edge, Samsung Internet)
+    const handler = (e: Event) => {
+      e.preventDefault()
+      deferredPromptRef.current = e
+      setCanNativeInstall(true)
+    }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
   }, [])
+
+  async function handleNativeInstall() {
+    const prompt = deferredPromptRef.current
+    if (!prompt) return
+    prompt.prompt()
+    const result = await prompt.userChoice
+    if (result.outcome === 'accepted') {
+      setVisible(false)
+      try { localStorage.setItem(DISMISS_KEY, '1') } catch {}
+    }
+    deferredPromptRef.current = null
+    setCanNativeInstall(false)
+  }
 
   function dismiss() {
     setVisible(false)
@@ -133,33 +187,60 @@ export function PwaInstallBanner() {
         </button>
       </div>
 
-      {!expanded ? (
-        <button
-          onClick={() => setExpanded(true)}
-          className="mt-3 flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
-        >
-          <Download size={14} />
-          Ver cómo instalar
-        </button>
-      ) : (
-        <div className="mt-3 bg-white dark:bg-gray-900 rounded-lg p-3 border border-indigo-100 dark:border-indigo-800">
-          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-2">{info.title}</p>
-          <ol className="space-y-1.5">
-            {info.steps.map((step, i) => (
-              <li key={i} className="flex items-start gap-2 text-xs text-gray-600 dark:text-gray-400">
-                <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold mt-0.5">
-                  {i + 1}
-                </span>
-                <span>{step}</span>
-              </li>
-            ))}
-          </ol>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {/* Native install button — Chrome/Edge show this */}
+        {canNativeInstall && (
+          <button
+            onClick={handleNativeInstall}
+            className="inline-flex items-center gap-2 px-4 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
+          >
+            <Download size={14} />
+            Instalar ahora
+          </button>
+        )}
+        {!expanded ? (
+          <button
+            onClick={() => setExpanded(true)}
+            className="inline-flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 transition-colors"
+          >
+            {canNativeInstall ? 'Ver instrucciones manuales' : 'Ver cómo instalar'}
+          </button>
+        ) : (
           <button
             onClick={() => setExpanded(false)}
-            className="mt-2 text-xs text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+            className="inline-flex items-center gap-2 text-xs font-medium text-indigo-500 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
           >
             Ocultar instrucciones
           </button>
+        )}
+      </div>
+
+      {expanded && (
+        <div className="mt-3 bg-white dark:bg-gray-900 rounded-lg p-4 border border-indigo-100 dark:border-indigo-800">
+          <p className="text-xs font-semibold text-gray-800 dark:text-gray-200 mb-3">{info.title}</p>
+          <ol className="space-y-2.5">
+            {info.steps.map((step, i) => (
+              <li key={i} className="flex items-start gap-2.5">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-[10px] font-bold mt-0.5">
+                  {i + 1}
+                </span>
+                <div className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
+                  <span>{step.text}</span>
+                  {step.link && (
+                    <a
+                      href={step.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-1 inline-flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-300 font-medium"
+                    >
+                      <ExternalLink size={11} />
+                      {step.linkLabel || 'Ver más'}
+                    </a>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       )}
     </div>
