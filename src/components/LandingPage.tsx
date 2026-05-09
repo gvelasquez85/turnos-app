@@ -215,7 +215,8 @@ function TfCmpCell({ val }: { val: boolean | 'partial' | string }) {
 }
 
 /* ─── Main component ─────────────────────────────────────────────────────────── */
-export function LandingPage() {
+export function LandingPage({ content = {} }: { content?: Record<string, string> }) {
+  const c = (key: string, fallback: string) => content[key] ?? fallback
   const [demoTab, setDemoTab] = useState<DemoTab>('clientes')
   const [activeClient, setActiveClient] = useState(0)
   const [industry, setIndustry] = useState<IndustryKey>('farmacia')
@@ -654,22 +655,22 @@ export function LandingPage() {
             <div className="tf-hero-copy">
               <span className="tf-eyebrow">
                 <span className="tf-eyebrow-dot" />
-                Gestión de clientes para negocios locales
+                {c('hero_badge', 'Gestión de clientes para negocios locales')}
               </span>
               <h1>
-                Tu negocio necesita<br />
-                <span className="tf-accent">recordar más,</span><br />
-                perder menos
+                {c('hero_title', 'Tu negocio necesita')}<br />
+                <span className="tf-accent">{c('hero_title_accent', 'recordar más,')}</span><br />
+                {c('hero_title_end', 'perder menos')}
               </h1>
               <p className="tf-lead">
-                TurnFlow centraliza tus clientes, automatiza recordatorios y elimina las filas. Todo desde el celular, sin complicaciones.
+                {c('hero_subtitle', 'TurnFlow centraliza tus clientes, automatiza recordatorios y elimina las filas. Todo desde el celular, sin complicaciones.')}
               </p>
               <div className="tf-hero-cta">
                 <Link href="/register" className="tf-btn tf-btn-indigo tf-btn-lg">
-                  Empezar gratis
+                  {c('hero_cta_primary', 'Empezar gratis')}
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </Link>
-                <a href="#como-funciona" className="tf-btn tf-btn-ghost tf-btn-lg">Ver cómo funciona</a>
+                <a href="#como-funciona" className="tf-btn tf-btn-ghost tf-btn-lg">{c('hero_cta_secondary', 'Ver cómo funciona')}</a>
               </div>
               <div className="tf-hero-trust">
                 <div className="tf-hero-trust-avatars">
@@ -677,7 +678,7 @@ export function LandingPage() {
                 </div>
                 <div>
                   <div className="tf-hero-trust-stars">★★★★★</div>
-                  <span>+200 negocios activos</span>
+                  <span>{c('hero_trust_text', '+200 negocios activos')}</span>
                 </div>
               </div>
             </div>
@@ -889,9 +890,9 @@ export function LandingPage() {
       <section id="industrias" className="tf-section tf-section-white">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Por industria</span>
-            <h2 style={{ marginTop: 16 }}>Hecho para tu tipo de negocio</h2>
-            <p>TurnFlow se adapta a la realidad de cada sector. Elige el tuyo y ve cómo lo resolvemos.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('industries_badge', 'Por industria')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('industries_title', 'Hecho para tu tipo de negocio')}</h2>
+            <p>{c('industries_subtitle', 'TurnFlow se adapta a la realidad de cada sector. Elige el tuyo y ve cómo lo resolvemos.')}</p>
           </div>
 
           <div className="tf-industry-tabs">
@@ -932,9 +933,9 @@ export function LandingPage() {
       <section id="funcionalidades" className="tf-section">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Funcionalidades</span>
-            <h2 style={{ marginTop: 16 }}>Todo lo que necesitas, nada de lo que no</h2>
-            <p>Un sistema diseñado para negocios locales reales, no para corporaciones.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('features_badge', 'Funcionalidades')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('features_title', 'Todo lo que necesitas, nada de lo que no')}</h2>
+            <p>{c('features_subtitle', 'Un sistema diseñado para negocios locales reales, no para corporaciones.')}</p>
           </div>
           <div className="tf-features-grid">
             {FEATURES.map(f => (
@@ -952,9 +953,9 @@ export function LandingPage() {
       <section id="como-funciona" className="tf-section tf-section-bg">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Cómo funciona</span>
-            <h2 style={{ marginTop: 16 }}>De cero a clientes fidelizados en 3 pasos</h2>
-            <p>Sin capacitaciones largas, sin consultores, sin integraciones complejas.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('how_it_works_badge', 'Cómo funciona')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('how_it_works_title', 'De cero a clientes fidelizados en 3 pasos')}</h2>
+            <p>{c('how_it_works_subtitle', 'Sin capacitaciones largas, sin consultores, sin integraciones complejas.')}</p>
           </div>
           <div className="tf-how-grid">
             {HOW_STEPS.map((step, i) => (
@@ -1024,9 +1025,9 @@ export function LandingPage() {
       <section className="tf-section tf-section-white">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Comparativa</span>
-            <h2 style={{ marginTop: 16 }}>TurnFlow vs cómo lo hacías antes</h2>
-            <p>Muchos negocios aún gestionan clientes con Excel, WhatsApp o de memoria. Mira la diferencia.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('comparison_badge', 'Comparativa')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('comparison_title', 'TurnFlow vs cómo lo hacías antes')}</h2>
+            <p>{c('comparison_subtitle', 'Muchos negocios aún gestionan clientes con Excel, WhatsApp o de memoria. Mira la diferencia.')}</p>
           </div>
           <div className="tf-cmp-table-wrap">
             <table className="tf-cmp-table">
@@ -1062,9 +1063,9 @@ export function LandingPage() {
       <section id="roi" className="tf-section tf-section-bg">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Calculadora ROI</span>
-            <h2 style={{ marginTop: 16 }}>¿Cuánto dinero estás dejando ir?</h2>
-            <p>Ajusta los números de tu negocio y ve cuánto podrías recuperar con TurnFlow.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('roi_badge', 'Calculadora ROI')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('roi_title', '¿Cuánto dinero estás dejando ir?')}</h2>
+            <p>{c('roi_subtitle', 'Ajusta los números de tu negocio y ve cuánto podrías recuperar con TurnFlow.')}</p>
           </div>
           <div className="tf-roi-card">
             <div className="tf-roi-inputs">
@@ -1145,9 +1146,9 @@ export function LandingPage() {
       <section className="tf-section tf-section-white">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Casos de éxito</span>
-            <h2 style={{ marginTop: 16 }}>Negocios reales, resultados reales</h2>
-            <p>Más de 200 negocios ya usan TurnFlow para recuperar clientes y mejorar su operación.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('testimonials_badge', 'Casos de éxito')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('testimonials_title', 'Negocios reales, resultados reales')}</h2>
+            <p>{c('testimonials_subtitle', 'Más de 200 negocios ya usan TurnFlow para recuperar clientes y mejorar su operación.')}</p>
           </div>
           <div className="tf-cases-grid">
             {CASES.map(c => (
@@ -1175,9 +1176,9 @@ export function LandingPage() {
       <section id="precios" className="tf-section tf-section-bg">
         <div className="tf-container">
           <div className="tf-section-head">
-            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />Precios</span>
-            <h2 style={{ marginTop: 16 }}>Simple y transparente</h2>
-            <p>Empieza gratis y escala cuando estés listo. Sin contratos, sin sorpresas.</p>
+            <span className="tf-eyebrow"><span className="tf-eyebrow-dot" />{c('pricing_badge', 'Precios')}</span>
+            <h2 style={{ marginTop: 16 }}>{c('pricing_title', 'Simple y transparente')}</h2>
+            <p>{c('pricing_subtitle', 'Empieza gratis y escala cuando estés listo. Sin contratos, sin sorpresas.')}</p>
           </div>
           <div className="tf-pricing-grid">
             {/* Free plan */}
@@ -1263,16 +1264,16 @@ export function LandingPage() {
             <div className="tf-final-content">
               <span className="tf-eyebrow tf-eyebrow-light">
                 <span className="tf-eyebrow-dot" />
-                Empieza hoy
+                {c('cta_badge', 'Empieza hoy')}
               </span>
               <h2 style={{ color: 'white', marginTop: 20, fontSize: 'clamp(28px,4vw,44px)' }}>
-                Tu próximo cliente recurrente<br />
+                {c('cta_title', 'Tu próximo cliente recurrente')}<br />
                 <span style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontWeight: 400, color: '#A5B4FC' }}>
-                  ya está esperando que lo llames
+                  {c('cta_title_accent', 'ya está esperando que lo llames')}
                 </span>
               </h2>
               <p className="tf-final-lead">
-                Únete a más de 200 negocios que ya usan TurnFlow para recuperar clientes y llenar su agenda.
+                {c('cta_subtitle', 'Únete a más de 200 negocios que ya usan TurnFlow para recuperar clientes y llenar su agenda.')}
               </p>
 
               {submitted ? (
@@ -1326,7 +1327,7 @@ export function LandingPage() {
                 TurnFlow
               </a>
               <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13, maxWidth: 240, marginTop: 12 }}>
-                El CRM simple para negocios locales que quieren crecer con sus clientes.
+                {c('footer_tagline', 'El CRM simple para negocios locales que quieren crecer con sus clientes.')}
               </p>
             </div>
             <div>

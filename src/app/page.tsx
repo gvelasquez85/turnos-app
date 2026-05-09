@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { LandingPage } from '@/components/LandingPage'
+import { getSiteContent } from '@/lib/siteContent'
 
 export default async function Home() {
   const supabase = await createClient()
@@ -33,5 +34,6 @@ export default async function Home() {
   }
 
   // No autenticado → mostrar landing page
-  return <LandingPage />
+  const content = await getSiteContent()
+  return <LandingPage content={content} />
 }

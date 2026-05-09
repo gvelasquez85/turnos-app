@@ -12,6 +12,7 @@ const links = [
   { href: '/superadmin/analytics', label: 'Analytics', icon: BarChart2 },
   { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
   { href: '/superadmin/translations', label: 'Traducciones', icon: Languages },
+  { href: '/superadmin/cms', label: 'Contenido', icon: FileText },
   { href: '/admin', label: 'Sucursales', icon: Store, exact: true },
   { href: '/admin/visit-reasons', label: 'Motivos', icon: MessageSquare },
   { href: '/admin/promotions', label: 'Promociones', icon: Tag },
