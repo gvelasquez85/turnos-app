@@ -30,10 +30,10 @@ export function SuperAdminNav() {
   }
   return (
     <header className="bg-white border-b border-gray-200">
-      <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <span className="font-bold text-indigo-600">SuperAdmin</span>
-          <nav className="flex items-center gap-1">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="flex items-center gap-6 min-w-0 overflow-x-auto">
+          <span className="font-bold text-indigo-600 shrink-0">SuperAdmin</span>
+          <nav className="flex items-center gap-1 shrink-0">
             {links.map(({ href, label, icon: Icon, exact }) => (
               <Link key={href} href={href} className={cn('flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors', (exact ? pathname === href : pathname.startsWith(href)) ? 'bg-indigo-50 text-indigo-700' : 'text-gray-600 hover:bg-gray-100')}>
                 <Icon size={15} />{label}
