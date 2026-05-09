@@ -244,8 +244,6 @@ export function LandingPage() {
   return (
     <div className="tf-root">
       <style>{`
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=DM+Serif+Display:ital@0;1&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
-
 .tf-root {
   --indigo-50:  #EEF2FF;
   --indigo-100: #E0E7FF;
@@ -537,7 +535,7 @@ export function LandingPage() {
 .tf-case-person { font-size: 12px; color: var(--ink-500); margin-top: 12px; }
 
 /* Pricing */
-.tf-pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; max-width: 1100px; margin: 0 auto; }
+.tf-pricing-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; max-width: 880px; margin: 0 auto; }
 .tf-price-card { background: var(--surface); border: 1px solid var(--hairline); border-radius: var(--r-xl); padding: 36px; display: flex; flex-direction: column; position: relative; }
 .tf-price-card-pro { background: linear-gradient(180deg, var(--ink-900) 0%, #161B30 100%); color: white; border-color: var(--ink-900); box-shadow: var(--shadow-glow); }
 .tf-price-badge { position: absolute; top: -10px; right: 24px; background: linear-gradient(135deg, var(--indigo-400), var(--indigo-600)); color: white; padding: 4px 12px; border-radius: var(--r-full); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: 0 4px 10px rgba(99,102,241,0.4); }
@@ -555,6 +553,10 @@ export function LandingPage() {
 .tf-price-card-pro .tf-price-features li { color: rgba(255,255,255,0.85); }
 .tf-price-check { width: 18px; height: 18px; border-radius: 50%; background: var(--emerald-50); flex-shrink: 0; display: grid; place-items: center; }
 .tf-price-card-pro .tf-price-check { background: rgba(16,185,129,0.2); }
+
+.tf-btn-white { background: white !important; color: var(--ink-900) !important; border: none; font-weight: 600; }
+.tf-btn-white:hover { background: var(--ink-100) !important; }
+.tf-enterprise-banner { display: flex; align-items: center; justify-content: space-between; gap: 24px; max-width: 880px; margin: 24px auto 0; padding: 32px 40px; background: linear-gradient(135deg, var(--indigo-50) 0%, var(--white) 100%); border: 1px solid var(--indigo-100); border-radius: var(--r-xl); }
 
 /* Final CTA */
 .tf-final { padding: 64px 0; background: var(--bg); }
@@ -599,10 +601,10 @@ export function LandingPage() {
   .tf-roi-inputs, .tf-roi-result { padding: 28px; }
   .tf-roi-amount { font-size: 36px; }
   .tf-cases-grid { grid-template-columns: 1fr; }
-  .tf-pricing-grid { grid-template-columns: repeat(2, 1fr); }
+  .tf-pricing-grid { grid-template-columns: 1fr; }
+  .tf-enterprise-banner { flex-direction: column; text-align: center; padding: 28px; }
 }
 @media (max-width: 640px) {
-  .tf-pricing-grid { grid-template-columns: 1fr; }
   .tf-final-card { padding: 56px 24px; }
   .tf-final-form { flex-direction: column; padding: 12px; border-radius: var(--r-lg); }
   .tf-final-form input { padding: 12px 16px; }
@@ -638,7 +640,7 @@ export function LandingPage() {
             </div>
             <div className="tf-nav-right">
               <Link href="/login" className="tf-btn-link">Iniciar sesión</Link>
-              <Link href="/setup" className="tf-btn tf-btn-primary">Empezar gratis</Link>
+              <Link href="/register" className="tf-btn tf-btn-indigo">Empezar gratis</Link>
             </div>
           </nav>
         </div>
@@ -663,7 +665,7 @@ export function LandingPage() {
                 TurnFlow centraliza tus clientes, automatiza recordatorios y elimina las filas. Todo desde el celular, sin complicaciones.
               </p>
               <div className="tf-hero-cta">
-                <Link href="/setup" className="tf-btn tf-btn-indigo tf-btn-lg">
+                <Link href="/register" className="tf-btn tf-btn-indigo tf-btn-lg">
                   Empezar gratis
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </Link>
@@ -1231,33 +1233,24 @@ export function LandingPage() {
                   <li key={f}><CheckIcon dark />{f}</li>
                 ))}
               </ul>
-              <Link href="/register" className="tf-btn tf-btn-indigo" style={{ justifyContent: 'center' }}>
+              <Link href="/register" className="tf-btn tf-btn-white" style={{ justifyContent: 'center' }}>
                 Empezar gratis
               </Link>
             </div>
+          </div>
 
-            {/* Enterprise plan */}
-            <div className="tf-price-card">
-              <div className="tf-price-name">Empresarial</div>
-              <div className="tf-price-amount">
-                <span className="tf-price-currency" style={{ fontSize: 16 }}>A medida</span>
-              </div>
-              <div className="tf-price-period">Lo construimos a tu necesidad</div>
-              <ul className="tf-price-features">
-                {ENTERPRISE_FEATURES.map(f => (
-                  <li key={f}><CheckIcon />{f}</li>
-                ))}
-              </ul>
-              <a
-                href="https://wa.me/573001234567?text=Hola%2C+quiero+información+sobre+el+plan+Empresarial+de+TurnFlow"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tf-btn tf-btn-ghost"
-                style={{ justifyContent: 'center' }}
-              >
-                Solicitar información
-              </a>
+          {/* Enterprise banner */}
+          <div className="tf-enterprise-banner">
+            <div style={{ flex: 1 }}>
+              <div className="tf-price-name" style={{ color: 'var(--indigo-600)', fontWeight: 600 }}>Plan Empresarial</div>
+              <h3 style={{ margin: '8px 0', fontSize: 24 }}>Lo construimos a tu necesidad</h3>
+              <p style={{ color: 'var(--ink-500)', fontSize: 14, maxWidth: 500 }}>
+                Sucursales y usuarios ilimitados, configuración personalizada, integraciones a medida y soporte dedicado.
+              </p>
             </div>
+            <a href="https://wa.me/573001234567?text=Hola%2C+quiero+información+sobre+el+plan+Empresarial+de+TurnFlow" target="_blank" rel="noopener noreferrer" className="tf-btn tf-btn-indigo tf-btn-lg">
+              Solicitar información comercial
+            </a>
           </div>
         </div>
       </section>
@@ -1354,7 +1347,7 @@ export function LandingPage() {
             <div>
               <div className="tf-footer-h">Empresa</div>
               <a href="/login">Iniciar sesión</a>
-              <Link href="/setup">Empezar gratis</Link>
+              <Link href="/register">Empezar gratis</Link>
               <a href="mailto:hola@turnflow.co">Contacto</a>
             </div>
           </div>
