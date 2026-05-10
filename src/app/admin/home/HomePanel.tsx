@@ -4,7 +4,7 @@ import Link from 'next/link'
 import {
   TrendingUp, Users, ShoppingCart, Package, FileCheck,
   Sparkles, Bell, ChevronRight, MessageSquare,
-  CheckCircle, ArrowRight, Clock, CalendarClock,
+  CheckCircle, ArrowRight, Clock, CalendarClock, Cake, Gift,
 } from 'lucide-react'
 import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
 import { PwaInstallBanner } from '@/components/PwaInstallBanner'
@@ -26,6 +26,7 @@ interface Props {
   lowStock: { id: string; name: string; stock: number }[]
   hasAppointments?: boolean
   appointments?: { id: string; status: string; scheduled_at: string; customer_name: string }[]
+  birthdayClients?: { id: string; name: string; phone: string | null; cumpleanos: string }[]
 }
 
 const VOCAB: Record<string, { service: string; client: string; clients: string }> = {
@@ -78,6 +79,7 @@ export function HomePanel({
   salesRecent, salesWeek, totalClients,
   inactiveClients, openQuotes, lowStock,
   hasAppointments, appointments = [],
+  birthdayClients = [],
 }: Props) {
   const v = VOCAB[businessType] || VOCAB.otros
   const firstName = userName.split(' ')[0]
@@ -105,6 +107,26 @@ export function HomePanel({
       .filter(s => SALE_COMPLETED_SET.has(s.status))
       .reduce((s, x) => s + (x.total ?? 0), 0),
     [salesWeek])
+
+  // ── Birthdays (today + next 30 days) ────────────────────────────────────────
+  const upcomingBirthdays = useMemo(() => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    return birthdayClients
+      .map(c => {
+        const [, mm, dd] = (c.cumpleanos || '').split('-').map(Number)
+        if (!mm || !dd) return null
+        // Build this year's birthday
+        const bday = new Date(today.getFullYear(), mm - 1, dd)
+        // If already passed this year, try next year
+        if (bday < today) bday.setFullYear(bday.getFullYear() + 1)
+        const diffDays = Math.round((bday.getTime() - today.getTime()) / 86400000)
+        if (diffDays > 30) return null
+        return { ...c, diffDays, birthdayDate: bday }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a!.diffDays - b!.diffDays) as (typeof birthdayClients[number] & { diffDays: number; birthdayDate: Date })[]
+  }, [birthdayClients])
 
   // ── Action cards ────────────────────────────────────────────────────────────
   const actions: { key: string; icon: React.ElementType; color: string; text: string; sub: string; href: string }[] = []
@@ -267,6 +289,67 @@ export function HomePanel({
           </div>
         )
       })()}
+
+      {/* Cumpleaños próximos */}
+      {upcomingBirthdays.length > 0 && (
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Cake size={16} className="text-pink-500" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">
+                Cumpleaños próximos
+              </p>
+              <span className="text-[10px] font-bold bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 px-1.5 py-0.5 rounded-full">
+                {upcomingBirthdays.length}
+              </span>
+            </div>
+            <Link href="/admin/clientes" className="text-xs text-indigo-600 dark:text-indigo-400 font-medium hover:underline">
+              Ver todos
+            </Link>
+          </div>
+          <div className="space-y-2">
+            {upcomingBirthdays.slice(0, 8).map(c => {
+              const isToday = c.diffDays === 0
+              const label = isToday
+                ? '¡Hoy!'
+                : c.diffDays === 1
+                  ? 'Mañana'
+                  : `En ${c.diffDays} días`
+              const dateStr = c.birthdayDate.toLocaleDateString('es', { day: 'numeric', month: 'short' })
+              return (
+                <div key={c.id} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors ${
+                  isToday
+                    ? 'bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                }`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                    isToday ? 'bg-pink-500 text-white' : 'bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400'
+                  }`}>
+                    {isToday ? <Gift size={14} /> : <Cake size={14} />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-medium truncate ${isToday ? 'text-pink-900 dark:text-pink-200' : 'text-gray-900 dark:text-gray-100'}`}>
+                      {c.name}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{dateStr} · {label}</p>
+                  </div>
+                  {c.phone && (
+                    <a
+                      href={`https://wa.me/${c.phone.replace(/\D/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                      <MessageSquare size={11} />
+                      Felicitar
+                    </a>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Fila principal */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -26,7 +26,7 @@ export default async function HomeDashboardPage() {
   const since30d  = new Date(Date.now() - 30 * 86400000).toISOString()
 
   const [brandRes, salesRecentRes, salesWeekRes, inactiveClientsRes,
-         openQuotesRes, lowStockRes, totalClientsRes] = await Promise.allSettled([
+         openQuotesRes, lowStockRes, totalClientsRes, birthdayClientsRes] = await Promise.allSettled([
 
     supabase.from('brands')
       .select('id, name, business_type, onboarding_completed, primary_color')
@@ -78,6 +78,13 @@ export default async function HomeDashboardPage() {
     supabase.from('customers')
       .select('id', { count: 'exact', head: true })
       .eq('brand_id', brandId),
+
+    // Clientes con cumpleaños registrado
+    supabase.from('customers')
+      .select('id, name, phone, cumpleanos')
+      .eq('brand_id', brandId)
+      .not('cumpleanos', 'is', null)
+      .order('name'),
   ])
 
   // ── Appointments module ─────────────────────────────────────────────────────
@@ -118,6 +125,7 @@ export default async function HomeDashboardPage() {
   const openQuotes     = openQuotesRes.status === 'fulfilled' ? (openQuotesRes.value.data ?? []) : []
   const lowStock       = lowStockRes.status === 'fulfilled' ? (lowStockRes.value.data ?? []) : []
   const totalClients   = totalClientsRes.status === 'fulfilled' ? (totalClientsRes.value.count ?? 0) : 0
+  const birthdayClients = birthdayClientsRes.status === 'fulfilled' ? (birthdayClientsRes.value.data ?? []) : []
 
   return (
     <HomePanel
@@ -133,6 +141,7 @@ export default async function HomeDashboardPage() {
       lowStock={lowStock as any[]}
       hasAppointments={hasAppointments}
       appointments={appointments}
+      birthdayClients={birthdayClients as any[]}
     />
   )
 }
