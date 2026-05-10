@@ -25,6 +25,7 @@ interface Sale {
   customer_id: string | null
   customers: { name: string; email?: string | null; phone?: string | null } | null
   fulfillment_type?: string | null
+  source_quote_id?: string | null
   notes?: string | null
 }
 
@@ -52,22 +53,30 @@ interface Props {
 // ─── Status config ──────────────────────────────────────────────────────────────
 
 const STATUS_MAP: Record<string, { label: string; color: string; dot: string }> = {
-  pending:         { label: 'Pendiente',       color: 'bg-amber-100 text-amber-700',   dot: 'bg-amber-400' },
-  facturado:       { label: 'Facturado',       color: 'bg-blue-100 text-blue-700',     dot: 'bg-blue-500' },
-  en_alistamiento: { label: 'En alistamiento', color: 'bg-indigo-100 text-indigo-700', dot: 'bg-indigo-500' },
-  despachado:      { label: 'Despachado',      color: 'bg-violet-100 text-violet-700', dot: 'bg-violet-500' },
-  entregado:       { label: 'Entregado',       color: 'bg-green-100 text-green-700',   dot: 'bg-green-500' },
-  completado:      { label: 'Completado',      color: 'bg-green-100 text-green-700',   dot: 'bg-green-500' },
-  completed:       { label: 'Completado',      color: 'bg-green-100 text-green-700',   dot: 'bg-green-500' },
-  cancelled:       { label: 'Cancelado',       color: 'bg-red-100 text-red-600',       dot: 'bg-red-400' },
+  pending:         { label: 'Pendiente',       color: 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300',     dot: 'bg-amber-400' },
+  confirmada:      { label: 'Confirmada',      color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',         dot: 'bg-blue-500' },
+  en_alistamiento: { label: 'En alistamiento', color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300', dot: 'bg-indigo-500' },
+  despachada:      { label: 'Despachada',      color: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300', dot: 'bg-violet-500' },
+  entregada:       { label: 'Entregada',       color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',     dot: 'bg-green-500' },
+  // Legacy statuses (backwards compat)
+  facturado:       { label: 'Confirmada',      color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',         dot: 'bg-blue-500' },
+  despachado:      { label: 'Despachada',      color: 'bg-violet-100 text-violet-700 dark:bg-violet-900 dark:text-violet-300', dot: 'bg-violet-500' },
+  entregado:       { label: 'Entregada',       color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',     dot: 'bg-green-500' },
+  completado:      { label: 'Entregada',       color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',     dot: 'bg-green-500' },
+  completed:       { label: 'Entregada',       color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',     dot: 'bg-green-500' },
+  cancelled:       { label: 'Cancelada',       color: 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300',             dot: 'bg-red-400' },
 }
 
 // Status flows
-const SERVICE_FLOW = ['pending', 'completado']
-const PHYSICAL_FLOW = ['pending', 'facturado', 'en_alistamiento', 'despachado', 'entregado']
+// From quote: pendiente → confirmada → alistamiento → despachada → entregada
+const QUOTE_FLOW = ['pending', 'confirmada', 'en_alistamiento', 'despachada', 'entregada']
+// Manual sale: confirmada → alistamiento → despachada → entregada (starts confirmed)
+const MANUAL_FLOW = ['confirmada', 'en_alistamiento', 'despachada', 'entregada']
 
-function getFlow(fulfillmentType?: string | null) {
-  return fulfillmentType === 'physical' ? PHYSICAL_FLOW : SERVICE_FLOW
+function getFlow(sale: Sale) {
+  // Manual sales (no source quote) skip "pendiente"
+  if (!sale.source_quote_id) return MANUAL_FLOW
+  return QUOTE_FLOW
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
@@ -565,9 +574,20 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
 
                   {/* Quick status change */}
                   <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
+                    {/* Prominent confirm button for pending sales */}
+                    {openSale.status === 'pending' && (
+                      <button
+                        onClick={() => changeStatus('confirmada')}
+                        disabled={changingStatus}
+                        className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-40"
+                      >
+                        {changingStatus ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                        Confirmar venta
+                      </button>
+                    )}
                     <button
                       onClick={() => switchMode('status')}
-                      className="w-full py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-indigo-100 border border-indigo-200"
+                      className="w-full py-2.5 rounded-xl bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 border border-indigo-200 dark:border-indigo-700"
                     >
                       <Truck size={14} /> Actualizar estado
                     </button>
@@ -657,12 +677,12 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
 
                   {/* Flow steps */}
                   {(() => {
-                    const flow = getFlow(openSale.fulfillment_type)
+                    const flow = getFlow(openSale)
                     const currentIdx = flow.indexOf(openSale.status)
                     return (
                       <div className="space-y-2">
                         <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
-                          Flujo {openSale.fulfillment_type === 'physical' ? 'físico' : 'de servicio'}
+                          {openSale.source_quote_id ? 'Desde cotización' : 'Venta directa'}
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {flow.map((step, idx) => {
@@ -700,16 +720,45 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                   </label>
 
                   <div className="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-2">
-                    {openSale.status !== 'completado' && openSale.status !== 'completed' && openSale.status !== 'entregado' && (
-                      <button
-                        onClick={() => changeStatus(openSale.fulfillment_type === 'physical' ? 'entregado' : 'completado')}
-                        disabled={changingStatus}
-                        className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-40"
-                      >
-                        {changingStatus ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
-                        Marcar como completado
-                      </button>
-                    )}
+                    {/* Smart next-step button based on current status */}
+                    {(() => {
+                      const flow = getFlow(openSale)
+                      const idx = flow.indexOf(openSale.status)
+                      const isTerminal = openSale.status === 'entregada' || openSale.status === 'entregado' || openSale.status === 'completado' || openSale.status === 'completed'
+                      if (isTerminal) return null
+
+                      // Pending → Confirm
+                      if (openSale.status === 'pending') {
+                        return (
+                          <button
+                            onClick={() => changeStatus('confirmada')}
+                            disabled={changingStatus}
+                            className="w-full py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-700 disabled:opacity-40"
+                          >
+                            {changingStatus ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                            Confirmar venta
+                          </button>
+                        )
+                      }
+
+                      // Next step in flow
+                      const nextIdx = idx + 1
+                      if (nextIdx < flow.length) {
+                        const nextStatus = flow[nextIdx]
+                        const nextLabel = STATUS_MAP[nextStatus]?.label ?? nextStatus
+                        return (
+                          <button
+                            onClick={() => changeStatus(nextStatus)}
+                            disabled={changingStatus}
+                            className="w-full py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-700 disabled:opacity-40"
+                          >
+                            {changingStatus ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                            Pasar a: {nextLabel}
+                          </button>
+                        )
+                      }
+                      return null
+                    })()}
                     {openSale.status !== 'cancelled' && (
                       <button
                         onClick={() => changeStatus('cancelled')}

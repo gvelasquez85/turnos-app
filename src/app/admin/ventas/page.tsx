@@ -20,7 +20,7 @@ export default async function VentasPage() {
 
   const since = new Date(Date.now() - 30 * 86400000).toISOString()
 
-  const SALE_FIELDS = 'id, type, status, total, subtotal, discount, notes, fulfillment_type, created_at, establishment_id, customer_id, customers(name, email, phone)'
+  const SALE_FIELDS = 'id, type, status, total, subtotal, discount, notes, fulfillment_type, source_quote_id, created_at, establishment_id, customer_id, customers(name, email, phone)'
 
   const [salesRes, estRes, pendingRes, brandRes, waRes, waDefaultRes] = await Promise.allSettled([
     supabase.from('sales')
@@ -42,7 +42,7 @@ export default async function VentasPage() {
   let pendingSales: any[] = pendingRes.status === 'fulfilled' ? (pendingRes.value.data ?? []) : []
 
   if (salesRes.status === 'rejected' || (salesRes.status === 'fulfilled' && salesRes.value.error)) {
-    const FALLBACK = 'id, type, status, total, subtotal, discount, notes, created_at, establishment_id, customer_id, customers(name, email, phone)'
+    const FALLBACK = 'id, type, status, total, subtotal, discount, notes, source_quote_id, created_at, establishment_id, customer_id, customers(name, email, phone)'
     const [fb1, fb2] = await Promise.allSettled([
       supabase.from('sales').select(FALLBACK).eq('brand_id', brandId).eq('type', 'sale').gte('created_at', since).order('created_at', { ascending: false }).limit(50),
       supabase.from('sales').select(FALLBACK).eq('brand_id', brandId).eq('type', 'sale').eq('status', 'pending').order('created_at', { ascending: false }),

@@ -1,16 +1,21 @@
 /**
  * Unified sale status constants.
  *
- * SALE_COMPLETED_STATUSES: statuses that represent a committed/successful sale
- * (facturado counts as sold — the client has purchased)
+ * Flow from quote:   pendiente → confirmada → en_alistamiento → despachada → entregada
+ * Flow manual sale:  confirmada → en_alistamiento → despachada → entregada
  *
+ * SALE_COMPLETED_STATUSES: statuses that represent a committed/successful sale
  * SALE_PENDING_STATUSES: sale created but not yet confirmed/paid
  * SALE_CANCELLED_STATUSES: sale voided
  */
 
 export const SALE_COMPLETED_STATUSES = [
-  'facturado',
+  'confirmada',
   'en_alistamiento',
+  'despachada',
+  'entregada',
+  // Legacy statuses (backwards compat)
+  'facturado',
   'despachado',
   'entregado',
   'completado',

@@ -4,13 +4,17 @@ import { createClient as createServiceClient } from '@supabase/supabase-js'
 
 const STATUS_LABELS: Record<string, string> = {
   pending: 'Pendiente',
-  facturado: 'Facturado',
+  confirmada: 'Confirmada',
   en_alistamiento: 'En alistamiento',
-  despachado: 'Despachado',
-  entregado: 'Entregado',
-  completado: 'Completado',
-  completed: 'Completado',
-  cancelled: 'Cancelado',
+  despachada: 'Despachada',
+  entregada: 'Entregada',
+  // Legacy
+  facturado: 'Confirmada',
+  despachado: 'Despachada',
+  entregado: 'Entregada',
+  completado: 'Entregada',
+  completed: 'Entregada',
+  cancelled: 'Cancelada',
 }
 
 export async function POST(req: NextRequest) {

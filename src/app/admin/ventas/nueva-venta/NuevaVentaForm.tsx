@@ -102,7 +102,7 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
     const salePayload = {
       brand_id: brandId,
       type,
-      status: type === 'sale' ? 'completed' : 'draft',
+      status: type === 'sale' ? 'confirmada' : 'draft',
       establishment_id: establishmentId || null,
       customer_id: customerId || null,
       subtotal,
