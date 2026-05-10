@@ -156,6 +156,9 @@ export function buildWaMessage(
   }
   // Remove unfilled optional blocks {{#var}}...{{/var}}
   body = body.replace(/{{#\w+}}[\s\S]*?{{\/\w+}}/g, '')
+  // Normalize non-breaking spaces ( ) to regular spaces — fixes
+  // garbled characters in WA when Intl.NumberFormat adds   to COP values
+  body = body.replace(/ /g, ' ')
   const clean = phone.replace(/\D/g, '')
   return `https://wa.me/${clean}?text=${encodeURIComponent(body)}`
 }

@@ -7,7 +7,7 @@ import {
   ShoppingCart, TrendingUp, FileCheck,
   ArrowRight, DollarSign, Clock, CheckCircle, XCircle, AlertTriangle,
   Eye, Edit3, Truck, X, Loader2,
-  User, Building2, Calendar, Package, MessageCircle,
+  User, Building2, Calendar, Package, MessageCircle, Mail,
 } from 'lucide-react'
 import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
 
@@ -110,6 +110,29 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   // Status change state
   const [notifyClient, setNotifyClient] = useState(true)
   const [changingStatus, setChangingStatus] = useState(false)
+  const [sendingEmail, setSendingEmail] = useState(false)
+  const [emailResult, setEmailResult] = useState<{ ok: boolean; msg: string } | null>(null)
+
+  async function sendConfirmationEmail(sale: Sale) {
+    setSendingEmail(true)
+    setEmailResult(null)
+    try {
+      const res = await fetch('/api/admin/sales/send-confirmation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saleId: sale.id }),
+      })
+      const body = await res.json()
+      if (res.ok && body.ok) {
+        setEmailResult({ ok: true, msg: body.msg === 'Sin email de cliente' ? '⚠️ El cliente no tiene email registrado' : '✓ Confirmación enviada por email' })
+      } else {
+        setEmailResult({ ok: false, msg: body.error || body.msg || 'Error al enviar' })
+      }
+    } catch (e: any) {
+      setEmailResult({ ok: false, msg: e.message || 'Error de red' })
+    }
+    setSendingEmail(false)
+  }
 
   const allSales = useMemo(() => {
     const ids = new Set(recentSales.map(s => s.id))
@@ -548,24 +571,41 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                     >
                       <Truck size={14} /> Actualizar estado
                     </button>
-                    {openSale.customers?.phone && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openSaleWa(openSale, 'sale_receipt')}
-                          className="flex-1 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
-                        >
-                          <MessageCircle size={13} /> Comprobante WA
-                        </button>
-                        {openSale.status === 'pending' && (
+                    <div className="flex flex-col gap-2">
+                      {/* Email confirmation */}
+                      <button
+                        onClick={() => sendConfirmationEmail(openSale)}
+                        disabled={sendingEmail}
+                        className="w-full py-2 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700 disabled:opacity-40"
+                      >
+                        {sendingEmail ? <Loader2 size={13} className="animate-spin" /> : <Mail size={13} />}
+                        Enviar confirmación por email
+                      </button>
+                      {emailResult && (
+                        <p className={`text-xs text-center ${emailResult.ok ? 'text-green-600' : 'text-red-600'}`}>
+                          {emailResult.msg}
+                        </p>
+                      )}
+                      {/* WA buttons */}
+                      {openSale.customers?.phone && (
+                        <div className="flex gap-2">
                           <button
-                            onClick={() => openSaleWa(openSale, 'sale_pending_payment')}
-                            className="flex-1 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-700"
+                            onClick={() => openSaleWa(openSale, 'sale_receipt')}
+                            className="flex-1 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
                           >
-                            <MessageCircle size={13} /> Cobro pendiente WA
+                            <MessageCircle size={13} /> Comprobante WA
                           </button>
-                        )}
-                      </div>
-                    )}
+                          {openSale.status === 'pending' && (
+                            <button
+                              onClick={() => openSaleWa(openSale, 'sale_pending_payment')}
+                              className="flex-1 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-700"
+                            >
+                              <MessageCircle size={13} /> Cobro pendiente WA
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

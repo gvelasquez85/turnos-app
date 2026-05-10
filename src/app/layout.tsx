@@ -39,6 +39,14 @@ export const metadata: Metadata = {
     description: 'El CRM simple para negocios locales que quieren crecer con sus clientes.',
     siteName: 'TurnFlow',
     type: 'website',
+    url: 'https://app.turnflow.com.co',
+    images: [{ url: '/opengraph-image', width: 1200, height: 630, alt: 'TurnFlow' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'TurnFlow',
+    description: 'El CRM simple para negocios locales que quieren crecer con sus clientes.',
+    images: ['/opengraph-image'],
   },
 };
 
