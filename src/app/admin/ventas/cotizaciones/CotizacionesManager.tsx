@@ -39,11 +39,11 @@ interface SaleItem {
 }
 
 const STATUS_MAP: Record<string, { label: string; color: string; dot: string; icon: React.ElementType }> = {
-  draft:     { label: 'Borrador',    color: 'bg-gray-100 text-gray-600',    dot: 'bg-gray-400',    icon: Clock },
-  sent:      { label: 'Enviada',     color: 'bg-blue-100 text-blue-700',    dot: 'bg-blue-500',    icon: Send },
-  accepted:  { label: 'Aceptada',    color: 'bg-green-100 text-green-700',  dot: 'bg-green-500',   icon: CheckCircle },
-  rejected:  { label: 'Rechazada',   color: 'bg-red-100 text-red-600',      dot: 'bg-red-400',     icon: XCircle },
-  converted: { label: 'En venta',    color: 'bg-purple-100 text-purple-700', dot: 'bg-purple-500', icon: ShoppingCart },
+  draft:     { label: 'Borrador',    color: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',    dot: 'bg-gray-400',    icon: Clock },
+  sent:      { label: 'Enviada',     color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',    dot: 'bg-blue-500',    icon: Send },
+  accepted:  { label: 'Aceptada',    color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',  dot: 'bg-green-500',   icon: CheckCircle },
+  rejected:  { label: 'Rechazada',   color: 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300',      dot: 'bg-red-400',     icon: XCircle },
+  converted: { label: 'En venta',    color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300', dot: 'bg-purple-500', icon: ShoppingCart },
 }
 
 function fmt(n: number) {
@@ -292,7 +292,19 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
       }
     }
     const { data } = await supabase.from('sales').update(patch).eq('id', id).select().single()
-    if (data) setQuotes(qs => qs.map(q => q.id === id ? { ...q, ...data } : q))
+    if (data) {
+      setQuotes(qs => qs.map(q => q.id === id ? { ...q, ...data } : q))
+      const quote = quotes.find(q => q.id === id)
+      if (quote?.customer_id) {
+        await supabase.from('customer_history').insert({
+          customer_id: quote.customer_id,
+          tipo: 'cotizacion',
+          detalles: `Cotización #${id.slice(-6).toUpperCase()} cambió a estado: ${STATUS_MAP[status]?.label ?? status}`,
+          monto: quote.total,
+          fecha: new Date().toISOString(),
+        })
+      }
+    }
     if (openQuote?.id === id) setOpenQuoteId(null)
   }
 
@@ -490,7 +502,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         }
                       }}
                       disabled={isLocked}
-                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                       title={mode === 'view' ? 'Ver detalle' : mode === 'edit' ? (isLocked ? 'Bloqueado — cotización cerrada' : 'Editar') : 'Enviar'}
                     >
                       {mode === 'view' ? <Eye size={15} /> : mode === 'edit' ? <Edit3 size={15} /> : <Send size={15} />}

@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Suspense } from "react";
 import { NavigationProgress } from "@/components/NavigationProgress";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 
@@ -59,9 +58,7 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('theme');var p=window.matchMedia('(prefers-color-scheme: dark)').matches;if(t==='dark'||(t!=='light'&&p))document.documentElement.classList.add('dark');}catch(e){}})()` }} />
       </head>
       <body className="min-h-full flex flex-col">
-        <Suspense fallback={null}>
-          <NavigationProgress />
-        </Suspense>
+        <NavigationProgress />
         <ServiceWorkerRegistration />
         {children}
       </body>

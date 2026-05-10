@@ -79,9 +79,12 @@ export async function POST(req: NextRequest) {
         <!-- Body -->
         <tr>
           <td style="padding:36px 32px;">
-            <h2 style="margin:0 0 8px;font-size:20px;color:#111827;font-weight:700;">¡Bienvenido, ${name}!</h2>
+            <h2 style="margin:0 0 8px;font-size:20px;color:#111827;font-weight:700;">¡Bienvenido/a a TurnFlow, ${name}! 🚀</h2>
+            <p style="margin:0 0 12px;color:#6b7280;font-size:15px;line-height:1.6;">
+              Estamos encantados de tenerte. Con TurnFlow vas a poder gestionar tus clientes, ventas y cotizaciones de forma simple y profesional.
+            </p>
             <p style="margin:0 0 24px;color:#6b7280;font-size:15px;line-height:1.6;">
-              Gracias por registrarte en TurnFlow. Solo falta un paso: confirma tu correo electrónico para activar tu cuenta.
+              Solo falta un paso: confirma tu correo electrónico para activar tu cuenta y empezar.
             </p>
             <div style="text-align:center;margin-bottom:28px;">
               <a href="${confirmUrl}"
@@ -92,9 +95,14 @@ export async function POST(req: NextRequest) {
             <p style="margin:0 0 6px;color:#9ca3af;font-size:12px;text-align:center;">
               Este enlace expira en 24 horas.
             </p>
-            <p style="margin:0;color:#9ca3af;font-size:12px;text-align:center;">
+            <p style="margin:0 0 20px;color:#9ca3af;font-size:12px;text-align:center;">
               Si no creaste esta cuenta, puedes ignorar este correo.
             </p>
+            <div style="padding:14px 16px;background:#f5f3ff;border-radius:8px;text-align:center;">
+              <p style="margin:0;color:#5b21b6;font-size:13px;line-height:1.5;">
+                💡 <strong>Tip:</strong> Una vez actives tu cuenta, podrás crear tu marca, agregar productos y empezar a enviar cotizaciones profesionales en minutos.
+              </p>
+            </div>
           </td>
         </tr>
         <!-- Footer -->

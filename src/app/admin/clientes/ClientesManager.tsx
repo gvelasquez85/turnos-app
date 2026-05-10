@@ -564,6 +564,39 @@ function CustomerSlideOver({
                                 {opt} ✕
                               </button>
                             ))}
+                            {/* Custom interest input */}
+                            <div className="flex gap-1.5 w-full mt-1">
+                              <input
+                                type="text"
+                                placeholder="Agregar interés personalizado..."
+                                className="flex-1 text-xs px-2.5 py-1.5 rounded-full border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                                value={customTagInput}
+                                onChange={e => setCustomTagInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault()
+                                    const val = customTagInput.trim()
+                                    if (val && !(form.intereses ?? []).includes(val)) {
+                                      setForm(f => ({ ...f, intereses: [...(f.intereses ?? []), val] }))
+                                    }
+                                    setCustomTagInput('')
+                                  }
+                                }}
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const val = customTagInput.trim()
+                                  if (val && !(form.intereses ?? []).includes(val)) {
+                                    setForm(f => ({ ...f, intereses: [...(f.intereses ?? []), val] }))
+                                  }
+                                  setCustomTagInput('')
+                                }}
+                                className="text-xs px-3 py-1.5 rounded-full bg-indigo-600 text-white font-medium hover:bg-indigo-700"
+                              >
+                                + Agregar
+                              </button>
+                            </div>
                           </div>
                         </div>
                       )

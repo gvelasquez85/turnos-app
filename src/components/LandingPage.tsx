@@ -695,7 +695,7 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
                   </div>
                   <div className="tf-demo-url">
                     <svg width="10" height="12" viewBox="0 0 10 12" fill="none"><rect x="1" y="4" width="8" height="7" rx="1" stroke="#94A3B8" strokeWidth="1.2" /><path d="M3 4V3a2 2 0 014 0v1" stroke="#94A3B8" strokeWidth="1.2" /></svg>
-                    app.turnflow.co
+                    app.turnflow.com.co
                   </div>
                   <div className="tf-demo-pill">
                     <span className="tf-dot-live" /> En vivo
@@ -1349,7 +1349,7 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
               <div className="tf-footer-h">Empresa</div>
               <a href="/login">Iniciar sesión</a>
               <Link href="/register">Empezar gratis</Link>
-              <a href="mailto:hola@turnflow.co">Contacto</a>
+              <a href="mailto:hola@turnflow.com.co">Contacto</a>
             </div>
           </div>
           <div className="tf-footer-bottom">

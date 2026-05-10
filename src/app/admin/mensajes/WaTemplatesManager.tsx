@@ -34,12 +34,12 @@ interface Props {
 const PREVIEW_VARS: Record<WaCategory, Record<string, string>> = {
   appointment_confirmation: { nombre: 'María García', negocio: 'Tu negocio', fecha: 'lunes 12 de mayo', hora: '10:00', sucursal: 'Sede principal', motivo: 'Corte de cabello' },
   appointment_reminder:     { nombre: 'Carlos López', negocio: 'Tu negocio', fecha: 'mañana martes 13', hora: '15:30', sucursal: 'Sede principal' },
-  appointment_cancelled:    { nombre: 'Ana Rodríguez', negocio: 'Tu negocio', fecha: 'jueves 15', hora: '11:00', link: 'turnflow.co/book/tu-negocio' },
+  appointment_cancelled:    { nombre: 'Ana Rodríguez', negocio: 'Tu negocio', fecha: 'jueves 15', hora: '11:00', link: 'turnflow.com.co/book/tu-negocio' },
   appointment_no_show:      { nombre: 'Luis Martínez', negocio: 'Tu negocio', fecha: 'ayer miércoles 14' },
   sale_receipt:             { nombre: 'Sandra Torres', negocio: 'Tu negocio', total: '$85.000', referencia: 'VTA-2024-0042', fecha: 'hoy 3 de mayo' },
   sale_pending_payment:     { nombre: 'Pedro Sánchez', negocio: 'Tu negocio', total: '$120.000', vencimiento: 'viernes 10 de mayo' },
-  quote_sent:               { nombre: 'Laura Jiménez', negocio: 'Tu negocio', total: '$350.000', link: 'turnflow.co/cotizacion/abc123' },
-  quote_followup:           { nombre: 'Roberto Díaz', negocio: 'Tu negocio', total: '$350.000', dias: '3', link: 'turnflow.co/cotizacion/abc123' },
+  quote_sent:               { nombre: 'Laura Jiménez', negocio: 'Tu negocio', total: '$350.000', link: 'turnflow.com.co/cotizacion/abc123' },
+  quote_followup:           { nombre: 'Roberto Díaz', negocio: 'Tu negocio', total: '$350.000', dias: '3', link: 'turnflow.com.co/cotizacion/abc123' },
   customer_reactivation:    { nombre: 'Isabel Vargas', negocio: 'Tu negocio' },
 }
 

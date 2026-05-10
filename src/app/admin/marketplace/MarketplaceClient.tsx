@@ -13,7 +13,7 @@ import { fmtCOP, PRICING, getPlanDef } from '@/lib/planLimits'
 import { WompiModulePayment } from '@/components/WompiModulePayment'
 
 // Free modules — always included, shown in "Incluido" section
-const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales', 'ventas']
+const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales', 'ventas', 'mensajes']
 
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
@@ -33,6 +33,12 @@ const MODULE_ICON_FALLBACK: Record<string, LucideIcon> = {
   sales: ShoppingCart,
   promotions: Tag,
   mensajes: MessageSquare,
+}
+
+function bgColor(color: string | null, fallback = 'bg-indigo-500'): string {
+  if (!color) return fallback
+  if (color.startsWith('bg-')) return color
+  return `bg-${color}-500`
 }
 
 function getIcon(name: string | null | undefined, moduleKey?: string): LucideIcon {
@@ -291,11 +297,11 @@ export function MarketplaceClient({
   if (allModules.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-24 text-center">
-        <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-4">
+        <div className="w-16 h-16 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl flex items-center justify-center mb-4">
           <Lock size={28} className="text-indigo-400" />
         </div>
-        <h2 className="text-lg font-bold text-gray-900 mb-2">Marketplace no disponible aún</h2>
-        <p className="text-sm text-gray-500 max-w-xs">
+        <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">Marketplace no disponible aún</h2>
+        <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xs">
           Pronto habrá módulos disponibles para ampliar tu TurnFlow. Contacta a soporte para más información.
         </p>
       </div>
@@ -308,15 +314,15 @@ export function MarketplaceClient({
       <div className="mb-6">
         <div className="flex items-center gap-2 mb-1">
           <Zap size={22} className="text-indigo-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Marketplace de módulos</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Marketplace de módulos</h1>
         </div>
-        <p className="text-gray-500 text-sm">
+        <p className="text-gray-500 dark:text-gray-400 text-sm">
           Expande TurnFlow con funcionalidades adicionales. Prueba gratis 7 días, sin tarjeta de crédito.
         </p>
       </div>
 
       {/* Pricing summary */}
-      <div className="bg-indigo-50 border border-indigo-100 rounded-xl px-5 py-4 mb-7 flex flex-wrap items-center gap-4 justify-between">
+      <div className="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-xl px-5 py-4 mb-7 flex flex-wrap items-center gap-4 justify-between">
         <div className="flex items-center gap-6 text-sm">
           <div className="flex items-center gap-2 text-indigo-700">
             <Building2 size={15} />
@@ -328,8 +334,8 @@ export function MarketplaceClient({
           </div>
         </div>
         <div className="text-sm text-right">
-          <p className="text-gray-600">
-            Base <strong className="text-gray-900">{fmtCOP(baseMonthly)}/mes</strong>
+          <p className="text-gray-600 dark:text-gray-400">
+            Base <strong className="text-gray-900 dark:text-gray-100">{fmtCOP(baseMonthly)}/mes</strong>
             {addonMonthly > 0 && (
               <> + módulos <strong className="text-indigo-700">+{fmtCOP(addonMonthly)}/mes</strong></>
             )}
@@ -340,24 +346,22 @@ export function MarketplaceClient({
         </div>
       </div>
 
-      {/* Active modules */}
+      {/* Active modules — compact pills */}
       {activeSubs.length > 0 && (
         <div className="mb-7">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos activos</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Módulos activos</h2>
+          <div className="flex flex-wrap gap-2">
             {activeSubs.map(sub => {
               const mod = allModules.find(m => m.module_key === sub.module_key)
               if (!mod) return null
               const Icon = getIcon(mod.icon, mod.module_key)
               return (
-                <div key={sub.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-                  <div className={`w-9 h-9 ${mod.color ?? 'bg-indigo-500'} rounded-lg flex items-center justify-center shrink-0`}>
-                    <Icon size={16} className="text-white" />
+                <div key={sub.id} className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700 px-3 py-1.5">
+                  <div className={`w-6 h-6 ${bgColor(mod.color)} rounded-full flex items-center justify-center shrink-0`}>
+                    <Icon size={12} className="text-white" />
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm truncate">{mod.label}</p>
-                    <StatusBadge status={getStatus(sub)} sub={sub} />
-                  </div>
+                  <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{mod.label}</span>
+                  <StatusBadge status={getStatus(sub)} sub={sub} />
                 </div>
               )
             })}
@@ -365,38 +369,23 @@ export function MarketplaceClient({
         </div>
       )}
 
-      {/* Included Modules (free, no trial/payment) */}
+      {/* Included Modules — compact horizontal pills */}
       {(() => {
         const includedMods = allModules.filter(m => FREE_MODULE_KEYS.includes(m.module_key))
         if (includedMods.length === 0) return null
         return (
           <div className="mb-7">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Incluido en tu plan</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Incluido en tu plan</h2>
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl px-4 py-3 flex flex-wrap gap-2">
               {includedMods.map(mod => {
                 const ModIcon = getIcon(mod.icon, mod.module_key)
                 return (
-                  <div key={mod.module_key} className="bg-white rounded-2xl border-2 border-emerald-200 p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="w-11 h-11 bg-emerald-500 rounded-xl flex items-center justify-center">
-                        <ModIcon size={20} className="text-white" />
-                      </div>
-                      <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-semibold">
-                        ✓ Incluido gratis
-                      </span>
+                  <div key={mod.module_key} className="inline-flex items-center gap-2 bg-white dark:bg-gray-800 rounded-full border border-emerald-200 dark:border-emerald-800 px-3 py-1.5">
+                    <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
+                      <ModIcon size={12} className="text-white" />
                     </div>
-                    <h3 className="font-bold text-gray-900 mb-1">{mod.label}</h3>
-                    <p className="text-sm text-gray-500 mb-3 leading-relaxed">{mod.description}</p>
-                    {(mod.features ?? []).length > 0 && (
-                      <ul className="space-y-1.5">
-                        {(mod.features ?? []).map(f => (
-                          <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                            <CheckCircle size={12} className="text-emerald-500 shrink-0" />
-                            {f}
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+                    <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">{mod.label}</span>
+                    <span className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold">✓ Incluido</span>
                   </div>
                 )
               })}
@@ -411,8 +400,8 @@ export function MarketplaceClient({
         if (catalogueMods.length === 0) return null
         return (
           <>
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos adicionales</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Módulos adicionales</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {catalogueMods.map(mod => {
                 const sub = getSub(mod.module_key)
                 const status = getStatus(sub)
@@ -424,15 +413,15 @@ export function MarketplaceClient({
                 return (
                   <div
                     key={mod.module_key}
-                    className={`bg-white rounded-2xl border-2 flex flex-col transition-all ${
-                      status === 'active' || status === 'trial' ? 'border-indigo-200'
-                      : comingSoon ? 'border-dashed border-gray-200 opacity-70'
-                      : 'border-gray-100 hover:border-gray-200'
+                    className={`bg-white dark:bg-gray-900 rounded-2xl border-2 flex flex-col transition-all shadow-sm hover:shadow-md ${
+                      status === 'active' || status === 'trial' ? 'border-indigo-200 dark:border-indigo-800'
+                      : comingSoon ? 'border-dashed border-gray-200 dark:border-gray-700 opacity-70'
+                      : 'border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-600'
                     }`}
                   >
                     <div className="p-5 flex-1">
                       <div className="flex items-start justify-between mb-3">
-                        <div className={`w-11 h-11 ${mod.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center`}>
+                        <div className={`w-11 h-11 ${bgColor(mod.color)} rounded-xl flex items-center justify-center`}>
                           <Icon size={20} className="text-white" />
                         </div>
                         <div className="flex items-center gap-2">
@@ -444,13 +433,13 @@ export function MarketplaceClient({
                           {!comingSoon && status !== 'available' && <StatusBadge status={status} sub={sub} />}
                         </div>
                       </div>
-                      <h3 className="font-bold text-gray-900 mb-1">{mod.label}</h3>
-                      <p className="text-sm text-gray-500 mb-4 leading-relaxed">{mod.description}</p>
+                      <h3 className="font-bold text-gray-900 dark:text-gray-100 mb-1">{mod.label}</h3>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 leading-relaxed">{mod.description}</p>
                       {(mod.features ?? []).length > 0 && (
                         <ul className="space-y-1.5">
                           {(mod.features ?? []).map(f => (
-                            <li key={f} className="flex items-center gap-2 text-xs text-gray-600">
-                              <CheckCircle size={12} className="text-green-500 shrink-0" />
+                            <li key={f} className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                              <CheckCircle size={12} className="text-green-500 dark:text-green-400 shrink-0" />
                               {f}
                             </li>
                           ))}
@@ -459,12 +448,12 @@ export function MarketplaceClient({
                     </div>
 
                     <div className="px-5 pb-5">
-                      <div className="flex items-end justify-between mb-3 pt-4 border-t border-gray-100">
+                      <div className="flex items-end justify-between mb-3 pt-4 border-t border-gray-100 dark:border-gray-800">
                         <div>
                           {price > 0 ? (
                             <>
                               <div>
-                                <span className="text-2xl font-black text-gray-900">
+                                <span className="text-2xl font-black text-gray-900 dark:text-gray-100">
                                   {fmtCOP(price)}
                                 </span>
                                 <span className="text-gray-400 text-sm">/mes</span>
@@ -483,7 +472,7 @@ export function MarketplaceClient({
                       </div>
 
                       {comingSoon ? (
-                        <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2">
+                        <button disabled className="w-full py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-400 text-sm font-medium cursor-not-allowed flex items-center justify-center gap-2">
                           <Lock size={14} /> Próximamente
                         </button>
                       ) : status === 'available' ? (
@@ -534,7 +523,7 @@ export function MarketplaceClient({
       {/* Orphan subscriptions — sub exists in DB but no marketplace_modules entry */}
       {orphanSubs.length > 0 && (
         <div className="mb-7">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Módulos sin renovar</h2>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Módulos sin renovar</h2>
           <div className="flex flex-col gap-2">
             {orphanSubs.map(sub => {
               const status = getStatus(sub)
@@ -546,12 +535,12 @@ export function MarketplaceClient({
               }
               const label = labelMap[sub.module_key] ?? sub.module_key
               return (
-                <div key={sub.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-3">
-                  <div className="w-9 h-9 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                <div key={sub.id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gray-100 dark:bg-gray-800 rounded-lg flex items-center justify-center shrink-0">
                     <Icon size={16} className="text-gray-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 text-sm">{label}</p>
+                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{label}</p>
                     <StatusBadge status={status} sub={sub} />
                   </div>
                   <button
@@ -573,7 +562,7 @@ export function MarketplaceClient({
         const mod = allModules.find(m => m.module_key === deleteModal)
         return (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm">
               {deleteStep === 'confirm' && (
                 <>
                   <div className="flex items-center gap-3 mb-4">
@@ -581,7 +570,7 @@ export function MarketplaceClient({
                       <Trash2 size={18} className="text-red-500" />
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">Eliminar módulo</p>
+                      <p className="font-bold text-gray-900 dark:text-gray-100">Eliminar módulo</p>
                       <p className="text-sm text-gray-500">{mod?.label}</p>
                     </div>
                   </div>
@@ -642,7 +631,7 @@ export function MarketplaceClient({
         const price = mod ? modulePrice(mod) : 0
         return (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+            <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 w-full max-w-sm">
               {paymentSuccess ? (
                 <div className="text-center">
                   <div className="w-14 h-14 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
@@ -660,11 +649,11 @@ export function MarketplaceClient({
               ) : (
                 <>
                   <div className="flex items-center gap-3 mb-4">
-                    <div className={`w-10 h-10 ${mod?.color ?? 'bg-indigo-500'} rounded-xl flex items-center justify-center shrink-0`}>
+                    <div className={`w-10 h-10 ${bgColor(mod?.color ?? null)} rounded-xl flex items-center justify-center shrink-0`}>
                       {(() => { const I = getIcon(mod?.icon, mod?.module_key); return <I size={18} className="text-white" /> })()}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900">{mod?.label}</p>
+                      <p className="font-bold text-gray-900 dark:text-gray-100">{mod?.label}</p>
                       {price > 0 && (
                         <p className="text-sm text-indigo-600 font-semibold">{fmtCOP(price)}/mes</p>
                       )}

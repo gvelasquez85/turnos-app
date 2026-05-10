@@ -30,7 +30,7 @@ const INTEGRATIONS = [
       {
         env: 'COMMS_FROM_EMAIL',
         label: 'Email remitente',
-        hint: 'Dirección verificada en Brevo (ej: noreply@turnflow.co). Debe estar autorizada como sender.',
+        hint: 'Dirección verificada en Brevo (ej: noreply@turnflow.com.co). Debe estar autorizada como sender.',
       },
       {
         env: 'COMMS_FROM_NAME',

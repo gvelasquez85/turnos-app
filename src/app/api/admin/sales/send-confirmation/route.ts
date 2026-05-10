@@ -85,10 +85,13 @@ export async function POST(req: NextRequest) {
 
   <div style="padding:28px 32px;">
     <p style="margin:0 0 16px;color:#374151;font-size:15px;">
-      Hola <strong>${customer.name}</strong>,
+      ¡Hola <strong>${customer.name}</strong>! 🎉
+    </p>
+    <p style="margin:0 0 12px;color:#374151;font-size:14px;line-height:1.6;">
+      <strong>¡Gracias por tu compra en ${brand?.name || fromName}!</strong> Hiciste una excelente elección.
     </p>
     <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6;">
-      Agradecemos tu compra. A continuación encontrarás el detalle de tu pedido.
+      A continuación encontrarás el resumen de tu pedido. Guarda este correo como comprobante.
     </p>
 
     <!-- Items table -->
@@ -116,13 +119,22 @@ export async function POST(req: NextRequest) {
       <p style="margin:6px 0 0;font-size:13px;color:#6b7280;">${sale.notes}</p>
     </div>` : ''}
 
-    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
-      Si tienes preguntas, responde directamente a este correo.
+    <!-- Help section -->
+    <div style="margin-top:24px;padding:16px 20px;background:#eff6ff;border-radius:8px;text-align:center;">
+      <p style="margin:0 0 4px;color:#1e40af;font-size:14px;font-weight:600;">¿Necesitas ayuda con tu pedido?</p>
+      <p style="margin:0;color:#3b82f6;font-size:13px;line-height:1.5;">
+        Si tienes alguna pregunta sobre tu compra, simplemente responde a este correo y te atenderemos con gusto.
+      </p>
+    </div>
+
+    <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
+      Gracias por confiar en <strong style="color:#6b7280;">${brand?.name || fromName}</strong>. ¡Esperamos verte pronto!
     </p>
   </div>
 
-  <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-    <p style="margin:0;font-size:11px;color:#9ca3af;">Generado con TurnFlow · ${fromName}</p>
+  <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+    <p style="margin:0 0 4px;font-size:12px;color:#6b7280;font-weight:600;">${brand?.name || fromName}</p>
+    <p style="margin:0;font-size:11px;color:#9ca3af;">Potenciado por TurnFlow</p>
   </div>
 </div>
 </body>

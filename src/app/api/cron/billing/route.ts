@@ -299,7 +299,7 @@ async function sendBillingEmail(to: string | null, type: EmailType, data: Record
 
   // TODO: conectar Resend, SendGrid u otro proveedor
   // Ejemplo con Resend:
-  // await resend.emails.send({ from: 'billing@turnflow.co', to, subject: subjects[type], html: buildEmailHtml(type, data) })
+  // await resend.emails.send({ from: 'billing@turnflow.com.co', to, subject: subjects[type], html: buildEmailHtml(type, data) })
 
   console.log(`[billing/email] TO:${to} TYPE:${type}`, data, '| Subject:', subjects[type])
 }

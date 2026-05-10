@@ -801,7 +801,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                       </div>
                       {payingModule === sub.id && (
                         <div className="pb-4 border-t border-gray-50 pt-3">
-                          <a href={`mailto:soporte@turnflow.co?subject=Activar módulo ${MODULE_LABELS[sub.module_key] ?? sub.module_key}`}
+                          <a href={`mailto:soporte@turnflow.com.co?subject=Activar módulo ${MODULE_LABELS[sub.module_key] ?? sub.module_key}`}
                             className="block w-full py-2 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 text-center">
                             Solicitar activación →
                           </a>
@@ -1046,7 +1046,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
                 </div>
               ))}
             </div>
-            <p className="text-xs text-gray-400 mt-3">Base URL: <code className="bg-white border border-gray-200 rounded px-1">{typeof window !== 'undefined' ? window.location.origin : 'https://app.turnflow.co'}</code></p>
+            <p className="text-xs text-gray-400 mt-3">Base URL: <code className="bg-white border border-gray-200 rounded px-1">{typeof window !== 'undefined' ? window.location.origin : 'https://app.turnflow.com.co'}</code></p>
           </div>
         </div>
       )}
@@ -1089,7 +1089,7 @@ export function BrandSettings({ brand: initialBrand, membership, moduleSubscript
               Contáctanos para ajustar tu plan (más sucursales, usuarios o módulos). Lo activamos en minutos:
             </p>
             <a
-              href={`mailto:soporte@turnflow.co?subject=Quiero ampliar mi plan TurnFlow&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero ampliar mi plan.`}
+              href={`mailto:soporte@turnflow.com.co?subject=Quiero ampliar mi plan TurnFlow&body=Hola, soy administrador de la marca "${initialBrand.name}" y quiero ampliar mi plan.`}
               className="block w-full py-2.5 px-4 bg-indigo-600 text-white rounded-xl font-medium text-sm hover:bg-indigo-700 transition-colors mb-3"
             >
               Contactar soporte →

@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
 
   // Build tracking token (use the quote ID as token — simple)
   const trackingToken = quoteId
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.co'
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.com.co'
   const trackingPixelUrl = `${appUrl}/api/quotes/track/${trackingToken}`
   const quotePublicUrl = `${appUrl}/cotizacion/${trackingToken}`
 
@@ -100,10 +100,13 @@ export async function POST(req: NextRequest) {
 
   <div style="padding:28px 32px;">
     <p style="margin:0 0 16px;color:#374151;font-size:15px;">
-      Hola <strong>${recipientName || 'estimado cliente'}</strong>,
+      ¡Hola <strong>${recipientName || 'estimado/a cliente'}</strong>! 👋
+    </p>
+    <p style="margin:0 0 12px;color:#374151;font-size:14px;line-height:1.6;">
+      Desde <strong>${brand?.name || fromName}</strong> te enviamos esta cotización personalizada. Nos encantaría ayudarte con lo que necesitas.
     </p>
     <p style="margin:0 0 24px;color:#6b7280;font-size:14px;line-height:1.6;">
-      ${message || 'Te hacemos llegar la cotización que solicitaste. A continuación encontrarás el detalle de los productos y servicios incluidos.'}
+      ${message || 'A continuación encontrarás el detalle de los productos y servicios incluidos. Si tienes alguna duda o deseas ajustar algo, estamos para ayudarte.'}
     </p>
 
     <!-- Items table -->
@@ -139,13 +142,20 @@ export async function POST(req: NextRequest) {
       </a>
     </div>
 
-    <p style="margin:24px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
-      Si tienes preguntas, responde directamente a este correo.
+    <div style="margin-top:24px;padding:16px 20px;background:#f0fdf4;border-radius:8px;text-align:center;">
+      <p style="margin:0;color:#166534;font-size:14px;line-height:1.5;">
+        ✨ Esta cotización fue preparada especialmente para ti. Si deseas hacer algún cambio o tienes preguntas, simplemente responde a este correo y te atenderemos con gusto.
+      </p>
+    </div>
+
+    <p style="margin:20px 0 0;color:#9ca3af;font-size:12px;text-align:center;">
+      Este correo fue enviado por <strong style="color:#6b7280;">${brand?.name || fromName}</strong>. Si tienes preguntas, responde directamente.
     </p>
   </div>
 
-  <div style="background:#f9fafb;padding:16px 32px;text-align:center;border-top:1px solid #e5e7eb;">
-    <p style="margin:0;font-size:11px;color:#9ca3af;">Generado con TurnFlow · ${fromName}</p>
+  <div style="background:#f9fafb;padding:20px 32px;text-align:center;border-top:1px solid #e5e7eb;">
+    <p style="margin:0 0 4px;font-size:12px;color:#6b7280;font-weight:600;">${brand?.name || fromName}</p>
+    <p style="margin:0;font-size:11px;color:#9ca3af;">Potenciado por TurnFlow</p>
   </div>
 </div>
 <!-- Open tracking pixel -->

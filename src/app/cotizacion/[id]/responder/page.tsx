@@ -53,7 +53,7 @@ export default async function ResponderQuotePage({
       // Update inventory based on quote items
       if (newSale?.id) {
         try {
-          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.co'
+          const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.com.co'
           await fetch(`${appUrl}/api/admin/sales/update-inventory`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },

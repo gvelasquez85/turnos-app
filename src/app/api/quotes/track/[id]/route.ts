@@ -15,16 +15,29 @@ export async function GET(
 
   if (id) {
     try {
-      const service = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      )
-      await service
-        .from('sales')
-        .update({ opened_at: new Date().toISOString() })
-        .eq('id', id)
-        .is('opened_at', null)
-    } catch { /* silent */ }
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+      if (!supabaseUrl || !serviceKey) {
+        console.error('[track-pixel] Missing env vars:', {
+          hasUrl: !!supabaseUrl,
+          hasKey: !!serviceKey,
+        })
+      } else {
+        const service = createClient(supabaseUrl, serviceKey)
+        const { error } = await service
+          .from('sales')
+          .update({ opened_at: new Date().toISOString() })
+          .eq('id', id)
+          .is('opened_at', null)
+
+        if (error) {
+          console.error('[track-pixel] Supabase update error:', error.message, { id })
+        }
+      }
+    } catch (err) {
+      console.error('[track-pixel] Unexpected error:', err instanceof Error ? err.message : err)
+    }
   }
 
   return new NextResponse(PIXEL, {
@@ -33,6 +46,7 @@ export async function GET(
       'Content-Type': 'image/gif',
       'Cache-Control': 'no-cache, no-store, must-revalidate',
       'Pragma': 'no-cache',
+      'Expires': '0',
     },
   })
 }

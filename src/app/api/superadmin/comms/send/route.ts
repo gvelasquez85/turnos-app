@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
   const brevoKey    = db['BREVO_API_KEY']    || process.env.BREVO_API_KEY
   const resendKey   = db['RESEND_API_KEY']   || process.env.RESEND_API_KEY
   const sendgridKey = db['SENDGRID_API_KEY'] || process.env.SENDGRID_API_KEY
-  const fromEmail   = db['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL || 'noreply@turnflow.co'
+  const fromEmail   = db['COMMS_FROM_EMAIL'] || process.env.COMMS_FROM_EMAIL || 'noreply@turnflow.com.co'
   const fromName    = db['COMMS_FROM_NAME']  || process.env.COMMS_FROM_NAME  || 'TurnFlow'
 
   const validContacts = (contacts as ContactItem[]).filter(c => c.customer_email)

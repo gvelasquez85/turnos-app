@@ -1,57 +1,72 @@
 'use client'
-import { useEffect, useState, useTransition, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { useEffect, useState, useRef, Suspense } from 'react'
 
-export function NavigationProgress() {
+function NavigationProgressInner() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
-  const [visible, setVisible] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const prevKey = useRef(`${pathname}${searchParams}`)
+  const timerRef = useRef<NodeJS.Timeout>(null)
+  const prevPath = useRef(pathname)
 
   useEffect(() => {
-    const key = `${pathname}${searchParams}`
-    if (key === prevKey.current) return
-    prevKey.current = key
-
-    // Route changed → reset and start
-    if (timerRef.current) clearInterval(timerRef.current)
-    setProgress(0)
-    setVisible(true)
-
-    // Animate quickly to ~85%, then wait for route to finish
-    let p = 0
-    timerRef.current = setInterval(() => {
-      p += Math.random() * 15
-      if (p >= 85) {
-        p = 85
-        clearInterval(timerRef.current!)
-      }
-      setProgress(p)
-    }, 120)
-
-    // Complete after a short delay (route is rendered by then in App Router)
-    const completeTimer = setTimeout(() => {
-      if (timerRef.current) clearInterval(timerRef.current)
+    // Route changed - complete the progress
+    if (prevPath.current !== pathname) {
       setProgress(100)
-      setTimeout(() => setVisible(false), 300)
-    }, 500)
-
-    return () => {
-      clearInterval(timerRef.current!)
-      clearTimeout(completeTimer)
+      setTimeout(() => {
+        setLoading(false)
+        setProgress(0)
+      }, 300)
+      prevPath.current = pathname
     }
   }, [pathname, searchParams])
 
-  if (!visible) return null
+  // Intercept link clicks to start progress
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      const anchor = (e.target as HTMLElement).closest('a')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto:')) return
+      if (anchor.target === '_blank') return
+      // Same page link - skip
+      if (href === pathname) return
+
+      setLoading(true)
+      setProgress(20)
+      clearInterval(timerRef.current as unknown as number)
+      timerRef.current = setInterval(() => {
+        setProgress(p => {
+          if (p >= 90) { clearInterval(timerRef.current as unknown as number); return 90 }
+          return p + Math.random() * 10
+        })
+      }, 300)
+    }
+
+    document.addEventListener('click', handleClick, true)
+    return () => {
+      document.removeEventListener('click', handleClick, true)
+      clearInterval(timerRef.current as unknown as number)
+    }
+  }, [pathname])
+
+  if (!loading) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] h-0.5 pointer-events-none">
+    <div className="fixed top-0 left-0 right-0 z-[100] h-0.5">
       <div
-        className="h-full bg-indigo-500 transition-all duration-200 ease-out shadow-[0_0_8px_rgba(99,102,241,0.8)]"
-        style={{ width: `${progress}%`, opacity: visible ? 1 : 0 }}
+        className="h-full bg-indigo-500 transition-all duration-300 ease-out"
+        style={{ width: `${progress}%` }}
       />
     </div>
+  )
+}
+
+export function NavigationProgress() {
+  return (
+    <Suspense fallback={null}>
+      <NavigationProgressInner />
+    </Suspense>
   )
 }

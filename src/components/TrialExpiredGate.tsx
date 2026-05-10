@@ -65,7 +65,7 @@ export function TrialExpiredGate({ children, isExpired, moduleLabel, expiredAt }
               </button>
 
               <button
-                onClick={() => window.open('mailto:soporte@turnflow.co?subject=Renovación%20de%20módulo', '_blank')}
+                onClick={() => window.open('mailto:soporte@turnflow.com.co?subject=Renovación%20de%20módulo', '_blank')}
                 className="w-full flex items-center justify-center gap-2 text-gray-500 hover:text-gray-700 text-xs py-2 transition-colors"
               >
                 <Mail size={12} />

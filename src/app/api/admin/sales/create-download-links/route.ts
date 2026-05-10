@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         .single()
 
       if (dl?.token) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.co'
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.turnflow.com.co'
         links.push(`${appUrl}/api/download/${dl.token}`)
       }
     }

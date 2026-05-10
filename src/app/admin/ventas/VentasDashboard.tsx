@@ -219,6 +219,17 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
         await supabase.from('sales').update({ status: newStatus }).eq('id', openSale.id)
       }
       updateLocalSale(openSale.id, { status: newStatus })
+      // Log status change to customer_history
+      if (openSale.customer_id) {
+        const supabaseForHistory = createClient()
+        await supabaseForHistory.from('customer_history').insert({
+          customer_id: openSale.customer_id,
+          tipo: 'venta',
+          detalles: `Venta #${openSale.id.slice(-6).toUpperCase()} cambió a estado: ${STATUS_MAP[newStatus]?.label ?? newStatus}`,
+          monto: openSale.total,
+          fecha: new Date().toISOString(),
+        })
+      }
     } finally {
       setChangingStatus(false)
     }

@@ -230,9 +230,7 @@ function QuotePreview({ t, brandName, brandLogoUrl }: {
       {/* Footer */}
       <div className="px-6 py-3 text-center" style={{ background: t.primaryColor + '18' }}>
         <p className={`${bodySizeClass} text-gray-500`}>{t.footerText}</p>
-        {t.showWatermark && (
-          <p className="text-[8px] text-gray-300 mt-0.5">Cotización generada con TurnFlow</p>
-        )}
+        <p className="text-[8px] text-gray-300 mt-0.5">Mi negocio ya usa <a href="https://turnflow.com.co" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-400">Turnflow</a>, suma al tuyo</p>
       </div>
     </div>
   )
@@ -471,7 +469,7 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                       <option value="lg">Grande</option>
                     </select>
                   </Field>
-                  <Field label="Marca de agua TurnFlow"><Toggle checked={template.showWatermark} onChange={v => set('showWatermark', v)} /></Field>
+                  <Field label="Marca de agua Turnflow"><p className="text-xs text-gray-400 italic">La marca de agua solo se puede remover en planes empresariales</p></Field>
                 </div>
               </>
             )}
