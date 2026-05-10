@@ -195,25 +195,25 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => router.back()}
-          className="p-2 rounded-lg hover:bg-gray-100 text-gray-500"
+          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
         >
           <ArrowLeft size={18} />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             {type === 'quote' ? 'Nueva cotización' : 'Nueva venta'}
           </h1>
         </div>
       </div>
 
       {/* Type toggle */}
-      <div className="flex gap-2 mb-6 p-1 bg-gray-100 rounded-xl w-fit">
+      <div className="flex gap-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit">
         {(['sale', 'quote'] as const).map(t => (
           <button
             key={t}
             onClick={() => setType(t)}
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-              type === t ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-700'
+              type === t ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
             }`}
           >
             {t === 'sale' ? <ShoppingCart size={14} /> : <FileCheck size={14} />}
@@ -226,32 +226,32 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
         {/* Main: products */}
         <div className="lg:col-span-2 space-y-4">
           {/* Product search */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Productos</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Productos</p>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
               <input
-                className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 placeholder="Buscar producto o servicio..."
                 value={productSearch}
                 onChange={e => { setProductSearch(e.target.value); setShowProductList(true) }}
                 onFocus={() => setShowProductList(true)}
               />
               {showProductList && (productSearch || true) && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-10 max-h-52 overflow-y-auto">
+                <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-10 max-h-52 overflow-y-auto">
                   {filteredProducts.length === 0 ? (
-                    <p className="px-4 py-3 text-sm text-gray-400">Sin resultados</p>
+                    <p className="px-4 py-3 text-sm text-gray-400 dark:text-gray-500">Sin resultados</p>
                   ) : filteredProducts.map(p => (
                     <button
                       key={p.id}
                       onMouseDown={() => addProduct(p)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 text-left"
+                      className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-left"
                     >
                       <div>
-                        <p className="text-sm font-medium text-gray-900">{p.name}</p>
-                        {p.sku && <p className="text-xs text-gray-400">{p.sku}</p>}
+                        <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</p>
+                        {p.sku && <p className="text-xs text-gray-400 dark:text-gray-500">{p.sku}</p>}
                       </div>
-                      <p className="text-sm font-semibold text-gray-700">{fmt(p.price)}</p>
+                      <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">{fmt(p.price)}</p>
                     </button>
                   ))}
                 </div>
@@ -262,22 +262,22 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
             {items.length > 0 && (
               <div className="mt-4 space-y-2">
                 {items.map((it, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+                  <div key={idx} className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">{it.product_name}</p>
-                      <p className="text-xs text-gray-400">{fmt(it.unit_price)} c/u</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{it.product_name}</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{fmt(it.unit_price)} c/u</p>
                     </div>
                     {/* Qty */}
                     <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         onClick={() => it.qty > 1 ? updateItem(idx, { qty: Math.floor(it.qty) - 1 }) : removeItem(idx)}
-                        className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:border-red-300 hover:text-red-500"
+                        className="w-6 h-6 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:border-red-300 hover:text-red-500"
                       >
                         <Minus size={10} />
                       </button>
                       <input
                         type="number"
-                        className="w-12 text-center text-sm font-semibold border border-gray-200 rounded-lg py-0.5 focus:border-emerald-500 focus:outline-none"
+                        className="w-12 text-center text-sm font-semibold border border-gray-200 dark:border-gray-700 rounded-lg py-0.5 focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                         value={it.qty}
                         min={1}
                         step={1}
@@ -285,15 +285,15 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
                       />
                       <button
                         onClick={() => updateItem(idx, { qty: Math.floor(it.qty) + 1 })}
-                        className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:border-emerald-300 hover:text-emerald-600"
+                        className="w-6 h-6 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:border-emerald-300 hover:text-emerald-600"
                       >
                         <Plus size={10} />
                       </button>
                     </div>
-                    <p className="text-sm font-bold text-gray-900 w-20 text-right shrink-0">
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100 w-20 text-right shrink-0">
                       {fmt(it.qty * it.unit_price - it.discount)}
                     </p>
-                    <button onClick={() => removeItem(idx)} className="p-1 text-gray-300 hover:text-red-500 shrink-0">
+                    <button onClick={() => removeItem(idx)} className="p-1 text-gray-300 dark:text-gray-600 hover:text-red-500 shrink-0">
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -302,18 +302,18 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
             )}
 
             {items.length === 0 && (
-              <p className="text-center text-sm text-gray-400 py-6">
+              <p className="text-center text-sm text-gray-400 dark:text-gray-500 py-6">
                 Busca y agrega productos de arriba
               </p>
             )}
           </div>
 
           {/* Notes */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-gray-400 block mb-2">Notas</label>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <label className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 block mb-2">Notas</label>
             <textarea
               rows={2}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none resize-none"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               placeholder="Condiciones, observaciones, vigencia de la cotización..."
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -324,13 +324,13 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Customer */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
             <div className="flex items-center gap-1.5 mb-3">
-              <User size={13} className="text-gray-400" />
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Cliente</p>
+              <User size={13} className="text-gray-400 dark:text-gray-500" />
+              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Cliente</p>
             </div>
             <select
-              className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               value={customerId}
               onChange={e => setCustomerId(e.target.value)}
             >
@@ -343,13 +343,13 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
 
           {/* Establishment */}
           {establishments.length > 1 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center gap-1.5 mb-3">
-                <Building2 size={13} className="text-gray-400" />
-                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Sucursal</p>
+                <Building2 size={13} className="text-gray-400 dark:text-gray-500" />
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Sucursal</p>
               </div>
               <select
-                className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-gray-200 dark:border-gray-700 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                 value={establishmentId}
                 onChange={e => setEstablishmentId(e.target.value)}
               >
@@ -359,27 +359,27 @@ export function NuevaVentaForm({ brandId, userId, products, customers, establish
           )}
 
           {/* Summary */}
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-3">Resumen</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Resumen</p>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600">
+              <div className="flex justify-between text-gray-600 dark:text-gray-400">
                 <span>Subtotal</span>
                 <span>{fmt(subtotal)}</span>
               </div>
-              <div className="flex items-center justify-between text-gray-600">
+              <div className="flex items-center justify-between text-gray-600 dark:text-gray-400">
                 <span>Descuento</span>
                 <div className="flex items-center gap-1">
                   <span>$</span>
                   <input
                     type="number"
-                    className="w-20 text-right rounded border border-gray-200 px-1 py-0.5 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-20 text-right rounded border border-gray-200 dark:border-gray-700 px-1 py-0.5 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={globalDiscount}
                     min={0}
                     onChange={e => setGlobalDiscount(parseFloat(e.target.value) || 0)}
                   />
                 </div>
               </div>
-              <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
+              <div className="flex justify-between font-bold text-gray-900 dark:text-gray-100 text-base pt-2 border-t border-gray-100 dark:border-gray-800">
                 <span>Total</span>
                 <span>{fmt(total)}</span>
               </div>

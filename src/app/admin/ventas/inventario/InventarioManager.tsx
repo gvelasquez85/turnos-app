@@ -180,8 +180,8 @@ export function InventarioManager({ brandId, products: initial, establishments }
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inventario</h1>
-          <p className="text-gray-500 text-sm mt-1">{products.filter(p => p.active).length} productos activos</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inventario</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{products.filter(p => p.active).length} productos activos</p>
         </div>
         <button
           onClick={openCreate}
@@ -193,7 +193,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
 
       {/* Low stock alert */}
       {lowStock.length > 0 && (
-        <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+        <div className="mb-5 p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl flex items-start gap-3">
           <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-800">Stock bajo en {lowStock.length} producto{lowStock.length > 1 ? 's' : ''}</p>
@@ -207,9 +207,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
       {/* Filters */}
       <div className="flex flex-wrap gap-2 mb-4">
         <div className="relative flex-1 min-w-40">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
           <input
-            className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-emerald-500 focus:outline-none"
+            className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             placeholder="Buscar por nombre, SKU, categoría..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -217,7 +217,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
         </div>
         {categories.length > 0 && (
           <select
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 focus:border-emerald-500 focus:outline-none"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 focus:border-emerald-500 focus:outline-none"
             value={filterCat}
             onChange={e => setFilterCat(e.target.value)}
           >
@@ -229,9 +229,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
 
       {/* Table */}
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
-          <Package size={32} className="mx-auto mb-3 text-gray-200" />
-          <p className="text-sm font-medium text-gray-500">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 py-16 text-center">
+          <Package size={32} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
+          <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
             {products.length === 0 ? 'Aún no hay productos' : 'Sin resultados'}
           </p>
           {products.length === 0 && (
@@ -241,35 +241,35 @@ export function InventarioManager({ brandId, products: initial, establishments }
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px]">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <tr className="border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   <th className="px-4 py-2.5 text-left">
-                    <button className="flex items-center gap-1 hover:text-gray-700" onClick={() => toggleSort('name')}>
+                    <button className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300" onClick={() => toggleSort('name')}>
                       Producto <SortIcon f="name" />
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-left hidden md:table-cell">Categoría / SKU</th>
                   <th className="px-4 py-2.5 text-right">
-                    <button className="flex items-center gap-1 hover:text-gray-700 ml-auto" onClick={() => toggleSort('price')}>
+                    <button className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 ml-auto" onClick={() => toggleSort('price')}>
                       Precio <SortIcon f="price" />
                     </button>
                   </th>
                   <th className="px-4 py-2.5 text-center">
-                    <button className="flex items-center gap-1 hover:text-gray-700 mx-auto" onClick={() => toggleSort('stock')}>
+                    <button className="flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-300 mx-auto" onClick={() => toggleSort('stock')}>
                       Stock <SortIcon f="stock" />
                     </button>
                   </th>
                   <th className="px-4 py-2.5 w-20" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                 {filtered.map(p => {
                   const lowS = p.min_stock > 0 && p.stock <= p.min_stock
                   return (
-                    <tr key={p.id} className="hover:bg-gray-50 group">
+                    <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800 group">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2.5">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
@@ -279,44 +279,44 @@ export function InventarioManager({ brandId, products: initial, establishments }
                           </div>
                           <div>
                             <div className="flex items-center gap-1.5">
-                              <p className="text-sm font-medium text-gray-900">{p.name}</p>
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{p.name}</p>
                               <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full ${p.product_type === 'service' ? 'bg-violet-100 text-violet-600' : 'bg-emerald-100 text-emerald-600'}`}>
                                 {p.product_type === 'service' ? 'Servicio' : 'Físico'}
                               </span>
                             </div>
-                            <p className="text-[10px] text-gray-400">{p.unit}</p>
+                            <p className="text-[10px] text-gray-400 dark:text-gray-500">{p.unit}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
                         {p.category && (
-                          <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded-full">{p.category}</span>
+                          <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-1.5 py-0.5 rounded-full">{p.category}</span>
                         )}
-                        {p.sku && <p className="text-xs text-gray-400 mt-0.5">{p.sku}</p>}
+                        {p.sku && <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{p.sku}</p>}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <p className="text-sm font-semibold text-gray-900">{fmt(p.price)}</p>
-                        {p.cost > 0 && <p className="text-[10px] text-gray-400">costo: {fmt(p.cost)}</p>}
+                        <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{fmt(p.price)}</p>
+                        {p.cost > 0 && <p className="text-[10px] text-gray-400 dark:text-gray-500">costo: {fmt(p.cost)}</p>}
                       </td>
                       <td className="px-4 py-3 text-center">
                         {stockEdit?.id === p.id ? (
                           <div className="flex items-center gap-1 justify-center">
                             <input
                               type="number"
-                              className="w-16 rounded-lg border border-gray-300 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none"
+                              className="w-16 rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-1 text-sm text-center focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                               value={stockEdit.value}
                               onChange={e => setStockEdit({ id: p.id, value: e.target.value })}
                               onKeyDown={e => { if (e.key === 'Enter') handleStockSave(p.id); if (e.key === 'Escape') setStockEdit(null) }}
                               autoFocus
                             />
-                            <button onClick={() => handleStockSave(p.id)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded">
+                            <button onClick={() => handleStockSave(p.id)} className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded">
                               <CheckCircle size={13} />
                             </button>
                           </div>
                         ) : (
                           <button
                             onClick={() => setStockEdit({ id: p.id, value: String(p.stock) })}
-                            className={`text-sm font-bold hover:underline ${lowS ? 'text-amber-600' : 'text-gray-900'}`}
+                            className={`text-sm font-bold hover:underline ${lowS ? 'text-amber-600' : 'text-gray-900 dark:text-gray-100'}`}
                             title="Haz clic para ajustar stock"
                           >
                             {p.stock}
@@ -328,14 +328,14 @@ export function InventarioManager({ brandId, products: initial, establishments }
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => openEdit(p)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30"
                             title="Editar"
                           >
                             <Edit2 size={12} />
                           </button>
                           <button
                             onClick={() => toggleActive(p)}
-                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                             title="Archivar"
                           >
                             <Archive size={12} />
@@ -348,7 +348,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
               </tbody>
             </table>
           </div>
-          <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50 text-xs text-gray-400">
+          <div className="px-4 py-2.5 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 text-xs text-gray-400 dark:text-gray-500">
             {filtered.length} productos
           </div>
         </div>
@@ -358,36 +358,36 @@ export function InventarioManager({ brandId, products: initial, establishments }
       {showForm && (
         <>
           <div className="fixed inset-0 bg-black/30 z-40" onClick={() => setShowForm(false)} />
-          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white shadow-2xl z-50 flex flex-col">
-            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-gray-900">{editProduct ? 'Editar producto' : 'Nuevo producto'}</h2>
-              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-gray-100 text-gray-400">
+          <div className="fixed right-0 top-0 h-full w-full max-w-md bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col">
+            <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+              <h2 className="font-bold text-gray-900 dark:text-gray-100">{editProduct ? 'Editar producto' : 'Nuevo producto'}</h2>
+              <button onClick={() => setShowForm(false)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 dark:text-gray-500">
                 <X size={15} />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-5 space-y-4">
               {/* Product type toggle */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1.5">Tipo de producto</label>
-                <div className="flex rounded-lg border border-gray-200 overflow-hidden">
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">Tipo de producto</label>
+                <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, product_type: 'product' }))}
-                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'product' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'product' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                   >
                     📦 Físico
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, product_type: 'service' }))}
-                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'service' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'service' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                   >
                     🛠 Servicio
                   </button>
                   <button
                     type="button"
                     onClick={() => setForm(f => ({ ...f, product_type: 'digital' }))}
-                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'digital' ? 'bg-emerald-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+                    className={`flex-1 py-2 text-sm font-medium transition-colors ${form.product_type === 'digital' ? 'bg-emerald-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'}`}
                   >
                     ⬇️ Digital
                   </button>
@@ -395,9 +395,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
               </div>
               {/* Name */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Nombre *</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Nombre *</label>
                 <input
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   value={form.name}
                   onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="Ej: Corte de cabello"
@@ -406,9 +406,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
               {/* Category + SKU */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Categoría</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Categoría</label>
                   <input
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={form.category}
                     onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
                     placeholder="Ej: Servicios"
@@ -419,9 +419,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
                   </datalist>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">SKU / Código</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">SKU / Código</label>
                   <input
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={form.sku}
                     onChange={e => setForm(f => ({ ...f, sku: e.target.value }))}
                     placeholder="Opcional"
@@ -431,12 +431,12 @@ export function InventarioManager({ brandId, products: initial, establishments }
               {/* Price + Cost */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Precio de venta *</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Precio de venta *</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">$</span>
                     <input
                       type="number"
-                      className="w-full rounded-lg border border-gray-300 pl-6 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 pl-6 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       value={form.price}
                       onChange={e => setForm(f => ({ ...f, price: e.target.value }))}
                       placeholder="0"
@@ -445,12 +445,12 @@ export function InventarioManager({ brandId, products: initial, establishments }
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Costo</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Costo</label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 text-sm">$</span>
                     <input
                       type="number"
-                      className="w-full rounded-lg border border-gray-300 pl-6 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                      className="w-full rounded-lg border border-gray-300 dark:border-gray-600 pl-6 pr-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       value={form.cost}
                       onChange={e => setForm(f => ({ ...f, cost: e.target.value }))}
                       placeholder="0"
@@ -462,29 +462,29 @@ export function InventarioManager({ brandId, products: initial, establishments }
               {/* Stock + Min stock + Unit */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Stock inicial</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Stock inicial</label>
                   <input
                     type="number"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={form.stock}
                     onChange={e => setForm(f => ({ ...f, stock: e.target.value }))}
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Stock mín.</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Stock mín.</label>
                   <input
                     type="number"
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={form.min_stock}
                     onChange={e => setForm(f => ({ ...f, min_stock: e.target.value }))}
                     min="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Unidad</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Unidad</label>
                   <select
-                    className="w-full rounded-lg border border-gray-300 px-2 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-2 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={form.unit}
                     onChange={e => setForm(f => ({ ...f, unit: e.target.value }))}
                   >
@@ -494,10 +494,10 @@ export function InventarioManager({ brandId, products: initial, establishments }
               </div>
               {/* Description */}
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Descripción</label>
+                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Descripción</label>
                 <textarea
                   rows={2}
-                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none resize-none"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   value={form.description}
                   onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
                   placeholder="Descripción opcional del producto o servicio"
@@ -507,24 +507,24 @@ export function InventarioManager({ brandId, products: initial, establishments }
               {form.product_type === 'digital' && (
                 <>
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 mb-1 block">URL del archivo (OneDrive, Drive, etc.)</label>
+                    <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">URL del archivo (OneDrive, Drive, etc.)</label>
                     <input
                       type="url"
                       value={(form as any).digital_url ?? ''}
                       onChange={e => setForm(f => ({ ...f, digital_url: e.target.value }))}
                       placeholder="https://..."
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-gray-600 mb-1 block">Máx. descargas por compra</label>
+                    <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1 block">Máx. descargas por compra</label>
                     <input
                       type="number"
                       min={1}
                       max={100}
                       value={(form as any).download_limit ?? 3}
                       onChange={e => setForm(f => ({ ...f, download_limit: e.target.value }))}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     />
                   </div>
                 </>
@@ -532,9 +532,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
               {/* Establishment */}
               {establishments.length > 1 && (
                 <div>
-                  <label className="block text-xs font-medium text-gray-600 mb-1">Sucursal (opcional)</label>
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Sucursal (opcional)</label>
                   <select
-                    className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none"
+                    className="w-full rounded-lg border border-gray-300 dark:border-gray-600 px-3 py-2 text-sm focus:border-emerald-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     value={form.establishment_id}
                     onChange={e => setForm(f => ({ ...f, establishment_id: e.target.value }))}
                   >
@@ -545,9 +545,9 @@ export function InventarioManager({ brandId, products: initial, establishments }
               )}
             </div>
             {saveError && (
-              <div className="mx-5 mb-0 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">{saveError}</div>
+              <div className="mx-5 mb-0 p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg text-sm text-red-700">{saveError}</div>
             )}
-            <div className="p-5 border-t border-gray-100 flex gap-2">
+            <div className="p-5 border-t border-gray-100 dark:border-gray-800 flex gap-2">
               <button
                 onClick={handleSave}
                 disabled={saving || !form.name.trim()}
@@ -558,7 +558,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
               </button>
               <button
                 onClick={() => setShowForm(false)}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50"
+                className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
               >
                 Cancelar
               </button>

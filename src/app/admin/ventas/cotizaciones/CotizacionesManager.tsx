@@ -353,8 +353,8 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
       <div className={`flex-1 min-w-0 ${openQuoteId ? 'hidden lg:block' : ''}`}>
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Cotizaciones</h1>
-            <p className="text-gray-500 text-sm mt-0.5">{quotes.length} en total</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Cotizaciones</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-0.5">{quotes.length} en total</p>
           </div>
           <Link
             href="/admin/ventas/nueva-venta?type=quote"
@@ -367,14 +367,14 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
           {[
-            { label: 'Total', value: kpis.total, color: 'text-gray-700' },
+            { label: 'Total', value: kpis.total, color: 'text-gray-700 dark:text-gray-300' },
             { label: 'Enviadas', value: kpis.sent, color: 'text-blue-700' },
             { label: 'Abiertas', value: kpis.opened, color: 'text-indigo-700' },
             { label: 'Aceptadas', value: kpis.accepted, color: 'text-green-700' },
             { label: 'Valor aceptado', value: fmt(kpis.value), color: 'text-purple-700', wide: true },
           ].map(({ label, value, color }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-200 p-3">
-              <p className="text-xs font-semibold text-gray-400 mb-0.5">{label}</p>
+            <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-3">
+              <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 mb-0.5">{label}</p>
               <p className={`text-lg font-bold ${color}`}>{value}</p>
             </div>
           ))}
@@ -383,16 +383,16 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
         {/* Filters */}
         <div className="flex gap-2 mb-4">
           <div className="relative flex-1">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500" />
             <input
-              className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 focus:outline-none"
+              className="w-full pl-8 pr-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm focus:border-blue-500 focus:outline-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               placeholder="Buscar cliente, email o notas..."
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
           <select
-            className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100"
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
           >
@@ -405,12 +405,12 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
 
         {/* List */}
         {filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-gray-200 py-14 text-center">
-            <FileCheck size={32} className="mx-auto mb-3 text-gray-200" />
-            <p className="text-sm font-medium text-gray-500">Sin cotizaciones</p>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 py-14 text-center">
+            <FileCheck size={32} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Sin cotizaciones</p>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50 overflow-hidden">
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 divide-y divide-gray-50 dark:divide-gray-800 overflow-hidden">
             {filtered.map(q => {
               const s = STATUS_MAP[q.status] ?? STATUS_MAP.draft
               const Icon = s.icon
@@ -418,7 +418,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
               return (
                 <div
                   key={q.id}
-                  className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 cursor-pointer transition-colors ${isOpen ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                  className={`flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${isOpen ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500' : ''}`}
                   onClick={() => openPanel(q.id, 'view')}
                 >
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${s.color}`}>
@@ -426,7 +426,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-sm font-semibold text-gray-900">{q.customers?.name ?? 'Sin cliente'}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{q.customers?.name ?? 'Sin cliente'}</p>
                       {q.opened_at && (
                         <span title="Cotización abierta por el cliente" className="flex items-center gap-0.5 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full">
                           <Eye size={9} /> Abierta
@@ -436,18 +436,18 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                     <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${s.color}`}>{s.label}</span>
                       {q.sent_to_email && (
-                        <span className="text-[10px] text-gray-400 flex items-center gap-0.5">
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 flex items-center gap-0.5">
                           <Mail size={9} /> {q.sent_to_email}
                         </span>
                       )}
                       {q.establishment_id && (
-                        <span className="text-[10px] text-gray-400">{estMap[q.establishment_id]}</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500">{estMap[q.establishment_id]}</span>
                       )}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-bold text-gray-900">{fmt(q.total)}</p>
-                    <p className="text-[10px] text-gray-400">{fmtDate(q.created_at)}</p>
+                    <p className="text-sm font-bold text-gray-900 dark:text-gray-100">{fmt(q.total)}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(q.created_at)}</p>
                   </div>
                 </div>
               )
@@ -459,13 +459,13 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
       {/* ── RIGHT: Detail panel ── */}
       {openQuoteId && openQuote && (
         <div className="w-full lg:w-[480px] shrink-0">
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-6">
 
             {/* Panel header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
               <div>
-                <p className="font-mono text-xs text-gray-400 mb-0.5"># COT-{openQuote.id.slice(-6).toUpperCase()}</p>
-                <p className="font-bold text-gray-900">{openQuote.customers?.name ?? 'Sin cliente'}</p>
+                <p className="font-mono text-xs text-gray-400 dark:text-gray-500 mb-0.5"># COT-{openQuote.id.slice(-6).toUpperCase()}</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100">{openQuote.customers?.name ?? 'Sin cliente'}</p>
               </div>
               <div className="flex items-center gap-2">
                 {/* Mode tabs */}
@@ -490,14 +490,14 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         }
                       }}
                       disabled={isLocked}
-                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
                       title={mode === 'view' ? 'Ver detalle' : mode === 'edit' ? (isLocked ? 'Bloqueado — cotización cerrada' : 'Editar') : 'Enviar'}
                     >
                       {mode === 'view' ? <Eye size={15} /> : mode === 'edit' ? <Edit3 size={15} /> : <Send size={15} />}
                     </button>
                   )
                 })}
-                <button onClick={closePanel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 ml-1">
+                <button onClick={closePanel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ml-1">
                   <X size={15} />
                 </button>
               </div>
@@ -510,7 +510,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                 <div className="p-5 space-y-4">
                   {/* Locked banner */}
                   {(openQuote.status === 'accepted' || openQuote.status === 'rejected') && (
-                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold ${openQuote.status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-600 border border-red-200'}`}>
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold ${openQuote.status === 'accepted' ? 'bg-green-50 dark:bg-green-900/30 text-green-700 border border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/30 text-red-600 border border-red-200 dark:border-red-700'}`}>
                       {openQuote.status === 'accepted' ? <CheckCircle size={13} /> : <XCircle size={13} />}
                       {openQuote.status === 'accepted' ? 'Cotización aceptada — solo lectura' : 'Cotización rechazada — solo lectura'}
                     </div>
@@ -522,7 +522,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         <s.icon size={11} /> {s.label}
                       </span>
                     )})()}
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                       <Calendar size={11} /> {fmtDate(openQuote.created_at)}
                     </span>
                     {openQuote.sent_at && (
@@ -536,19 +536,19 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                       </span>
                     )}
                     {openQuote.sent_at && !openQuote.opened_at && (
-                      <span className="text-xs text-gray-400">· No abierto aún</span>
+                      <span className="text-xs text-gray-400 dark:text-gray-500">· No abierto aún</span>
                     )}
                   </div>
 
                   {/* Customer info */}
                   {openQuote.customers && (
-                    <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-gray-700">
-                        <User size={13} className="text-gray-400" /> {openQuote.customers.name}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-sm space-y-1">
+                      <div className="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-300">
+                        <User size={13} className="text-gray-400 dark:text-gray-500" /> {openQuote.customers.name}
                       </div>
                       {openQuote.customers.email && (
-                        <p className="text-gray-500 flex items-center gap-1.5">
-                          <Mail size={12} className="text-gray-400" /> {openQuote.customers.email}
+                        <p className="text-gray-500 dark:text-gray-400 flex items-center gap-1.5">
+                          <Mail size={12} className="text-gray-400 dark:text-gray-500" /> {openQuote.customers.email}
                         </p>
                       )}
                       {openQuote.sent_to_email && openQuote.sent_to_email !== openQuote.customers.email && (
@@ -559,7 +559,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                     </div>
                   )}
                   {!openQuote.customers && openQuote.sent_to_email && (
-                    <div className="bg-gray-50 rounded-xl p-3 text-sm">
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-sm">
                       <p className="text-blue-500 flex items-center gap-1.5">
                         <Mail size={13} /> Enviado a: {openQuote.sent_to_email}
                       </p>
@@ -569,27 +569,27 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                   {/* Items */}
                   {loadingItems ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 size={20} className="animate-spin text-gray-300" />
+                      <Loader2 size={20} className="animate-spin text-gray-300 dark:text-gray-600" />
                     </div>
                   ) : (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Productos / Servicios</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Productos / Servicios</p>
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-gray-100 text-xs text-gray-400">
+                          <tr className="border-b border-gray-100 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500">
                             <th className="pb-1.5 text-left font-semibold">Item</th>
                             <th className="pb-1.5 text-center font-semibold">Cant.</th>
                             <th className="pb-1.5 text-right font-semibold">P. Unit.</th>
                             <th className="pb-1.5 text-right font-semibold">Total</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                           {panelItems.map((it, i) => (
                             <tr key={i}>
-                              <td className="py-2 font-medium text-gray-900 text-xs">{it.product_name}</td>
-                              <td className="py-2 text-center text-gray-500 text-xs">{it.qty}</td>
-                              <td className="py-2 text-right text-gray-500 text-xs">{fmt(it.unit_price)}</td>
-                              <td className="py-2 text-right font-semibold text-xs">{fmt(it.line_total)}</td>
+                              <td className="py-2 font-medium text-gray-900 dark:text-gray-100 text-xs">{it.product_name}</td>
+                              <td className="py-2 text-center text-gray-500 dark:text-gray-400 text-xs">{it.qty}</td>
+                              <td className="py-2 text-right text-gray-500 dark:text-gray-400 text-xs">{fmt(it.unit_price)}</td>
+                              <td className="py-2 text-right font-semibold text-xs text-gray-900 dark:text-gray-100">{fmt(it.line_total)}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -598,8 +598,8 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                   )}
 
                   {/* Totals */}
-                  <div className="border-t border-gray-100 pt-3 space-y-1">
-                    <div className="flex justify-between text-sm text-gray-500">
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
+                    <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                       <span>Subtotal</span><span>{fmt(openQuote.subtotal ?? openQuote.total)}</span>
                     </div>
                     {(openQuote.discount ?? 0) > 0 && (
@@ -607,16 +607,16 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         <span>Descuento</span><span>−{fmt(openQuote.discount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold text-gray-900">
+                    <div className="flex justify-between font-bold text-gray-900 dark:text-gray-100">
                       <span>Total</span><span>{fmt(openQuote.total)}</span>
                     </div>
                   </div>
 
                   {/* Notes */}
                   {openQuote.notes && (
-                    <div className="p-3 bg-amber-50 rounded-xl border-l-4 border-amber-300">
+                    <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl border-l-4 border-amber-300">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-1">Notas</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{openQuote.notes}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{openQuote.notes}</p>
                     </div>
                   )}
 
@@ -632,14 +632,14 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                     </a>
                     <button
                       onClick={() => copyLink(openQuote.id)}
-                      className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-700"
+                      className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
                     >
                       <Copy size={11} /> Copiar enlace
                     </button>
                   </div>
 
                   {/* Action buttons */}
-                  <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-2">
                     {openQuote.status === 'draft' && (
                       <div className="flex gap-2">
                         <button
@@ -658,7 +658,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         {openQuote.customers?.phone && (
                           <button
                             onClick={() => openQuoteWa(openQuote, 'quote_sent')}
-                            className="flex-1 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 border border-green-200"
+                            className="flex-1 py-2.5 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
                           >
                             <MessageCircle size={14} /> Enviar por WA
                           </button>
@@ -676,14 +676,14 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                             setSendMessage('Te enviamos un recordatorio sobre la cotización que te enviamos anteriormente.')
                             setSendResult(null)
                           }}
-                          className="flex-1 py-2.5 rounded-xl bg-blue-50 text-blue-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-100 border border-blue-200"
+                          className="flex-1 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200 dark:border-blue-700"
                         >
                           <Send size={14} /> Recordatorio email
                         </button>
                         {openQuote.customers?.phone && (
                           <button
                             onClick={() => openQuoteWa(openQuote, 'quote_followup')}
-                            className="flex-1 py-2.5 rounded-xl bg-green-50 text-green-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 border border-green-200"
+                            className="flex-1 py-2.5 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
                           >
                             <MessageCircle size={14} /> Seguimiento WA
                           </button>
@@ -694,13 +694,13 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                       <div className="flex gap-2">
                         <button
                           onClick={() => updateStatus(openQuote.id, 'accepted')}
-                          className="flex-1 py-2 rounded-xl bg-green-50 text-green-700 text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 border border-green-200"
+                          className="flex-1 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
                         >
                           <CheckCircle size={13} /> Marcar aceptada
                         </button>
                         <button
                           onClick={() => updateStatus(openQuote.id, 'rejected')}
-                          className="flex-1 py-2 rounded-xl bg-red-50 text-red-600 text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-red-100 border border-red-200"
+                          className="flex-1 py-2 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 text-sm font-semibold flex items-center justify-center gap-1.5 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-700"
                         >
                           <XCircle size={13} /> Rechazada
                         </button>
@@ -721,21 +721,21 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
               {/* ── EDIT MODE ── */}
               {panelMode === 'edit' && (
                 <div className="p-5 space-y-4">
-                  <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Edit3 size={14} /> Editando cotización
                   </p>
 
                   <div className="space-y-2">
                     {editItems.map((it, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-gray-50 rounded-xl p-3">
+                      <div key={idx} className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 rounded-xl p-3">
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">{it.product_name}</p>
-                          <p className="text-xs text-gray-400">{fmt(it.unit_price)} c/u</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{it.product_name}</p>
+                          <p className="text-xs text-gray-400 dark:text-gray-500">{fmt(it.unit_price)} c/u</p>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             onClick={() => it.qty > 1 ? updateEditItem(idx, { qty: it.qty - 1 }) : removeEditItem(idx)}
-                            className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-red-500 hover:border-red-200"
+                            className="w-6 h-6 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-red-500 hover:border-red-200"
                           >
                             <Minus size={10} />
                           </button>
@@ -745,34 +745,34 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                             step={1}
                             value={it.qty}
                             onChange={e => updateEditItem(idx, { qty: Math.max(1, Math.floor(parseInt(e.target.value) || 1)) })}
-                            className="w-12 text-center text-sm font-bold border border-gray-200 rounded-lg py-0.5 focus:outline-none focus:border-indigo-400"
+                            className="w-12 text-center text-sm font-bold border border-gray-200 dark:border-gray-700 rounded-lg py-0.5 focus:outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                           />
                           <button
                             onClick={() => updateEditItem(idx, { qty: it.qty + 1 })}
-                            className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center text-gray-500 hover:text-green-600 hover:border-green-200"
+                            className="w-6 h-6 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-green-600 hover:border-green-200"
                           >
                             <Plus size={10} />
                           </button>
                         </div>
-                        <p className="text-sm font-bold w-20 text-right shrink-0">{fmt(it.line_total)}</p>
-                        <button onClick={() => removeEditItem(idx)} className="text-gray-300 hover:text-red-500 shrink-0">
+                        <p className="text-sm font-bold w-20 text-right shrink-0 text-gray-900 dark:text-gray-100">{fmt(it.line_total)}</p>
+                        <button onClick={() => removeEditItem(idx)} className="text-gray-300 dark:text-gray-600 hover:text-red-500 shrink-0">
                           <Trash2 size={13} />
                         </button>
                       </div>
                     ))}
                   </div>
 
-                  <div className="flex justify-between text-sm font-bold text-gray-900 border-t pt-2">
+                  <div className="flex justify-between text-sm font-bold text-gray-900 dark:text-gray-100 border-t dark:border-gray-700 pt-2">
                     <span>Total</span><span>{fmt(editSubtotal)}</span>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Notas</label>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1.5">Notas</label>
                     <textarea
                       value={editNotes}
                       onChange={e => setEditNotes(e.target.value)}
                       rows={3}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       placeholder="Condiciones, vigencia, observaciones..."
                     />
                   </div>
@@ -780,7 +780,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => setPanelMode('view')}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       Cancelar
                     </button>
@@ -801,11 +801,11 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                 <div className="p-5 space-y-4">
                   <div className="flex items-center gap-2">
                     <Send size={16} className="text-blue-600" />
-                    <p className="font-semibold text-gray-900">Enviar cotización por email</p>
+                    <p className="font-semibold text-gray-900 dark:text-gray-100">Enviar cotización por email</p>
                   </div>
 
                   {sendResult ? (
-                    <div className={`p-4 rounded-xl flex items-start gap-3 ${sendResult.ok ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
+                    <div className={`p-4 rounded-xl flex items-start gap-3 ${sendResult.ok ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700'}`}>
                       {sendResult.ok
                         ? <CheckCheck size={18} className="text-green-600 shrink-0 mt-0.5" />
                         : <AlertCircle size={18} className="text-red-500 shrink-0 mt-0.5" />
@@ -822,7 +822,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                   ) : null}
 
                   {/* Recipient */}
-                  <div className="bg-blue-50 rounded-xl p-3 space-y-2">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 space-y-2">
                     <p className="text-[10px] font-bold uppercase tracking-wider text-blue-600">Destinatario</p>
                     <div className="flex items-center gap-2">
                       <User size={14} className="text-blue-400 shrink-0" />
@@ -830,7 +830,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         value={sendName}
                         onChange={e => setSendName(e.target.value)}
                         placeholder="Nombre del cliente"
-                        className="flex-1 bg-white rounded-lg border border-blue-200 px-2.5 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+                        className="flex-1 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 px-2.5 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-900 dark:text-gray-100"
                       />
                     </div>
                     <div className="flex items-center gap-2">
@@ -840,7 +840,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         value={sendEmail}
                         onChange={e => setSendEmail(e.target.value)}
                         placeholder="correo@cliente.com *"
-                        className="flex-1 bg-white rounded-lg border border-blue-200 px-2.5 py-1.5 text-sm focus:outline-none focus:border-blue-400"
+                        className="flex-1 bg-white dark:bg-gray-800 rounded-lg border border-blue-200 dark:border-blue-700 px-2.5 py-1.5 text-sm focus:outline-none focus:border-blue-400 text-gray-900 dark:text-gray-100"
                       />
                     </div>
                     {!sendEmail && (
@@ -852,33 +852,33 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
 
                   {/* Subject */}
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Asunto del correo</label>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1.5">Asunto del correo</label>
                     <input
                       value={sendSubject}
                       onChange={e => setSendSubject(e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     />
                   </div>
 
                   {/* Message */}
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">
-                      Mensaje personalizado <span className="text-gray-300 font-normal">(opcional)</span>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1.5">
+                      Mensaje personalizado <span className="text-gray-300 dark:text-gray-600 font-normal">(opcional)</span>
                     </label>
                     <textarea
                       value={sendMessage}
                       onChange={e => setSendMessage(e.target.value)}
                       rows={3}
                       placeholder="Agrega una nota o mensaje de acompañamiento al correo..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     />
                   </div>
 
                   {/* Preview summary */}
-                  <div className="bg-gray-50 rounded-xl p-3 text-xs text-gray-500 space-y-1">
-                    <p className="font-semibold text-gray-600 mb-1.5">El cliente recibirá:</p>
+                  <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+                    <p className="font-semibold text-gray-600 dark:text-gray-300 mb-1.5">El cliente recibirá:</p>
                     <p>• Email con el detalle de la cotización ({panelItems.length} ítem{panelItems.length !== 1 ? 's' : ''})</p>
-                    <p>• Total: <strong className="text-gray-800">{fmt(openQuote.total)}</strong></p>
+                    <p>• Total: <strong className="text-gray-800 dark:text-gray-200">{fmt(openQuote.total)}</strong></p>
                     <p>• Enlace para ver la cotización completa y aceptar/rechazar</p>
                     <p>• Sabrás cuando abra el correo</p>
                   </div>
@@ -886,7 +886,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                   <div className="flex gap-2">
                     <button
                       onClick={() => setPanelMode('view')}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       Cancelar
                     </button>

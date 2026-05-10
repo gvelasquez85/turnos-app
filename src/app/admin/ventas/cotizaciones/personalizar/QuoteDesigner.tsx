@@ -256,8 +256,8 @@ function ColorPicker({ label, value, onChange }: { label: string; value: string;
   return (
     <label className="flex items-center gap-2 cursor-pointer">
       <input type="color" value={value} onChange={e => onChange(e.target.value)} className="w-8 h-8 rounded border-0 cursor-pointer" />
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className="text-xs text-gray-400 font-mono ml-auto">{value}</span>
+      <span className="text-sm text-gray-600 dark:text-gray-400">{label}</span>
+      <span className="text-xs text-gray-400 dark:text-gray-500 font-mono ml-auto">{value}</span>
     </label>
   )
 }
@@ -265,7 +265,7 @@ function ColorPicker({ label, value, onChange }: { label: string; value: string;
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between py-1.5">
-      <span className="text-sm text-gray-700">{label}</span>
+      <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
       {children}
     </div>
   )
@@ -318,13 +318,13 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
       {/* Top bar */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Diseñador de cotizaciones</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Personaliza el aspecto visual de tus cotizaciones</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Diseñador de cotizaciones</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Personaliza el aspecto visual de tus cotizaciones</p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleReset}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 hover:text-gray-700 border border-gray-200 rounded-lg hover:bg-gray-50"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             <RotateCcw size={14} /> Restaurar
           </button>
@@ -343,15 +343,15 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
         {/* LEFT: Controls */}
         <div className="w-full lg:w-80 shrink-0 flex flex-col gap-3">
           {/* Tabs */}
-          <div className="flex border border-gray-200 rounded-xl p-1 bg-gray-50 gap-1">
+          <div className="flex border border-gray-200 dark:border-gray-700 rounded-xl p-1 bg-gray-50 dark:bg-gray-800 gap-1">
             {tabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 text-xs font-medium rounded-lg transition-all ${
                   activeTab === tab.key
-                    ? 'bg-white shadow text-indigo-700'
-                    : 'text-gray-500 hover:text-gray-700'
+                    ? 'bg-white dark:bg-gray-700 shadow text-indigo-700 dark:text-indigo-400'
+                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                 }`}
               >
                 <tab.icon size={13} /> {tab.label}
@@ -359,13 +359,13 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
             ))}
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+          <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 220px)' }}>
 
             {/* ── DESIGN TAB ── */}
             {activeTab === 'design' && (
               <>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Paleta de colores</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Paleta de colores</p>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {brandPrimaryColor && !COLOR_PRESETS.some(p => p.primary.toLowerCase() === brandPrimaryColor.toLowerCase()) && (
                       <button
@@ -395,14 +395,14 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Tipografía</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Tipografía</p>
                   <div className="space-y-1">
                     {FONTS.map(f => (
                       <button
                         key={f.key}
                         onClick={() => set('fontFamily', f.key)}
                         className={`w-full text-left px-3 py-2 rounded-lg text-sm border transition-colors ${
-                          template.fontFamily === f.key ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 hover:border-gray-300'
+                          template.fontFamily === f.key ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
                         }`}
                         style={{ fontFamily: f.css }}
                       >
@@ -412,20 +412,20 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                   </div>
                   <div className="mt-3 space-y-2">
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Tamaño encabezado</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tamaño encabezado</p>
                       <div className="flex gap-1">
                         {(['sm', 'md', 'lg'] as const).map(s => (
-                          <button key={s} onClick={() => set('headerSize', s)} className={`flex-1 py-1 text-xs rounded ${template.headerSize === s ? 'bg-indigo-100 text-indigo-700 font-bold' : 'bg-gray-100 text-gray-500'}`}>
+                          <button key={s} onClick={() => set('headerSize', s)} className={`flex-1 py-1 text-xs rounded ${template.headerSize === s ? 'bg-indigo-100 text-indigo-700 font-bold' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                             {s.toUpperCase()}
                           </button>
                         ))}
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 mb-1">Tamaño cuerpo</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Tamaño cuerpo</p>
                       <div className="flex gap-1">
                         {(['xs', 'sm', 'md'] as const).map(s => (
-                          <button key={s} onClick={() => set('bodySize', s)} className={`flex-1 py-1 text-xs rounded ${template.bodySize === s ? 'bg-indigo-100 text-indigo-700 font-bold' : 'bg-gray-100 text-gray-500'}`}>
+                          <button key={s} onClick={() => set('bodySize', s)} className={`flex-1 py-1 text-xs rounded ${template.bodySize === s ? 'bg-indigo-100 text-indigo-700 font-bold' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                             {s.toUpperCase()}
                           </button>
                         ))}
@@ -435,7 +435,7 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Layout del encabezado</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-3">Layout del encabezado</p>
                   <div className="grid grid-cols-2 gap-2">
                     {[
                       { key: 'logo-left', label: 'Logo izquierda' },
@@ -447,7 +447,7 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                         key={opt.key}
                         onClick={() => set('headerLayout', opt.key as any)}
                         className={`py-2 text-xs rounded-lg border text-center transition-colors ${
-                          template.headerLayout === opt.key ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 hover:border-gray-300'
+                          template.headerLayout === opt.key ? 'border-indigo-500 bg-indigo-50 text-indigo-700 font-medium' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-300'
                         }`}
                       >
                         {opt.label}
@@ -457,13 +457,13 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Estilo</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Estilo</p>
                   <Field label="Borde exterior"><Toggle checked={template.showBorder} onChange={v => set('showBorder', v)} /></Field>
                   <Field label="Radio de esquinas">
                     <select
                       value={template.borderRadius}
                       onChange={e => set('borderRadius', e.target.value as any)}
-                      className="text-xs border border-gray-200 rounded px-2 py-1"
+                      className="text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300"
                     >
                       <option value="none">Recto</option>
                       <option value="sm">Pequeño</option>
@@ -480,7 +480,7 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
             {activeTab === 'content' && (
               <>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Empresa / Marca</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Empresa / Marca</p>
                   <Field label="Mostrar logo"><Toggle checked={template.showLogo} onChange={v => set('showLogo', v)} /></Field>
                   <Field label="Nombre empresa"><Toggle checked={template.showCompanyName} onChange={v => set('showCompanyName', v)} /></Field>
                   <Field label="Teléfono"><Toggle checked={template.showCompanyPhone} onChange={v => set('showCompanyPhone', v)} /></Field>
@@ -491,29 +491,29 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Título</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Título</p>
                   <input
                     type="text"
                     value={template.headerTitle}
                     onChange={e => set('headerTitle', e.target.value)}
                     placeholder="COTIZACIÓN"
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Condiciones de pago</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Condiciones de pago</p>
                   <textarea
                     value={template.paymentTerms}
                     onChange={e => set('paymentTerms', e.target.value)}
                     rows={2}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                     placeholder="Válido por 30 días…"
                   />
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Datos bancarios</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Datos bancarios</p>
                   <Field label="Mostrar datos bancarios"><Toggle checked={template.showBankInfo} onChange={v => set('showBankInfo', v)} /></Field>
                   {template.showBankInfo && (
                     <textarea
@@ -527,13 +527,13 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Pie de página</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Pie de página</p>
                   <input
                     type="text"
                     value={template.footerText}
                     onChange={e => set('footerText', e.target.value)}
                     placeholder="Gracias por su preferencia."
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400"
+                    className="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                   />
                 </div>
               </>
@@ -543,14 +543,14 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
             {activeTab === 'fields' && (
               <>
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Encabezado cotización</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Encabezado cotización</p>
                   <Field label="Número de cotización"><Toggle checked={template.showQuoteNumber} onChange={v => set('showQuoteNumber', v)} /></Field>
                   <Field label="Fecha de emisión"><Toggle checked={template.showDate} onChange={v => set('showDate', v)} /></Field>
                   <Field label="Fecha de vencimiento"><Toggle checked={template.showDueDate} onChange={v => set('showDueDate', v)} /></Field>
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Columnas de la tabla</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Columnas de la tabla</p>
                   <Field label="SKU / Código"><Toggle checked={template.showSKU} onChange={v => set('showSKU', v)} /></Field>
                   <Field label="Descripción"><Toggle checked={template.showDescription} onChange={v => set('showDescription', v)} /></Field>
                   <Field label="Precio unitario"><Toggle checked={template.showUnitPrice} onChange={v => set('showUnitPrice', v)} /></Field>
@@ -559,7 +559,7 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
                 </div>
 
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-2">Secciones adicionales</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Secciones adicionales</p>
                   <Field label="Sección cliente"><Toggle checked={template.showCustomerSection} onChange={v => set('showCustomerSection', v)} /></Field>
                   <Field label="Notas"><Toggle checked={template.showNotes} onChange={v => set('showNotes', v)} /></Field>
                   <Field label="Condiciones de pago"><Toggle checked={template.showPaymentTerms} onChange={v => set('showPaymentTerms', v)} /></Field>
@@ -573,13 +573,13 @@ export function QuoteDesigner({ brandId, brandName, brandLogoUrl, savedTemplate,
         {/* RIGHT: Preview */}
         <div className="flex-1 min-h-0">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
               <Eye size={15} />
               Vista previa en tiempo real
             </div>
           </div>
           <div
-            className="bg-gray-100 rounded-xl p-4 overflow-y-auto"
+            className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 overflow-y-auto"
             style={{ maxHeight: 'calc(100vh - 220px)' }}
           >
             <QuotePreview t={template} brandName={brandName} brandLogoUrl={brandLogoUrl} />

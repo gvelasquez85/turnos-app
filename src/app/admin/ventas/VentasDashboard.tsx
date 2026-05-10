@@ -237,8 +237,8 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Ventas</h1>
-            <p className="text-gray-500 text-sm mt-1">Últimos 30 días</p>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Ventas</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Últimos 30 días</p>
           </div>
           <Link
             href="/admin/ventas/nueva-venta"
@@ -256,21 +256,21 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
             { label: 'Ticket promedio', value: fmt(avgTicket), icon: ShoppingCart, color: 'bg-indigo-100 text-indigo-700', sub: 'últimos 30 días' },
             { label: 'Ventas totales', value: String(completedSales.length), icon: CheckCircle, color: 'bg-purple-100 text-purple-700', sub: 'últimos 30 días' },
           ].map(({ label, value, icon: Icon, color, sub }) => (
-            <div key={label} className="bg-white rounded-xl border border-gray-200 p-4">
+            <div key={label} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${color}`}>
                   <Icon size={13} />
                 </div>
-                <p className="text-xs font-semibold text-gray-500">{label}</p>
+                <p className="text-xs font-semibold text-gray-500 dark:text-gray-400">{label}</p>
               </div>
-              <p className="text-xl font-bold text-gray-900">{value}</p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{sub}</p>
+              <p className="text-xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500 mt-0.5">{sub}</p>
             </div>
           ))}
         </div>
         {/* Pending revenue indicator */}
         {pendingSalesKPI.length > 0 && (
-          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3 flex items-center gap-3 mb-6">
+          <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-100 dark:border-amber-700 rounded-xl px-4 py-3 flex items-center gap-3 mb-6">
             <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
               <AlertTriangle size={13} className="text-amber-600" />
             </div>
@@ -285,35 +285,35 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
 
         {/* Pending sales */}
         {pendingSales.length > 0 && (
-          <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-200 bg-amber-100">
+          <div className="mb-6 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-3 border-b border-amber-200 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/50">
               <AlertTriangle size={15} className="text-amber-600 shrink-0" />
               <p className="font-semibold text-amber-800 text-sm">
                 {pendingSales.length === 1 ? '1 venta por revisar' : `${pendingSales.length} ventas por revisar`}
               </p>
               <span className="ml-1 text-xs text-amber-600">— Generadas desde cotizaciones aceptadas</span>
             </div>
-            <div className="divide-y divide-amber-100">
+            <div className="divide-y divide-amber-100 dark:divide-amber-800">
               {pendingSales.map(sale => (
                 <div
                   key={sale.id}
-                  className={`flex items-center gap-4 px-5 py-3 cursor-pointer hover:bg-amber-100/50 transition-colors ${openSaleId === sale.id ? 'bg-amber-100 border-l-4 border-amber-500' : ''}`}
+                  className={`flex items-center gap-4 px-5 py-3 cursor-pointer hover:bg-amber-100/50 dark:hover:bg-amber-800/30 transition-colors ${openSaleId === sale.id ? 'bg-amber-100 dark:bg-amber-800/50 border-l-4 border-amber-500' : ''}`}
                   onClick={() => openPanel(sale.id, 'view')}
                 >
                   <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 bg-amber-200 text-amber-700">
                     <Clock size={13} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                       {sale.customers?.name ?? 'Cliente sin registrar'}
                     </p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
                       {sale.notes?.split('\n')[0] ?? ''}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-sm font-semibold text-gray-900">{fmt(sale.total ?? 0)}</p>
-                    <p className="text-[10px] text-gray-400">{fmtDate(sale.created_at)}</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{fmt(sale.total ?? 0)}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(sale.created_at)}</p>
                   </div>
                 </div>
               ))}
@@ -324,27 +324,27 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
         {/* Quick access */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
           {[
-            { href: '/admin/ventas/inventario', icon: Package, label: 'Inventario', desc: 'Gestiona productos y stock', color: 'bg-amber-50 border-amber-200 hover:border-amber-300', iconColor: 'bg-amber-100 text-amber-700' },
-            { href: '/admin/ventas/cotizaciones', icon: FileCheck, label: 'Cotizaciones', desc: 'Crea y da seguimiento', color: 'bg-blue-50 border-blue-200 hover:border-blue-300', iconColor: 'bg-blue-100 text-blue-700' },
-            { href: '/admin/ventas/nueva-venta', icon: ShoppingCart, label: 'Nueva venta', desc: 'Registrar venta directa', color: 'bg-emerald-50 border-emerald-200 hover:border-emerald-300', iconColor: 'bg-emerald-100 text-emerald-700' },
+            { href: '/admin/ventas/inventario', icon: Package, label: 'Inventario', desc: 'Gestiona productos y stock', color: 'bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-700 hover:border-amber-300 dark:hover:border-amber-600', iconColor: 'bg-amber-100 text-amber-700' },
+            { href: '/admin/ventas/cotizaciones', icon: FileCheck, label: 'Cotizaciones', desc: 'Crea y da seguimiento', color: 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-700 hover:border-blue-300 dark:hover:border-blue-600', iconColor: 'bg-blue-100 text-blue-700' },
+            { href: '/admin/ventas/nueva-venta', icon: ShoppingCart, label: 'Nueva venta', desc: 'Registrar venta directa', color: 'bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-700 hover:border-emerald-300 dark:hover:border-emerald-600', iconColor: 'bg-emerald-100 text-emerald-700' },
           ].map(({ href, icon: Icon, label, desc, color, iconColor }) => (
             <Link key={href} href={href} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all ${color}`}>
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconColor}`}>
                 <Icon size={20} />
               </div>
               <div className="flex-1">
-                <p className="font-semibold text-gray-900 text-sm">{label}</p>
-                <p className="text-xs text-gray-500">{desc}</p>
+                <p className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{label}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{desc}</p>
               </div>
-              <ArrowRight size={14} className="text-gray-400" />
+              <ArrowRight size={14} className="text-gray-400 dark:text-gray-500" />
             </Link>
           ))}
         </div>
 
         {/* Recent sales list */}
-        <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="font-semibold text-gray-900">Ventas recientes</h2>
+        <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Ventas recientes</h2>
             <Link href="/admin/reportes/ventas" className="text-xs text-indigo-600 hover:underline flex items-center gap-1">
               Ver reporte completo <ArrowRight size={11} />
             </Link>
@@ -352,38 +352,38 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
 
           {recentSales.length === 0 ? (
             <div className="py-14 text-center">
-              <ShoppingCart size={32} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-sm font-medium text-gray-500">Aún no hay ventas registradas</p>
-              <p className="text-xs text-gray-400 mt-1">Crea tu primera venta desde el botón de arriba</p>
+              <ShoppingCart size={32} className="mx-auto mb-3 text-gray-200 dark:text-gray-700" />
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400">Aún no hay ventas registradas</p>
+              <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Crea tu primera venta desde el botón de arriba</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="divide-y divide-gray-50 dark:divide-gray-800">
               {recentSales.slice(0, 20).map(sale => {
                 const s = STATUS_MAP[sale.status] ?? STATUS_MAP.pending
                 const isOpen = openSaleId === sale.id
                 return (
                   <div
                     key={sale.id}
-                    className={`flex items-center gap-4 px-5 py-3 hover:bg-gray-50 cursor-pointer transition-colors ${isOpen ? 'bg-blue-50 border-l-4 border-blue-500' : ''}`}
+                    className={`flex items-center gap-4 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer transition-colors ${isOpen ? 'bg-blue-50 dark:bg-blue-900/30 border-l-4 border-blue-500' : ''}`}
                     onClick={() => openPanel(sale.id, 'view')}
                   >
                     <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${s.color}`}>
                       <div className={`w-2 h-2 rounded-full ${s.dot}`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-900 truncate">
+                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
                         {sale.customers?.name ?? 'Cliente sin registrar'}
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-semibold ${s.color}`}>{s.label}</span>
                         {sale.establishment_id && (
-                          <span className="text-[10px] text-gray-400">{estMap[sale.establishment_id]}</span>
+                          <span className="text-[10px] text-gray-400 dark:text-gray-500">{estMap[sale.establishment_id]}</span>
                         )}
                       </div>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold text-gray-900">{fmt(sale.total ?? 0)}</p>
-                      <p className="text-[10px] text-gray-400">{fmtDate(sale.created_at)}</p>
+                      <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{fmt(sale.total ?? 0)}</p>
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(sale.created_at)}</p>
                     </div>
                   </div>
                 )
@@ -396,38 +396,38 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
       {/* ── RIGHT: Detail panel ── */}
       {openSaleId && openSale && (
         <div className="w-full lg:w-[480px] shrink-0">
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden sticky top-6">
+          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden sticky top-6">
 
             {/* Panel header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800">
               <div>
-                <p className="font-mono text-xs text-gray-400 mb-0.5"># VTA-{openSale.id.slice(-6).toUpperCase()}</p>
-                <p className="font-bold text-gray-900">{openSale.customers?.name ?? 'Sin cliente'}</p>
+                <p className="font-mono text-xs text-gray-400 dark:text-gray-500 mb-0.5"># VTA-{openSale.id.slice(-6).toUpperCase()}</p>
+                <p className="font-bold text-gray-900 dark:text-gray-100">{openSale.customers?.name ?? 'Sin cliente'}</p>
               </div>
               <div className="flex items-center gap-1.5">
                 {/* Mode tabs */}
                 <button
                   onClick={() => switchMode('view')}
-                  className={`p-1.5 rounded-lg transition-colors ${panelMode === 'view' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+                  className={`p-1.5 rounded-lg transition-colors ${panelMode === 'view' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                   title="Ver detalle"
                 >
                   <Eye size={15} />
                 </button>
                 <button
                   onClick={() => switchMode('edit')}
-                  className={`p-1.5 rounded-lg transition-colors ${panelMode === 'edit' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+                  className={`p-1.5 rounded-lg transition-colors ${panelMode === 'edit' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                   title="Editar"
                 >
                   <Edit3 size={15} />
                 </button>
                 <button
                   onClick={() => switchMode('status')}
-                  className={`p-1.5 rounded-lg transition-colors ${panelMode === 'status' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 hover:bg-gray-100'}`}
+                  className={`p-1.5 rounded-lg transition-colors ${panelMode === 'status' ? 'bg-indigo-100 text-indigo-700' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
                   title="Cambiar estado"
                 >
                   <Truck size={15} />
                 </button>
-                <button onClick={closePanel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 ml-1">
+                <button onClick={closePanel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 ml-1">
                   <X size={15} />
                 </button>
               </div>
@@ -443,71 +443,71 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                     {(() => { const s = STATUS_MAP[openSale.status] ?? STATUS_MAP.pending; return (
                       <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${s.color}`}>{s.label}</span>
                     )})()}
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                    <span className="flex items-center gap-1 text-xs text-gray-400 dark:text-gray-500">
                       <Calendar size={11} /> {fmtDateFull(openSale.created_at)}
                     </span>
                   </div>
 
                   {/* Customer info */}
                   {openSale.customers && (
-                    <div className="bg-gray-50 rounded-xl p-3 text-sm space-y-1">
-                      <div className="flex items-center gap-1.5 font-semibold text-gray-700">
-                        <User size={13} className="text-gray-400" /> {openSale.customers.name}
+                    <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-3 text-sm space-y-1">
+                      <div className="flex items-center gap-1.5 font-semibold text-gray-700 dark:text-gray-300">
+                        <User size={13} className="text-gray-400 dark:text-gray-500" /> {openSale.customers.name}
                       </div>
                       {openSale.customers.email && (
-                        <p className="text-gray-500 text-xs">{openSale.customers.email}</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs">{openSale.customers.email}</p>
                       )}
                     </div>
                   )}
 
                   {/* Establishment */}
                   {openSale.establishment_id && estMap[openSale.establishment_id] && (
-                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                      <Building2 size={12} className="text-gray-400" /> {estMap[openSale.establishment_id]}
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                      <Building2 size={12} className="text-gray-400 dark:text-gray-500" /> {estMap[openSale.establishment_id]}
                     </div>
                   )}
 
                   {/* Items */}
                   {loadingItems ? (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 size={20} className="animate-spin text-gray-300" />
+                      <Loader2 size={20} className="animate-spin text-gray-300 dark:text-gray-600" />
                     </div>
                   ) : (
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-2">Productos / Servicios</p>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-2">Productos / Servicios</p>
                       {panelItems.length > 0 ? (
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-gray-100 text-xs text-gray-400">
+                            <tr className="border-b border-gray-100 dark:border-gray-800 text-xs text-gray-400 dark:text-gray-500">
                               <th className="pb-1.5 text-left font-semibold">Item</th>
                               <th className="pb-1.5 text-center font-semibold">Cant.</th>
                               <th className="pb-1.5 text-right font-semibold">P. Unit.</th>
                               <th className="pb-1.5 text-right font-semibold">Total</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-gray-50">
+                          <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
                             {panelItems.map((it, i) => (
                               <tr key={i}>
-                                <td className="py-2 font-medium text-gray-900 text-xs">
+                                <td className="py-2 font-medium text-gray-900 dark:text-gray-100 text-xs">
                                   {it.product_name}
-                                  {it.product_sku && <span className="text-gray-400 ml-1">({it.product_sku})</span>}
+                                  {it.product_sku && <span className="text-gray-400 dark:text-gray-500 ml-1">({it.product_sku})</span>}
                                 </td>
-                                <td className="py-2 text-center text-gray-500 text-xs">{it.qty}</td>
-                                <td className="py-2 text-right text-gray-500 text-xs">{fmt(it.unit_price)}</td>
-                                <td className="py-2 text-right font-semibold text-xs">{fmt(it.line_total)}</td>
+                                <td className="py-2 text-center text-gray-500 dark:text-gray-400 text-xs">{it.qty}</td>
+                                <td className="py-2 text-right text-gray-500 dark:text-gray-400 text-xs">{fmt(it.unit_price)}</td>
+                                <td className="py-2 text-right font-semibold text-xs text-gray-900 dark:text-gray-100">{fmt(it.line_total)}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       ) : (
-                        <p className="text-xs text-gray-400 italic">Sin ítems registrados</p>
+                        <p className="text-xs text-gray-400 dark:text-gray-500 italic">Sin ítems registrados</p>
                       )}
                     </div>
                   )}
 
                   {/* Totals */}
-                  <div className="border-t border-gray-100 pt-3 space-y-1">
-                    <div className="flex justify-between text-sm text-gray-500">
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-1">
+                    <div className="flex justify-between text-sm text-gray-500 dark:text-gray-400">
                       <span>Subtotal</span><span>{fmt(openSale.subtotal ?? openSale.total)}</span>
                     </div>
                     {(openSale.discount ?? 0) > 0 && (
@@ -515,22 +515,22 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                         <span>Descuento</span><span>−{fmt(openSale.discount!)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between font-bold text-gray-900">
+                    <div className="flex justify-between font-bold text-gray-900 dark:text-gray-100">
                       <span>Total</span><span>{fmt(openSale.total)}</span>
                     </div>
                   </div>
 
                   {/* Notes */}
                   {openSale.notes && (
-                    <div className="p-3 bg-amber-50 rounded-xl border-l-4 border-amber-300">
+                    <div className="p-3 bg-amber-50 dark:bg-amber-900/30 rounded-xl border-l-4 border-amber-300">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-amber-600 mb-1">Notas</p>
-                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{openSale.notes}</p>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{openSale.notes}</p>
                     </div>
                   )}
 
 
                   {/* Quick status change */}
-                  <div className="border-t border-gray-100 pt-3 space-y-2">
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-3 space-y-2">
                     <button
                       onClick={() => switchMode('status')}
                       className="w-full py-2.5 rounded-xl bg-indigo-50 text-indigo-700 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-indigo-100 border border-indigo-200"
@@ -541,14 +541,14 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                       <div className="flex gap-2">
                         <button
                           onClick={() => openSaleWa(openSale, 'sale_receipt')}
-                          className="flex-1 py-2 rounded-xl bg-green-50 text-green-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 border border-green-200"
+                          className="flex-1 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-green-100 dark:hover:bg-green-900/50 border border-green-200 dark:border-green-700"
                         >
                           <MessageCircle size={13} /> Comprobante WA
                         </button>
                         {openSale.status === 'pending' && (
                           <button
                             onClick={() => openSaleWa(openSale, 'sale_pending_payment')}
-                            className="flex-1 py-2 rounded-xl bg-amber-50 text-amber-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-amber-100 border border-amber-200"
+                            className="flex-1 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/30 text-amber-700 text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-700"
                           >
                             <MessageCircle size={13} /> Cobro pendiente WA
                           </button>
@@ -562,18 +562,18 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
               {/* ── EDIT MODE ── */}
               {panelMode === 'edit' && (
                 <div className="p-5 space-y-4">
-                  <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Edit3 size={14} /> Editando venta
                   </p>
-                  <p className="text-xs text-gray-400">Solo se puede editar las notas. Para modificar ítems, crea una nueva venta.</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">Solo se puede editar las notas. Para modificar ítems, crea una nueva venta.</p>
 
                   <div>
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1.5">Notas</label>
+                    <label className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider block mb-1.5">Notas</label>
                     <textarea
                       value={editNotes}
                       onChange={e => setEditNotes(e.target.value)}
                       rows={5}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none"
+                      className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-indigo-400 resize-none bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
                       placeholder="Observaciones, condiciones especiales..."
                     />
                   </div>
@@ -581,7 +581,7 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => setPanelMode('view')}
-                      className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                      className="flex-1 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
                     >
                       Cancelar
                     </button>
@@ -600,7 +600,7 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
               {/* ── STATUS MODE ── */}
               {panelMode === 'status' && (
                 <div className="p-5 space-y-4">
-                  <p className="text-sm font-semibold text-gray-700 flex items-center gap-1.5">
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-1.5">
                     <Truck size={14} /> Estado del pedido
                   </p>
 
@@ -610,7 +610,7 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                     const currentIdx = flow.indexOf(openSale.status)
                     return (
                       <div className="space-y-2">
-                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 mb-1">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1">
                           Flujo {openSale.fulfillment_type === 'physical' ? 'físico' : 'de servicio'}
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -624,9 +624,9 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                                 onClick={() => changeStatus(step)}
                                 disabled={changingStatus || isCurrent}
                                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-all disabled:cursor-not-allowed
-                                  ${isCurrent ? `${s.color} ring-2 ring-offset-1 ring-current` : isPast ? 'bg-gray-100 text-gray-400 hover:bg-gray-200' : `bg-white border-2 border-gray-200 text-gray-500 hover:${s.color}`}`}
+                                  ${isCurrent ? `${s.color} ring-2 ring-offset-1 ring-current` : isPast ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 hover:bg-gray-200 dark:hover:bg-gray-700' : `bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:${s.color}`}`}
                               >
-                                <div className={`w-1.5 h-1.5 rounded-full ${isCurrent || isPast ? s.dot : 'bg-gray-300'}`} />
+                                <div className={`w-1.5 h-1.5 rounded-full ${isCurrent || isPast ? s.dot : 'bg-gray-300 dark:bg-gray-600'}`} />
                                 {s.label}
                                 {isCurrent && <span className="ml-0.5 text-[9px]">✓</span>}
                               </button>
@@ -643,12 +643,12 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                       type="checkbox"
                       checked={notifyClient}
                       onChange={e => setNotifyClient(e.target.checked)}
-                      className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="rounded border-gray-300 dark:border-gray-600 text-indigo-600 focus:ring-indigo-500"
                     />
-                    <span className="text-sm text-gray-600">Notificar al cliente por email</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Notificar al cliente por email</span>
                   </label>
 
-                  <div className="border-t border-gray-100 pt-3 flex flex-col gap-2">
+                  <div className="border-t border-gray-100 dark:border-gray-800 pt-3 flex flex-col gap-2">
                     {openSale.status !== 'completado' && openSale.status !== 'completed' && openSale.status !== 'entregado' && (
                       <button
                         onClick={() => changeStatus(openSale.fulfillment_type === 'physical' ? 'entregado' : 'completado')}
@@ -663,7 +663,7 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                       <button
                         onClick={() => changeStatus('cancelled')}
                         disabled={changingStatus}
-                        className="w-full py-2.5 rounded-xl bg-red-50 text-red-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-100 border border-red-200 disabled:opacity-40"
+                        className="w-full py-2.5 rounded-xl bg-red-50 dark:bg-red-900/30 text-red-600 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-red-100 dark:hover:bg-red-900/50 border border-red-200 dark:border-red-700 disabled:opacity-40"
                       >
                         {changingStatus ? <Loader2 size={14} className="animate-spin" /> : <XCircle size={14} />}
                         Marcar como cancelado
