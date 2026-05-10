@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { getEffectiveBrandId, checkModuleAccess } from '@/lib/serverBrandContext'
+import { getEffectiveBrandId, checkModuleAccess, getVerifiedActiveModules } from '@/lib/serverBrandContext'
 import { NoBrandContext } from '@/components/NoBrandContext'
 import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import { WaTemplatesManager } from './WaTemplatesManager'
@@ -32,6 +32,9 @@ export default async function MensajesPage() {
     expiredAt = access.expiredAt
   }
 
+  // Check which modules are active (to filter appointment templates)
+  const activeModules = await getVerifiedActiveModules(supabase, brandId, null)
+
   // Load brand's customized templates
   const { data: brandTemplates } = await supabase
     .from('wa_templates')
@@ -58,6 +61,7 @@ export default async function MensajesPage() {
       <WaTemplatesManager
         brandId={brandId}
         templates={templates}
+        activeModules={activeModules}
       />
     </TrialExpiredGate>
   )

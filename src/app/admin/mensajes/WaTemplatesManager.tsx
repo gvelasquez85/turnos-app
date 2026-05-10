@@ -29,6 +29,7 @@ interface TemplateWithOverride extends WaTemplateDef {
 interface Props {
   brandId: string
   templates: TemplateWithOverride[]
+  activeModules?: Record<string, boolean>
 }
 
 const PREVIEW_VARS: Record<WaCategory, Record<string, string>> = {
@@ -238,9 +239,12 @@ function TemplateCard({
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
-export function WaTemplatesManager({ brandId, templates: initial }: Props) {
-  const [templates, setTemplates] = useState(initial)
-  const [activeModule, setActiveModule] = useState<string>('appointments')
+export function WaTemplatesManager({ brandId, templates: initial, activeModules }: Props) {
+  const hasAppointments = activeModules?.appointments === true
+  // Filter out appointment templates when module is inactive
+  const filteredInitial = hasAppointments ? initial : initial.filter(t => t.module !== 'appointments')
+  const [templates, setTemplates] = useState(filteredInitial)
+  const [activeModule, setActiveModule] = useState<string>(hasAppointments ? 'appointments' : 'sales')
 
   function onSaved(category: WaCategory, saved: BrandTemplate | null) {
     setTemplates(ts => ts.map(t =>
@@ -248,7 +252,8 @@ export function WaTemplatesManager({ brandId, templates: initial }: Props) {
     ))
   }
 
-  const modules = ['appointments', 'sales', 'clientes'] as const
+  const allModules = ['appointments', 'sales', 'clientes'] as const
+  const modules = allModules.filter(m => m !== 'appointments' || hasAppointments)
   const grouped = templates.reduce((acc, t) => {
     if (!acc[t.module]) acc[t.module] = []
     acc[t.module].push(t)

@@ -7,9 +7,10 @@ import {
   ChevronDown, ChevronUp, X, Plus, Edit2, Check,
   MessageSquare, Tag, Clock, FileText, ChevronRight,
   Cake, Wifi, Smartphone, Save, Loader2, ShoppingCart, CalendarCheck,
-  Sparkles, Copy, RefreshCw, Send, MessageCircle,
+  Sparkles, Copy, RefreshCw, Send, MessageCircle, Upload,
 } from 'lucide-react'
 import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
+import { BulkUploadModal } from '@/components/BulkUploadModal'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -1064,6 +1065,7 @@ export function ClientesManager({ customers: initialCustomers, establishments, b
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   const [createModal, setCreateModal] = useState(false)
+  const [showBulkUpload, setShowBulkUpload] = useState(false)
 
   const estMap = useMemo(() => Object.fromEntries(establishments.map(e => [e.id, e.name])), [establishments])
 
@@ -1122,12 +1124,20 @@ export function ClientesManager({ customers: initialCustomers, establishments, b
           <h1 className="text-2xl font-bold text-gray-900">{bv.clients.charAt(0).toUpperCase() + bv.clients.slice(1)}</h1>
           <p className="text-gray-500 text-sm mt-1">Perfil e historial de cada {bv.client}</p>
         </div>
-        <button
-          onClick={() => setCreateModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
-        >
-          <Plus size={15} /> {bv.newClient}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="flex items-center gap-1.5 px-4 py-2 border border-indigo-200 text-indigo-600 text-sm font-semibold rounded-xl hover:bg-indigo-50 transition-colors"
+          >
+            <Upload size={15} /> Carga masiva
+          </button>
+          <button
+            onClick={() => setCreateModal(true)}
+            className="flex items-center gap-1.5 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+          >
+            <Plus size={15} /> {bv.newClient}
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -1321,6 +1331,17 @@ export function ClientesManager({ customers: initialCustomers, establishments, b
             setCustomers(cs => cs.map(c => c.id === updated.id ? updated : c))
             setSelectedCustomer(updated)
           }}
+        />
+      )}
+
+      {/* Bulk upload modal */}
+      {showBulkUpload && (
+        <BulkUploadModal
+          type="customers"
+          brandId={brandId}
+          open={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          onComplete={() => { setShowBulkUpload(false); window.location.reload() }}
         />
       )}
 

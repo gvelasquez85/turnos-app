@@ -4,8 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Package, Plus, Search, Edit2, X, Save, Loader2,
   AlertTriangle, CheckCircle, ChevronDown, ChevronUp,
-  Tag, DollarSign, Archive,
+  Tag, DollarSign, Archive, Upload,
 } from 'lucide-react'
+import { BulkUploadModal } from '@/components/BulkUploadModal'
 
 interface Product {
   id: string
@@ -61,6 +62,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [stockEdit, setStockEdit] = useState<{ id: string; value: string } | null>(null)
+  const [showBulkUpload, setShowBulkUpload] = useState(false)
 
   const categories = useMemo(() => {
     const cats = new Set(products.map(p => p.category).filter(Boolean) as string[])
@@ -183,12 +185,20 @@ export function InventarioManager({ brandId, products: initial, establishments }
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inventario</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{products.filter(p => p.active).length} productos activos</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
-        >
-          <Plus size={15} /> Nuevo producto
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowBulkUpload(true)}
+            className="flex items-center gap-1.5 px-4 py-2 border border-emerald-200 text-emerald-600 text-sm font-semibold rounded-xl hover:bg-emerald-50 transition-colors"
+          >
+            <Upload size={15} /> Carga masiva
+          </button>
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors"
+          >
+            <Plus size={15} /> Nuevo producto
+          </button>
+        </div>
       </div>
 
       {/* Low stock alert */}
@@ -352,6 +362,17 @@ export function InventarioManager({ brandId, products: initial, establishments }
             {filtered.length} productos
           </div>
         </div>
+      )}
+
+      {/* Bulk upload modal */}
+      {showBulkUpload && (
+        <BulkUploadModal
+          type="products"
+          brandId={brandId}
+          open={showBulkUpload}
+          onClose={() => setShowBulkUpload(false)}
+          onComplete={() => { setShowBulkUpload(false); window.location.reload() }}
+        />
       )}
 
       {/* Product form slide-over */}
