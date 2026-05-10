@@ -83,10 +83,42 @@ const PREDEFINED_TAGS: { key: string; label: string; color: string }[] = [
 
 const CANAL_OPTIONS = ['WhatsApp', 'Llamada', 'Email', 'Presencial', 'Instagram', 'Otro']
 
-const INTERES_OPTIONS = [
-  'Corte', 'Color', 'Tinte', 'Manicure', 'Pedicure', 'Tratamiento capilar',
-  'Depilación', 'Masajes', 'Faciales', 'Uñas acrílicas',
-]
+const INTERES_BY_VERTICAL: Record<string, string[]> = {
+  belleza: [
+    'Corte de cabello', 'Tinte / Color', 'Manicure', 'Pedicure',
+    'Tratamiento capilar', 'Depilación', 'Masajes', 'Faciales',
+    'Uñas acrílicas / semipermanentes', 'Alisado / Keratina',
+  ],
+  restaurante: [
+    'Desayunos', 'Almuerzos ejecutivos', 'Comida rápida', 'Postres',
+    'Bebidas / Jugos', 'Domicilios', 'Eventos / Catering',
+    'Menú vegetariano', 'Comida saludable', 'Café de especialidad',
+  ],
+  ferreteria: [
+    'Electricidad', 'Plomería', 'Pintura', 'Herramientas',
+    'Cerrajería', 'Soldadura', 'Tornillería', 'Materiales de construcción',
+    'Reparación de equipos', 'Mantenimiento preventivo',
+  ],
+  tienda: [
+    'Ropa mujer', 'Ropa hombre', 'Accesorios', 'Calzado',
+    'Productos para mascotas', 'Papelería', 'Tecnología',
+    'Hogar y decoración', 'Productos de belleza', 'Regalos',
+  ],
+  servicios: [
+    'Consultoría', 'Asesoría legal', 'Contabilidad', 'Diseño gráfico',
+    'Desarrollo web', 'Marketing digital', 'Capacitación',
+    'Salud / Terapia', 'Fotografía', 'Transporte / Logística',
+  ],
+  otros: [
+    'Producto principal', 'Servicio básico', 'Asesoría', 'Mantenimiento',
+    'Instalación', 'Reparación', 'Consulta', 'Paquete premium',
+    'Suscripción mensual', 'Servicio a domicilio',
+  ],
+}
+
+function getInteresOptions(businessType: string): string[] {
+  return INTERES_BY_VERTICAL[businessType] ?? INTERES_BY_VERTICAL.otros
+}
 
 function tagInfo(key: string) {
   return PREDEFINED_TAGS.find(t => t.key === key) ?? { key, label: key, color: 'bg-gray-100 text-gray-500' }
@@ -498,30 +530,44 @@ function CustomerSlideOver({
                     )}
 
                     {/* Intereses */}
-                    {'intereses' in customer && (
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-2">Servicios de interés</label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {INTERES_OPTIONS.map(opt => {
-                            const active = (form.intereses ?? []).includes(opt)
-                            return (
+                    {'intereses' in customer && (() => {
+                      const predefined = getInteresOptions(businessType)
+                      const custom = (form.intereses ?? []).filter(i => !predefined.includes(i))
+                      return (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-2">Servicios de interés</label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {predefined.map(opt => {
+                              const active = (form.intereses ?? []).includes(opt)
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  onClick={() => toggleInterest(opt)}
+                                  className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
+                                    active
+                                      ? 'bg-indigo-600 text-white'
+                                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  }`}
+                                >
+                                  {opt}
+                                </button>
+                              )
+                            })}
+                            {custom.map(opt => (
                               <button
                                 key={opt}
                                 type="button"
                                 onClick={() => toggleInterest(opt)}
-                                className={`text-xs px-2.5 py-1 rounded-full font-medium transition-colors ${
-                                  active
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                }`}
+                                className="text-xs px-2.5 py-1 rounded-full font-medium bg-emerald-600 text-white transition-colors"
                               >
-                                {opt}
+                                {opt} ✕
                               </button>
-                            )
-                          })}
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )
+                    })()}
                   </div>
 
                   <div className="flex gap-2 pt-1">
