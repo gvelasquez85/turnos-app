@@ -339,7 +339,7 @@ export function QueueBoard({ establishmentId, establishmentSlug, advisorId, advi
       {/* ── Left column: queue ──────────────────────────────────── */}
       <div className="flex-1 min-w-0">
         {/* Stats bar */}
-        <div className="grid grid-cols-3 gap-3 mb-5">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-5">
           {[
             { label: t('queue.waiting'), value: waiting.length, color: 'bg-yellow-100 text-yellow-600', icon: Clock },
             { label: t('queue.inProgress'), value: inProgress.length, color: 'bg-blue-100 text-blue-600', icon: Users },

@@ -460,7 +460,7 @@ export function InventarioManager({ brandId, products: initial, establishments }
                 </div>
               </div>
               {/* Stock + Min stock + Unit */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-600 mb-1">Stock inicial</label>
                   <input

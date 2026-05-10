@@ -103,7 +103,7 @@ export function ProfileSettings({ userId, fullName, email: initialEmail, role, c
   ]
 
   return (
-    <div className="max-w-lg">
+    <div className="w-full max-w-lg">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Mi perfil</h1>
         <p className="text-gray-500 text-sm mt-1">Actualiza tu información personal y configuración</p>

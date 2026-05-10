@@ -515,7 +515,7 @@ function AppShellInner({
 
       {/* Main content */}
       <main className={cn(
-        'flex-1 min-h-screen transition-all duration-200',
+        'flex-1 min-h-screen transition-all duration-200 overflow-x-hidden',
         collapsed ? 'md:ml-16' : 'md:ml-56',
       )}>
         {/* Top bar — profile, logout, lang */}

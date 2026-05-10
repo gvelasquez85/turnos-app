@@ -737,7 +737,8 @@ export function AppointmentsManager({
               <ChevronRight size={16} />
             </button>
           </div>
-          <div className="grid grid-cols-7 border-b border-gray-100">
+          <div className="overflow-x-auto -mx-1">
+          <div className="grid grid-cols-7 border-b border-gray-100 min-w-[640px]">
             {weekDays.map(d => {
               const isToday = sameDay(d, today)
               const count = (byDay[dayKey(d)] ?? []).length
@@ -756,7 +757,7 @@ export function AppointmentsManager({
               )
             })}
           </div>
-          <div className="grid grid-cols-7 min-h-[320px]">
+          <div className="grid grid-cols-7 min-h-[320px] min-w-[640px]">
             {weekDays.map(d => {
               const isToday = sameDay(d, today)
               const dayAppts = (byDay[dayKey(d)] ?? []).sort(
@@ -783,6 +784,7 @@ export function AppointmentsManager({
                 </div>
               )
             })}
+          </div>
           </div>
         </div>
       )}
