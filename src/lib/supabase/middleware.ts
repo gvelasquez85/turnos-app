@@ -30,6 +30,7 @@ export async function updateSession(request: NextRequest) {
     '/login', '/register', '/forgot-password', '/reset-password', '/auth/',
     '/t/', '/espera/', '/book/', '/order/', '/display/', '/survey/',
     '/validar/', '/validarautorizacion',
+    '/ayuda',
     '/api/',   // ← todas las APIs se autentican solas (incl. Wompi webhook)
   ]
   const isPublic = publicRoutes.some(r => path.startsWith(r)) || path === '/'
