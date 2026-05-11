@@ -25,9 +25,9 @@ export default async function HelpArticlePage({ params }: Props) {
   const related = getArticlesByCategory(article.category).filter(a => a.slug !== slug).slice(0, 3)
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-indigo-600 dark:bg-indigo-900">
+      <div className="bg-indigo-600">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <Link href="/ayuda" className="inline-flex items-center gap-1 text-indigo-200 hover:text-white text-sm mb-4 transition-colors">
             <ArrowLeft size={14} /> Centro de Ayuda
@@ -45,21 +45,21 @@ export default async function HelpArticlePage({ params }: Props) {
       <div className="max-w-3xl mx-auto px-4 py-10">
         <div
           className="prose prose-sm sm:prose-base max-w-none
-            prose-headings:text-gray-900 dark:prose-headings:text-gray-100
-            prose-p:text-gray-700 dark:prose-p:text-gray-300
-            prose-li:text-gray-700 dark:prose-li:text-gray-300
-            prose-strong:text-gray-900 dark:prose-strong:text-gray-100
-            prose-a:text-indigo-600 dark:prose-a:text-indigo-400
-            prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-900/30 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
-            [&_.tip]:bg-indigo-50 [&_.tip]:dark:bg-indigo-900/20 [&_.tip]:border [&_.tip]:border-indigo-200 [&_.tip]:dark:border-indigo-800 [&_.tip]:rounded-xl [&_.tip]:px-4 [&_.tip]:py-3 [&_.tip]:text-sm [&_.tip]:text-indigo-800 [&_.tip]:dark:text-indigo-300 [&_.tip]:my-4
+            prose-headings:text-gray-900
+            prose-p:text-gray-700
+            prose-li:text-gray-700
+            prose-strong:text-gray-900
+            prose-a:text-indigo-600
+            prose-code:text-indigo-600 prose-code:bg-indigo-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+            [&_.tip]:bg-indigo-50 [&_.tip]:border [&_.tip]:border-indigo-200 [&_.tip]:rounded-xl [&_.tip]:px-4 [&_.tip]:py-3 [&_.tip]:text-sm [&_.tip]:text-indigo-800 [&_.tip]:my-4
           "
           dangerouslySetInnerHTML={{ __html: article.body }}
         />
 
         {/* Related articles */}
         {related.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+          <div className="mt-12 pt-8 border-t border-gray-200">
+            <h2 className="text-lg font-bold text-gray-900 mb-4">
               Articulos relacionados
             </h2>
             <div className="grid gap-3">
@@ -67,13 +67,13 @@ export default async function HelpArticlePage({ params }: Props) {
                 <Link
                   key={r.slug}
                   href={`/ayuda/${r.slug}`}
-                  className="group flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                  className="group flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 hover:bg-indigo-50 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                    <p className="font-medium text-gray-900 text-sm group-hover:text-indigo-600">
                       {r.title}
                     </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">{r.summary}</p>
+                    <p className="text-xs text-gray-500">{r.summary}</p>
                   </div>
                   <ChevronRight size={14} className="text-gray-300 shrink-0" />
                 </Link>
@@ -83,7 +83,7 @@ export default async function HelpArticlePage({ params }: Props) {
         )}
 
         {/* Back */}
-        <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+        <div className="mt-10 pt-6 border-t border-gray-200 flex items-center justify-between">
           <Link href="/ayuda" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1">
             <ArrowLeft size={14} /> Volver al Centro de Ayuda
           </Link>

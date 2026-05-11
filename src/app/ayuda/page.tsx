@@ -18,9 +18,9 @@ export default function HelpCenterPage() {
   const activeCat = HELP_CATEGORIES.find(c => c.key === activeCategory)
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white dark:from-gray-950 dark:via-gray-900 dark:to-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white">
       {/* Header */}
-      <div className="bg-indigo-600 dark:bg-indigo-900">
+      <div className="bg-indigo-600">
         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
           <Link href="/" className="inline-flex items-center gap-1 text-indigo-200 hover:text-white text-sm mb-6 transition-colors">
             <ArrowLeft size={14} /> Volver a TurnFlow
@@ -41,7 +41,7 @@ export default function HelpCenterPage() {
               value={query}
               onChange={e => { setQuery(e.target.value); setActiveCategory(null) }}
               placeholder="Buscar: crear venta, agregar cliente, cotizacion..."
-              className="w-full h-12 pl-11 pr-4 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 text-sm placeholder-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-300 dark:focus:ring-indigo-600"
+              className="w-full h-12 pl-11 pr-4 rounded-xl bg-white text-gray-900 text-sm placeholder-gray-400 shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-300"
             />
             {query && (
               <button
@@ -62,7 +62,7 @@ export default function HelpCenterPage() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 {query ? (
-                  <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                  <h2 className="text-lg font-bold text-gray-900">
                     {results.length} resultado{results.length !== 1 ? 's' : ''} para &quot;{query}&quot;
                   </h2>
                 ) : activeCat ? (
@@ -73,10 +73,10 @@ export default function HelpCenterPage() {
                     >
                       <ArrowLeft size={14} /> Todas las categorias
                     </button>
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                    <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                       <span>{activeCat.icon}</span> {activeCat.label}
                     </h2>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">{activeCat.description}</p>
+                    <p className="text-sm text-gray-500">{activeCat.description}</p>
                   </div>
                 ) : null}
               </div>
@@ -85,8 +85,8 @@ export default function HelpCenterPage() {
             {results.length === 0 ? (
               <div className="text-center py-16">
                 <div className="text-4xl mb-4">🔍</div>
-                <p className="text-gray-500 dark:text-gray-400 mb-2">No encontramos articulos para esa busqueda</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">Intenta con otros terminos o explora las categorias</p>
+                <p className="text-gray-500 mb-2">No encontramos articulos para esa busqueda</p>
+                <p className="text-sm text-gray-400">Intenta con otros terminos o explora las categorias</p>
                 <button
                   onClick={() => { setQuery(''); setActiveCategory(null) }}
                   className="mt-4 text-indigo-600 hover:text-indigo-800 text-sm font-medium"
@@ -100,16 +100,16 @@ export default function HelpCenterPage() {
                   <Link
                     key={article.slug}
                     href={`/ayuda/${article.slug}`}
-                    className="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all flex items-center gap-4"
+                    className="group bg-white rounded-xl border border-gray-200 p-4 hover:border-indigo-300 hover:shadow-md transition-all flex items-center gap-4"
                   >
-                    <div className="w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 flex items-center justify-center text-lg shrink-0">
+                    <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-lg shrink-0">
                       {HELP_CATEGORIES.find(c => c.key === article.category)?.icon ?? '📄'}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                         {article.title}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{article.summary}</p>
+                      <p className="text-sm text-gray-500 truncate">{article.summary}</p>
                     </div>
                     <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-500 shrink-0 transition-colors" />
                   </Link>
@@ -120,7 +120,7 @@ export default function HelpCenterPage() {
         ) : (
           /* Categories grid */
           <div>
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-6">Explora por categoria</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-6">Explora por categoria</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-12">
               {HELP_CATEGORIES.map(cat => {
                 const count = HELP_ARTICLES.filter(a => a.category === cat.key).length
@@ -128,16 +128,16 @@ export default function HelpCenterPage() {
                   <button
                     key={cat.key}
                     onClick={() => { setActiveCategory(cat.key); setQuery('') }}
-                    className="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5 text-left hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all"
+                    className="group bg-white rounded-xl border border-gray-200 p-5 text-left hover:border-indigo-300 hover:shadow-md transition-all"
                   >
                     <div className="flex items-start gap-3">
                       <span className="text-2xl">{cat.icon}</span>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                        <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
                           {cat.label}
                         </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{cat.description}</p>
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">{count} articulo{count !== 1 ? 's' : ''}</p>
+                        <p className="text-sm text-gray-500 mt-0.5">{cat.description}</p>
+                        <p className="text-xs text-gray-400 mt-2">{count} articulo{count !== 1 ? 's' : ''}</p>
                       </div>
                       <ChevronRight size={16} className="text-gray-300 group-hover:text-indigo-500 mt-1 shrink-0 transition-colors" />
                     </div>
@@ -147,18 +147,18 @@ export default function HelpCenterPage() {
             </div>
 
             {/* Popular articles */}
-            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">Articulos populares</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Articulos populares</h2>
             <div className="grid gap-3">
               {HELP_ARTICLES.slice(0, 6).map(article => (
                 <Link
                   key={article.slug}
                   href={`/ayuda/${article.slug}`}
-                  className="group flex items-center gap-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 px-4 py-3 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-sm transition-all"
+                  className="group flex items-center gap-3 bg-white rounded-xl border border-gray-200 px-4 py-3 hover:border-indigo-300 hover:shadow-sm transition-all"
                 >
                   <span className="text-lg">{HELP_CATEGORIES.find(c => c.key === article.category)?.icon ?? '📄'}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400">{article.title}</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{article.summary}</p>
+                    <p className="font-medium text-gray-900 text-sm group-hover:text-indigo-600">{article.title}</p>
+                    <p className="text-xs text-gray-400 truncate">{article.summary}</p>
                   </div>
                   <ChevronRight size={14} className="text-gray-300 shrink-0" />
                 </Link>
@@ -169,9 +169,9 @@ export default function HelpCenterPage() {
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-200 dark:border-gray-800 mt-12">
+      <div className="border-t border-gray-200 mt-12">
         <div className="max-w-4xl mx-auto px-4 py-8 text-center">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
+          <p className="text-sm text-gray-500">
             ¿No encontraste lo que buscabas? Escribenos a{' '}
             <a href="mailto:soporte@turnflow.com.co" className="text-indigo-600 hover:underline">soporte@turnflow.com.co</a>
           </p>
