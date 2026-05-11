@@ -1,0 +1,97 @@
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { ArrowLeft, BookOpen, ChevronRight } from 'lucide-react'
+import { getArticleBySlug, getArticlesByCategory, HELP_CATEGORIES } from '@/lib/helpContent'
+import type { Metadata } from 'next'
+
+interface Props { params: Promise<{ slug: string }> }
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const article = getArticleBySlug(slug)
+  if (!article) return { title: 'Articulo no encontrado' }
+  return {
+    title: `${article.title} — Ayuda TurnFlow`,
+    description: article.summary,
+  }
+}
+
+export default async function HelpArticlePage({ params }: Props) {
+  const { slug } = await params
+  const article = getArticleBySlug(slug)
+  if (!article) notFound()
+
+  const category = HELP_CATEGORIES.find(c => c.key === article.category)
+  const related = getArticlesByCategory(article.category).filter(a => a.slug !== slug).slice(0, 3)
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-gray-900">
+      {/* Header */}
+      <div className="bg-indigo-600 dark:bg-indigo-900">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <Link href="/ayuda" className="inline-flex items-center gap-1 text-indigo-200 hover:text-white text-sm mb-4 transition-colors">
+            <ArrowLeft size={14} /> Centro de Ayuda
+          </Link>
+          <div className="flex items-center gap-2 text-indigo-200 text-sm mb-3">
+            <BookOpen size={14} />
+            <span>{category?.icon} {category?.label}</span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-white">{article.title}</h1>
+          <p className="text-indigo-200 mt-2">{article.summary}</p>
+        </div>
+      </div>
+
+      {/* Article body */}
+      <div className="max-w-3xl mx-auto px-4 py-10">
+        <div
+          className="prose prose-sm sm:prose-base max-w-none
+            prose-headings:text-gray-900 dark:prose-headings:text-gray-100
+            prose-p:text-gray-700 dark:prose-p:text-gray-300
+            prose-li:text-gray-700 dark:prose-li:text-gray-300
+            prose-strong:text-gray-900 dark:prose-strong:text-gray-100
+            prose-a:text-indigo-600 dark:prose-a:text-indigo-400
+            prose-code:text-indigo-600 dark:prose-code:text-indigo-400 prose-code:bg-indigo-50 dark:prose-code:bg-indigo-900/30 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded
+            [&_.tip]:bg-indigo-50 [&_.tip]:dark:bg-indigo-900/20 [&_.tip]:border [&_.tip]:border-indigo-200 [&_.tip]:dark:border-indigo-800 [&_.tip]:rounded-xl [&_.tip]:px-4 [&_.tip]:py-3 [&_.tip]:text-sm [&_.tip]:text-indigo-800 [&_.tip]:dark:text-indigo-300 [&_.tip]:my-4
+          "
+          dangerouslySetInnerHTML={{ __html: article.body }}
+        />
+
+        {/* Related articles */}
+        {related.length > 0 && (
+          <div className="mt-12 pt-8 border-t border-gray-200 dark:border-gray-700">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-4">
+              Articulos relacionados
+            </h2>
+            <div className="grid gap-3">
+              {related.map(r => (
+                <Link
+                  key={r.slug}
+                  href={`/ayuda/${r.slug}`}
+                  className="group flex items-center gap-3 bg-gray-50 dark:bg-gray-800 rounded-xl px-4 py-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 transition-colors"
+                >
+                  <div className="flex-1">
+                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                      {r.title}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{r.summary}</p>
+                  </div>
+                  <ChevronRight size={14} className="text-gray-300 shrink-0" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Back */}
+        <div className="mt-10 pt-6 border-t border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <Link href="/ayuda" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1">
+            <ArrowLeft size={14} /> Volver al Centro de Ayuda
+          </Link>
+          <a href="mailto:soporte@turnflow.com.co" className="text-sm text-gray-400 hover:text-gray-600">
+            ¿Necesitas mas ayuda?
+          </a>
+        </div>
+      </div>
+    </div>
+  )
+}

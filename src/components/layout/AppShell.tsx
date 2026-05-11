@@ -10,7 +10,7 @@ import {
   LogOut, LayoutDashboard, X, Eye,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
-  ShoppingCart, Package, FileCheck, PieChart, TrendingUp,
+  ShoppingCart, Package, FileCheck, PieChart, TrendingUp, HelpCircle,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -203,7 +203,10 @@ function buildSections(
   reportesItems.push(REPORTES_COTIZACIONES_ITEM)
   sections.push({ key: 'reportes', section: 'Reportes', sectionKey: 'section.reportsSection', items: reportesItems })
 
-  sections.push({ key: 'marketplace', section: 'Más', sectionKey: 'section.more', items: [{ href: '/admin/marketplace', label: 'Marketplace', icon: Zap }] })
+  sections.push({ key: 'marketplace', section: 'Más', sectionKey: 'section.more', items: [
+    { href: '/admin/marketplace', label: 'Marketplace', icon: Zap },
+    { href: '/ayuda', label: 'Centro de Ayuda', icon: HelpCircle },
+  ] })
   return sections
 }
 
