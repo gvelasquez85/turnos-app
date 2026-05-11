@@ -223,8 +223,12 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
   const [clients, setClients] = useState(200)
   const [ticket, setTicket] = useState(35000)
   const [inactiveRate, setInactiveRate] = useState(25)
-  const [email, setEmail] = useState('')
+  const [leadName, setLeadName] = useState('')
+  const [leadEmail, setLeadEmail] = useState('')
+  const [leadPhone, setLeadPhone] = useState('')
+  const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
+  const [submitError, setSubmitError] = useState('')
 
   // ROI calc
   const inactiveClients = Math.round(clients * inactiveRate / 100)
@@ -566,9 +570,11 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
 .tf-final-content { position: relative; max-width: 640px; margin: 0 auto; }
 .tf-eyebrow-light { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); color: white; }
 .tf-final-lead { color: rgba(255,255,255,0.75); font-size: 17px; margin: 16px auto 32px; max-width: 480px; }
-.tf-final-form { display: flex; gap: 8px; max-width: 480px; margin: 0 auto; background: rgba(255,255,255,0.06); padding: 6px; border-radius: var(--r-full); border: 1px solid rgba(255,255,255,0.12); }
-.tf-final-form input { flex: 1; background: transparent; border: none; outline: none; padding: 0 16px; color: white; font-size: 15px; font-family: inherit; }
+.tf-final-form { display: flex; flex-direction: column; gap: 12px; max-width: 400px; margin: 0 auto; }
+.tf-final-form input { width: 100%; height: 48px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); backdrop-filter: blur(8px); color: white; padding: 0 16px; font-size: 15px; font-family: inherit; outline: none; transition: border-color 0.2s; box-sizing: border-box; }
+.tf-final-form input:focus { border-color: rgba(165,180,252,0.6); }
 .tf-final-form input::placeholder { color: rgba(255,255,255,0.4); }
+.tf-final-form .tf-form-error { color: #F87171; font-size: 13px; text-align: center; margin: 0; }
 .tf-final-success { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: var(--r-full); background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #6EE7B7; font-size: 15px; }
 .tf-final-success strong { color: white; }
 .tf-final-trust { display: flex; justify-content: center; gap: 24px; margin-top: 24px; font-size: 13px; color: rgba(255,255,255,0.5); flex-wrap: wrap; }
@@ -1279,23 +1285,61 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
 
               {submitted ? (
                 <div className="tf-final-success">
-                  ✓ <strong>¡Listo!</strong> Te contactamos en menos de 24 horas.
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="10" fill="rgba(16,185,129,0.3)"/><path d="M6 10.5L8.5 13L14 7" stroke="#6EE7B7" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                  <span><strong>¡Listo!</strong> Recibimos tus datos. Te contactamos en menos de 24 horas.</span>
                 </div>
               ) : (
                 <form
                   className="tf-final-form"
-                  onSubmit={e => { e.preventDefault(); if (email) setSubmitted(true) }}
+                  onSubmit={async e => {
+                    e.preventDefault()
+                    setSubmitting(true)
+                    setSubmitError('')
+                    try {
+                      const res = await fetch('/api/v1/leads', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          name: leadName,
+                          email: leadEmail,
+                          phone: leadPhone,
+                          brand_id: process.env.NEXT_PUBLIC_TURNFLOW_BRAND_ID || 'turnflow',
+                          source: 'landing_page',
+                        }),
+                      })
+                      if (!res.ok) throw new Error('Error al enviar')
+                      setSubmitted(true)
+                    } catch {
+                      setSubmitError('Hubo un error al enviar tus datos. Por favor intenta de nuevo.')
+                    } finally {
+                      setSubmitting(false)
+                    }
+                  }}
                 >
                   <input
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
+                    type="text"
+                    placeholder="Nombre completo"
+                    value={leadName}
+                    onChange={e => setLeadName(e.target.value)}
                     required
                   />
-                  <button type="submit" className="tf-btn tf-btn-indigo">
-                    Empezar gratis
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7H11.5M8 3.5L11.5 7L8 10.5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <input
+                    type="email"
+                    placeholder="Correo electrónico"
+                    value={leadEmail}
+                    onChange={e => setLeadEmail(e.target.value)}
+                    required
+                  />
+                  <input
+                    type="tel"
+                    placeholder="Celular / WhatsApp"
+                    value={leadPhone}
+                    onChange={e => setLeadPhone(e.target.value)}
+                    required
+                  />
+                  {submitError && <p className="tf-form-error">{submitError}</p>}
+                  <button type="submit" className="tf-btn tf-btn-indigo" disabled={submitting} style={{ width: '100%', justifyContent: 'center' }}>
+                    {submitting ? 'Enviando...' : 'Quiero que me contacten'}
                   </button>
                 </form>
               )}

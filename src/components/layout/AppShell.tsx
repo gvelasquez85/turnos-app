@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 import {
   Building2, MessageSquare, FileText, Tag, BarChart2,
   Users, Store, Menu, ChevronLeft, ChevronRight, ChevronDown,
-  LogOut, LayoutDashboard, X, Eye,
+  LogOut, LayoutDashboard, X, Eye, ArrowLeft,
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
   ShoppingCart, Package, FileCheck, PieChart, TrendingUp, HelpCircle,
@@ -295,6 +295,20 @@ function AppShellInner({
     router.push('/admin')
   }
 
+  function startBrandManager() {
+    if (!selectedBrandId) return
+    document.cookie = `sa_brand=${selectedBrandId}; path=/; max-age=7200`
+    document.cookie = 'ta_view_as=brand_admin; path=/; max-age=7200'
+    setViewAs('brand_admin')
+    router.push('/admin')
+  }
+
+  function stopBrandManager() {
+    document.cookie = 'ta_view_as=; path=/; max-age=0'
+    setViewAs(null)
+    router.push('/superadmin')
+  }
+
   function toggleCollapsed() {
     setCollapsed(c => {
       const next = !c
@@ -359,9 +373,9 @@ function AppShellInner({
           </button>
         </div>
 
-        {/* Brand selector (superadmin only) */}
-        {role === 'superadmin' && brands.length > 0 && !isCollapsed && (
-          <div className="px-3 pt-2 pb-1 border-b border-gray-100 dark:border-gray-800">
+        {/* Brand selector + Brand Manager toggle (superadmin only) */}
+        {role === 'superadmin' && brands.length > 0 && !isCollapsed && !viewAs && (
+          <div className="px-3 pt-2 pb-2 border-b border-gray-100 dark:border-gray-800">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500 mb-1.5">Marca</p>
             <select
               className="w-full rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-2 py-1.5 text-sm text-gray-900 dark:text-gray-100 focus:border-indigo-500 focus:outline-none"
@@ -371,11 +385,28 @@ function AppShellInner({
               <option value="">— Todas las marcas —</option>
               {brands.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
             </select>
+            {selectedBrandId && (
+              <button
+                onClick={startBrandManager}
+                className="mt-2 w-full flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+              >
+                <Eye size={13} />
+                Gestionar marca
+              </button>
+            )}
+          </div>
+        )}
+        {role === 'superadmin' && viewAs === 'brand_admin' && !isCollapsed && (
+          <div className="px-3 pt-2 pb-2 border-b border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500 mb-1">Brand Manager</p>
+            <p className="text-sm font-medium text-indigo-700 dark:text-indigo-300 truncate">
+              {brands.find(b => b.id === selectedBrandId)?.name || 'Marca'}
+            </p>
           </div>
         )}
         {role === 'superadmin' && brands.length > 0 && isCollapsed && (
           <div className="flex justify-center py-2 border-b border-gray-100 dark:border-gray-800">
-            <Building2 size={16} className="text-gray-400 dark:text-gray-500" aria-label={brands.find(b => b.id === selectedBrandId)?.name} />
+            <Building2 size={16} className={viewAs === 'brand_admin' ? 'text-indigo-500' : 'text-gray-400 dark:text-gray-500'} aria-label={brands.find(b => b.id === selectedBrandId)?.name} />
           </div>
         )}
 
@@ -471,8 +502,8 @@ function AppShellInner({
               {!isCollapsed && <span>Pantalla TV</span>}
             </a>
           )}
-          {/* Salir de vista asesor — only shown during impersonation */}
-          {viewAs && (
+          {/* Salir de vista — only shown during impersonation */}
+          {viewAs === 'advisor' && (
             <button
               onClick={stopImpersonate}
               title={isCollapsed ? 'Salir de vista asesor' : undefined}
@@ -483,6 +514,19 @@ function AppShellInner({
             >
               <Eye size={15} />
               {!isCollapsed && <span>Salir de vista asesor</span>}
+            </button>
+          )}
+          {viewAs === 'brand_admin' && role === 'superadmin' && (
+            <button
+              onClick={stopBrandManager}
+              title={isCollapsed ? 'Volver a Superadmin' : undefined}
+              className={cn(
+                'flex items-center gap-2 px-2 py-2 rounded-lg text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 w-full transition-colors',
+                isCollapsed && 'justify-center',
+              )}
+            >
+              <ArrowLeft size={15} />
+              {!isCollapsed && <span>Volver a Superadmin</span>}
             </button>
           )}
         </div>
