@@ -22,7 +22,7 @@ export default function HelpCenterPage() {
       {/* Header */}
       <div className="bg-indigo-600 dark:bg-indigo-900">
         <div className="max-w-4xl mx-auto px-4 py-12 text-center">
-          <Link href="/admin" className="inline-flex items-center gap-1 text-indigo-200 hover:text-white text-sm mb-6 transition-colors">
+          <Link href="/" className="inline-flex items-center gap-1 text-indigo-200 hover:text-white text-sm mb-6 transition-colors">
             <ArrowLeft size={14} /> Volver a TurnFlow
           </Link>
           <div className="flex items-center justify-center gap-2 mb-3">

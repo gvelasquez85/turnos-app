@@ -637,6 +637,7 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
                 <a href="#como-funciona">Cómo funciona</a>
                 <a href="#roi">Calculadora</a>
                 <a href="#precios">Precios</a>
+                <Link href="/ayuda">Ayuda</Link>
               </div>
             </div>
             <div className="tf-nav-right">
@@ -1349,6 +1350,7 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
               <div className="tf-footer-h">Empresa</div>
               <a href="/login">Iniciar sesión</a>
               <Link href="/register">Empezar gratis</Link>
+              <Link href="/ayuda">Centro de Ayuda</Link>
               <a href="mailto:hola@turnflow.com.co">Contacto</a>
             </div>
           </div>
