@@ -1,14 +1,50 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, ChevronRight } from 'lucide-react'
+import { createClient } from '@/lib/supabase/server'
 import { getArticleBySlug, getArticlesByCategory, HELP_CATEGORIES } from '@/lib/helpContent'
 import type { Metadata } from 'next'
+import ArticleRating from './ArticleRating'
+import ArticleViewTracker from './ArticleViewTracker'
 
 interface Props { params: Promise<{ slug: string }> }
 
+async function getArticle(slug: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('help_articles')
+    .select('id, slug, title, category, summary, tags, body')
+    .eq('slug', slug)
+    .eq('published', true)
+    .maybeSingle()
+
+  if (data) return { ...data, source: 'db' as const }
+
+  // Fallback to hardcoded content
+  const fallback = getArticleBySlug(slug)
+  return fallback ? { ...fallback, id: null, source: 'static' as const } : null
+}
+
+async function getRelated(category: string, slug: string) {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from('help_articles')
+    .select('slug, title, summary')
+    .eq('category', category)
+    .eq('published', true)
+    .neq('slug', slug)
+    .order('sort_order')
+    .limit(3)
+
+  if (data && data.length > 0) return data
+
+  // Fallback
+  return getArticlesByCategory(category).filter(a => a.slug !== slug).slice(0, 3)
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const article = getArticleBySlug(slug)
+  const article = await getArticle(slug)
   if (!article) return { title: 'Articulo no encontrado' }
   return {
     title: `${article.title} — Ayuda TurnFlow`,
@@ -18,14 +54,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function HelpArticlePage({ params }: Props) {
   const { slug } = await params
-  const article = getArticleBySlug(slug)
+  const article = await getArticle(slug)
   if (!article) notFound()
 
   const category = HELP_CATEGORIES.find(c => c.key === article.category)
-  const related = getArticlesByCategory(article.category).filter(a => a.slug !== slug).slice(0, 3)
+  const related = await getRelated(article.category, slug)
 
   return (
     <div className="min-h-screen bg-white">
+      {/* View tracker */}
+      {article.id && <ArticleViewTracker articleId={article.id} />}
+
       {/* Header */}
       <div className="bg-indigo-600">
         <div className="max-w-3xl mx-auto px-4 py-8">
@@ -56,9 +95,16 @@ export default async function HelpArticlePage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: article.body }}
         />
 
+        {/* Rating widget */}
+        {article.id && (
+          <div className="mt-10 pt-6 border-t border-gray-200">
+            <ArticleRating articleId={article.id} />
+          </div>
+        )}
+
         {/* Related articles */}
         {related.length > 0 && (
-          <div className="mt-12 pt-8 border-t border-gray-200">
+          <div className="mt-10 pt-8 border-t border-gray-200">
             <h2 className="text-lg font-bold text-gray-900 mb-4">
               Articulos relacionados
             </h2>

@@ -143,6 +143,7 @@ function buildSections(
           { href: '/superadmin/analytics', label: 'Analytics', icon: BarChart2 },
           { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
           { href: '/superadmin/cms', label: 'Contenido', icon: FileText },
+          { href: '/superadmin/help', label: 'Centro de Ayuda', icon: HelpCircle },
           { href: '/superadmin/settings', label: 'Configuración', labelKey: 'nav.settings', icon: Settings },
         ],
       },
