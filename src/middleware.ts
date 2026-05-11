@@ -16,6 +16,7 @@ import { updateSession } from '@/lib/supabase/middleware'
  *   /order/*    Órdenes / preorden
  *   /survey/*   Encuestas de satisfacción
  *   /validar*   Validación pública
+ *   /ayuda*     Centro de Ayuda
  *   /api/*      APIs (accedidas desde las páginas públicas anteriores)
  *
  * Rutas de la app que redirigen a app.turnflow.com.co:
@@ -76,6 +77,20 @@ export async function middleware(request: NextRequest) {
 
     // Páginas de marketing / públicas: solo refrescar sesión Supabase
     return await updateSession(request)
+  }
+
+  // Subdominio app: redirigir rutas públicas/marketing al dominio principal (www)
+  if (isAppSubdomain) {
+    const PUBLIC_ONLY_ROUTES = ['/ayuda']
+    const isPublicRoute = PUBLIC_ONLY_ROUTES.some(
+      r => pathname === r || pathname.startsWith(r + '/')
+    )
+    if (isPublicRoute) {
+      const url = request.nextUrl.clone()
+      url.hostname = hostname.replace(/^app\./, '')  // app.turnflow.com.co → turnflow.com.co
+      url.port = ''
+      return NextResponse.redirect(url, 302)
+    }
   }
 
   // Subdominio app, localhost, o Vercel preview: manejo normal de sesión
