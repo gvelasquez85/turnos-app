@@ -54,16 +54,16 @@ CREATE POLICY "help_articles_superadmin_all"
   ON help_articles FOR ALL
   USING (
     EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-        AND user_roles.role = 'superadmin'
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'superadmin'
     )
   )
   WITH CHECK (
     EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-        AND user_roles.role = 'superadmin'
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'superadmin'
     )
   );
 
@@ -77,9 +77,9 @@ CREATE POLICY "help_article_views_superadmin_select"
   ON help_article_views FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-        AND user_roles.role = 'superadmin'
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'superadmin'
     )
   );
 
@@ -93,9 +93,9 @@ CREATE POLICY "help_article_ratings_superadmin_select"
   ON help_article_ratings FOR SELECT
   USING (
     EXISTS (
-      SELECT 1 FROM user_roles
-      WHERE user_roles.user_id = auth.uid()
-        AND user_roles.role = 'superadmin'
+      SELECT 1 FROM profiles
+      WHERE profiles.id = auth.uid()
+        AND profiles.role = 'superadmin'
     )
   );
 
