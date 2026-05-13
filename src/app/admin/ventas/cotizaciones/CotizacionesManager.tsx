@@ -487,7 +487,7 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                     <button
                       key={mode}
                       onClick={() => {
-                        if (isLocked) return
+                        if (isLocked || loadingItems) return
                         setPanelMode(mode as any)
                         if (mode === 'edit') {
                           setEditItems(panelItems.map(it => ({ ...it })))
@@ -501,8 +501,8 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                           setSendResult(null)
                         }
                       }}
-                      disabled={isLocked}
-                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'} ${isLocked ? 'opacity-40 cursor-not-allowed' : ''}`}
+                      disabled={isLocked || (mode === 'edit' && loadingItems)}
+                      className={`p-1.5 rounded-lg transition-colors ${panelMode === mode ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'} ${isLocked || (mode === 'edit' && loadingItems) ? 'opacity-40 cursor-not-allowed' : ''}`}
                       title={mode === 'view' ? 'Ver detalle' : mode === 'edit' ? (isLocked ? 'Bloqueado — cotización cerrada' : 'Editar') : 'Enviar'}
                     >
                       {mode === 'view' ? <Eye size={15} /> : mode === 'edit' ? <Edit3 size={15} /> : <Send size={15} />}
@@ -718,14 +718,18 @@ export function CotizacionesManager({ brandId, quotes: initial, establishments, 
                         </button>
                       </div>
                     )}
-                    {openQuote.status === 'accepted' && (
+                    {openQuote.status === 'accepted' ? (
                       <button
                         onClick={() => updateStatus(openQuote.id, 'converted')}
                         className="w-full py-2.5 rounded-xl bg-purple-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-purple-700"
                       >
                         <ShoppingCart size={14} /> Convertir en venta
                       </button>
-                    )}
+                    ) : (openQuote.status === 'draft' || openQuote.status === 'sent') ? (
+                      <p className="text-xs text-center text-gray-400 dark:text-gray-500 py-2">
+                        Marca la cotización como <span className="font-semibold text-green-600">aceptada</span> para poder convertirla en venta.
+                      </p>
+                    ) : null}
                   </div>
                 </div>
               )}

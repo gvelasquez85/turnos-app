@@ -36,6 +36,7 @@ interface CustomerTag {
   id: string
   customer_id: string
   tag_key: string
+  tag_label?: string
 }
 
 interface CustomerHistoryItem {
@@ -322,12 +323,13 @@ function CustomerSlideOver({
 
   async function addCustomTag() {
     if (!customTagInput.trim()) return
-    const key = 'custom_' + customTagInput.trim().toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
+    const label = customTagInput.trim()
+    const key = 'custom_' + label.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '')
     const supabase = createClient()
     const { data } = await supabase.from('customer_tags').insert({
       customer_id: customer.id,
       tag_key: key,
-      tag_label: customTagInput.trim(),
+      tag_label: label,
     }).select().single()
     if (data) setTags(prev => [...prev, data as CustomerTag])
     onUpdate({ ...(customer as any) } as Customer)
@@ -723,7 +725,7 @@ function CustomerSlideOver({
                   {/* Custom tags already added */}
                   {tags.filter(t => t.tag_key.startsWith('custom_')).map(t => (
                     <div key={t.id} className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-indigo-200 bg-indigo-50">
-                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700">{(t as any).tag_label ?? t.tag_key.replace('custom_', '')}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-semibold bg-indigo-100 text-indigo-700">{t.tag_label ?? t.tag_key.replace('custom_', '')}</span>
                       <button onClick={() => toggleTag(t.tag_key)} className="text-gray-400 hover:text-red-500"><X size={12} /></button>
                     </div>
                   ))}
@@ -817,7 +819,18 @@ function CustomerSlideOver({
               ) : (
                 <div className="space-y-2">
                   {history.filter(h => h.tipo === 'nota').map(item => (
-                    <div key={item.id} className="p-3 rounded-xl bg-amber-50 border border-amber-100">
+                    <div key={item.id} className="p-3 rounded-xl bg-amber-50 border border-amber-100 group relative">
+                      <button
+                        onClick={async () => {
+                          const supabase = createClient()
+                          await supabase.from('customer_history').delete().eq('id', item.id)
+                          setHistory(prev => prev.filter(h => h.id !== item.id))
+                        }}
+                        className="absolute top-2 right-2 p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Eliminar nota"
+                      >
+                        <X size={12} />
+                      </button>
                       <p className="text-sm text-gray-700">{item.detalles}</p>
                       <p className="text-[10px] text-gray-400 mt-1">{fmt(item.fecha, { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
