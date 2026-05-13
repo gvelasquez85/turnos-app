@@ -64,7 +64,7 @@ export const getCachedArticleList = unstable_cache(
     }))
   },
   ['help-article-list'],
-  { revalidate: 600, tags: ['help-articles'] },
+  { revalidate: 604800, tags: ['help-articles'] },
 )
 
 /**
@@ -97,7 +97,7 @@ export const getCachedArticle = unstable_cache(
     return fallback ? { ...fallback, id: null, source: 'static' } : null
   },
   ['help-article-detail'],
-  { revalidate: 600, tags: ['help-articles'] },
+  { revalidate: 604800, tags: ['help-articles'] },
 )
 
 /**
@@ -122,5 +122,5 @@ export const getCachedRelated = unstable_cache(
       .slice(0, 3)
   },
   ['help-article-related'],
-  { revalidate: 600, tags: ['help-articles'] },
+  { revalidate: 604800, tags: ['help-articles'] },
 )

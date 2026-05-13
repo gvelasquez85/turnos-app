@@ -5,7 +5,7 @@ import {
   CalendarClock, ClipboardList, UtensilsCrossed,
   LogIn, LogOut, Coffee, CheckCircle, Clock, AlertTriangle,
   Zap, Star, ArrowRight, UserCheck, Lock, Building2, Users,
-  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Trash2, Download, Loader2, MessageSquare,
+  ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Trash2, Download, Loader2, MessageSquare, FileText,
   type LucideIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -18,7 +18,7 @@ const FREE_MODULE_KEYS = ['clientes', 'crm', 'sales', 'ventas', 'mensajes']
 // Map icon name strings from DB to Lucide components
 const ICON_MAP: Record<string, LucideIcon> = {
   CalendarClock, ClipboardList, UtensilsCrossed,
-  LogIn, LogOut, Coffee, UserCheck, Zap, Users, Clock,
+  LogIn, LogOut, Coffee, UserCheck, Zap, Users, Clock, FileText,
   ShoppingCart, Package, Tag, Bell, Globe, BarChart2, Building2, MessageSquare,
 }
 
@@ -33,6 +33,7 @@ const MODULE_ICON_FALLBACK: Record<string, LucideIcon> = {
   sales: ShoppingCart,
   promotions: Tag,
   mensajes: MessageSquare,
+  lead_forms: FileText,
 }
 
 function bgColor(color: string | null, fallback = 'bg-indigo-500'): string {

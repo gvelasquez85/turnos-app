@@ -15,6 +15,7 @@ import {
   FileText,
   Circle,
   ChevronDown,
+  RefreshCw,
 } from 'lucide-react'
 
 const HELP_CATEGORIES = [
@@ -97,6 +98,13 @@ export default function HelpCmsManager() {
   const [analyticsViews, setAnalyticsViews] = useState<{ article_id: string; count: number }[]>([])
   const [analyticsRatings, setAnalyticsRatings] = useState<ArticleRating[]>([])
   const [slugManual, setSlugManual] = useState(false)
+  const [cacheCleared, setCacheCleared] = useState(false)
+
+  async function clearCache() {
+    await fetch('/api/help/revalidate', { method: 'POST' })
+    setCacheCleared(true)
+    setTimeout(() => setCacheCleared(false), 3000)
+  }
 
   const fetchArticles = useCallback(async () => {
     setLoading(true)
@@ -292,6 +300,13 @@ export default function HelpCmsManager() {
           >
             <BarChart3 className="w-4 h-4" />
             Analytics
+          </button>
+          <button
+            onClick={clearCache}
+            className="px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-amber-50 hover:text-amber-700 dark:hover:bg-amber-900/20 dark:hover:text-amber-400 transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${cacheCleared ? 'animate-spin' : ''}`} />
+            {cacheCleared ? 'Cache limpiado' : 'Limpiar cache'}
           </button>
         </div>
       </div>

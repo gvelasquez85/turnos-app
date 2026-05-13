@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { NoBrandContext } from '@/components/NoBrandContext'
-import { getEffectiveBrandId } from '@/lib/serverBrandContext'
+import { getEffectiveBrandId, getVerifiedActiveModules } from '@/lib/serverBrandContext'
 import ClientesPageWrapper from './ClientesPageWrapper'
 
 export default async function ClientesPage() {
@@ -35,7 +35,7 @@ export default async function ClientesPage() {
       .order('name'),
     supabase
       .from('brands')
-      .select('business_type, name')
+      .select('business_type, name, active_modules')
       .eq('id', brandId)
       .single(),
     supabase.from('wa_templates').select('category, body').eq('brand_id', brandId),
@@ -48,6 +48,7 @@ export default async function ClientesPage() {
   const waDefaultMap = Object.fromEntries((waDefaultRes.status === 'fulfilled' ? waDefaultRes.value.data ?? [] : []).map((d: any) => [d.category, d.body]))
   const waBrandMap   = Object.fromEntries((waRes.status === 'fulfilled' ? waRes.value.data ?? [] : []).map((t: any) => [t.category, t.body]))
   const waTemplates = Object.entries({ ...waDefaultMap, ...waBrandMap }).map(([category, body]) => ({ category, body: body as string }))
+  const activeModules = await getVerifiedActiveModules(supabase, brandId, (brand as any)?.active_modules)
 
   return (
     <ClientesPageWrapper
@@ -57,6 +58,7 @@ export default async function ClientesPage() {
       businessType={(brand as any)?.business_type ?? 'otros'}
       waTemplates={waTemplates}
       brandName={(brand as any)?.name ?? ''}
+      hasLeadForms={activeModules.lead_forms === true || profile.role === 'superadmin'}
     />
   )
 }

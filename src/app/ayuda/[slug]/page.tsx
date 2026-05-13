@@ -7,7 +7,7 @@ import type { Metadata } from 'next'
 import ArticleRating from './ArticleRating'
 import ArticleViewTracker from './ArticleViewTracker'
 
-export const revalidate = 600
+export const revalidate = 604800 // 1 week
 
 interface Props { params: Promise<{ slug: string }> }
 
