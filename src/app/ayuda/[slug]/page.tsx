@@ -1,50 +1,19 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, BookOpen, ChevronRight } from 'lucide-react'
-import { createClient } from '@/lib/supabase/server'
-import { getArticleBySlug, getArticlesByCategory, HELP_CATEGORIES } from '@/lib/helpContent'
+import { HELP_CATEGORIES } from '@/lib/helpContent'
+import { getCachedArticle, getCachedRelated } from '@/lib/helpCache'
 import type { Metadata } from 'next'
 import ArticleRating from './ArticleRating'
 import ArticleViewTracker from './ArticleViewTracker'
 
+export const revalidate = 600
+
 interface Props { params: Promise<{ slug: string }> }
-
-async function getArticle(slug: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('help_articles')
-    .select('id, slug, title, category, summary, tags, body')
-    .eq('slug', slug)
-    .eq('published', true)
-    .maybeSingle()
-
-  if (data) return { ...data, source: 'db' as const }
-
-  // Fallback to hardcoded content
-  const fallback = getArticleBySlug(slug)
-  return fallback ? { ...fallback, id: null, source: 'static' as const } : null
-}
-
-async function getRelated(category: string, slug: string) {
-  const supabase = await createClient()
-  const { data } = await supabase
-    .from('help_articles')
-    .select('slug, title, summary')
-    .eq('category', category)
-    .eq('published', true)
-    .neq('slug', slug)
-    .order('sort_order')
-    .limit(3)
-
-  if (data && data.length > 0) return data
-
-  // Fallback
-  return getArticlesByCategory(category).filter(a => a.slug !== slug).slice(0, 3)
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const article = await getArticle(slug)
+  const article = await getCachedArticle(slug)
   if (!article) return { title: 'Articulo no encontrado' }
   return {
     title: `${article.title} — Ayuda TurnFlow`,
@@ -54,15 +23,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function HelpArticlePage({ params }: Props) {
   const { slug } = await params
-  const article = await getArticle(slug)
+  const article = await getCachedArticle(slug)
   if (!article) notFound()
 
   const category = HELP_CATEGORIES.find(c => c.key === article.category)
-  const related = await getRelated(article.category, slug)
+  const related = await getCachedRelated(article.category, slug)
 
   return (
     <div className="min-h-screen bg-white">
-      {/* View tracker */}
       {article.id && <ArticleViewTracker articleId={article.id} />}
 
       {/* Header */}
@@ -95,19 +63,15 @@ export default async function HelpArticlePage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: article.body }}
         />
 
-        {/* Rating widget */}
         {article.id && (
           <div className="mt-10 pt-6 border-t border-gray-200">
             <ArticleRating articleId={article.id} />
           </div>
         )}
 
-        {/* Related articles */}
         {related.length > 0 && (
           <div className="mt-10 pt-8 border-t border-gray-200">
-            <h2 className="text-lg font-bold text-gray-900 mb-4">
-              Articulos relacionados
-            </h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-4">Articulos relacionados</h2>
             <div className="grid gap-3">
               {related.map(r => (
                 <Link
@@ -116,9 +80,7 @@ export default async function HelpArticlePage({ params }: Props) {
                   className="group flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 hover:bg-indigo-50 transition-colors"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-gray-900 text-sm group-hover:text-indigo-600">
-                      {r.title}
-                    </p>
+                    <p className="font-medium text-gray-900 text-sm group-hover:text-indigo-600">{r.title}</p>
                     <p className="text-xs text-gray-500">{r.summary}</p>
                   </div>
                   <ChevronRight size={14} className="text-gray-300 shrink-0" />
@@ -128,7 +90,6 @@ export default async function HelpArticlePage({ params }: Props) {
           </div>
         )}
 
-        {/* Back */}
         <div className="mt-10 pt-6 border-t border-gray-200 flex items-center justify-between">
           <Link href="/ayuda" className="text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1">
             <ArrowLeft size={14} /> Volver al Centro de Ayuda

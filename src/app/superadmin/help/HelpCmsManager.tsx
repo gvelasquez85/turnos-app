@@ -191,6 +191,8 @@ export default function HelpCmsManager() {
     setSaving(false)
     setTab('list')
     fetchArticles()
+    // Invalidate help center cache
+    fetch('/api/help/revalidate', { method: 'POST' }).catch(() => {})
   }
 
   const handleDelete = async () => {
@@ -199,6 +201,7 @@ export default function HelpCmsManager() {
     await supabase.from('help_articles').delete().eq('id', editingId)
     setTab('list')
     fetchArticles()
+    fetch('/api/help/revalidate', { method: 'POST' }).catch(() => {})
   }
 
   // Analytics
