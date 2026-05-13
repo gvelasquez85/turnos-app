@@ -11,6 +11,29 @@ interface FormConfig {
   fields: { key: string; label: string; type: string; required?: boolean }[]
   brand_name?: string
   brand_logo?: string
+  brand_color?: string // hex color e.g. '#6366f1'
+}
+
+/** Lighten a hex color by mixing with white */
+function lighten(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const lr = Math.round(r + (255 - r) * amount)
+  const lg = Math.round(g + (255 - g) * amount)
+  const lb = Math.round(b + (255 - b) * amount)
+  return `#${lr.toString(16).padStart(2, '0')}${lg.toString(16).padStart(2, '0')}${lb.toString(16).padStart(2, '0')}`
+}
+
+/** Darken a hex color */
+function darken(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const dr = Math.round(r * (1 - amount))
+  const dg = Math.round(g * (1 - amount))
+  const db = Math.round(b * (1 - amount))
+  return `#${dr.toString(16).padStart(2, '0')}${dg.toString(16).padStart(2, '0')}${db.toString(16).padStart(2, '0')}`
 }
 
 export default function PublicLeadFormPage() {
@@ -28,14 +51,14 @@ export default function PublicLeadFormPage() {
       const supabase = createClient()
       const { data } = await supabase
         .from('lead_forms')
-        .select('id, brand_id, name, fields, brands(name, logo_url)')
+        .select('id, brand_id, name, fields, brands(name, logo_url, primary_color)')
         .eq('id', formId)
         .eq('active', true)
         .maybeSingle()
 
       if (!data) { setNotFound(true); setLoading(false); return }
 
-      const brand = data.brands as unknown as { name: string; logo_url?: string } | null
+      const brand = data.brands as unknown as { name: string; logo_url?: string; primary_color?: string } | null
       setConfig({
         id: data.id,
         brand_id: data.brand_id,
@@ -43,6 +66,7 @@ export default function PublicLeadFormPage() {
         fields: (data.fields ?? []) as FormConfig['fields'],
         brand_name: brand?.name ?? undefined,
         brand_logo: brand?.logo_url ?? undefined,
+        brand_color: brand?.primary_color ?? undefined,
       })
       setLoading(false)
     }
@@ -82,9 +106,15 @@ export default function PublicLeadFormPage() {
     }
   }
 
+  // Brand color or default indigo
+  const color = config?.brand_color || '#6366f1'
+  const colorLight = lighten(color, 0.92)
+  const colorMuted = lighten(color, 0.6)
+  const colorHover = darken(color, 0.1)
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: color }} />
     </div>
   )
 
@@ -100,16 +130,19 @@ export default function PublicLeadFormPage() {
   if (!config) return null
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white flex items-center justify-center p-4">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{ background: `linear-gradient(to bottom, ${colorLight}, white)` }}
+    >
       <div className="w-full max-w-md">
         <div className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-          {/* Header */}
-          <div className="bg-indigo-600 px-6 py-5 text-center">
+          {/* Header — brand color */}
+          <div className="px-6 py-5 text-center" style={{ backgroundColor: color }}>
             {config.brand_logo && (
-              <img src={config.brand_logo} alt="" className="h-10 mx-auto mb-3 rounded-lg" />
+              <img src={config.brand_logo} alt="" className="h-12 mx-auto mb-3 rounded-lg object-contain bg-white/10 p-1" />
             )}
             {config.brand_name && (
-              <p className="text-indigo-200 text-sm mb-1">{config.brand_name}</p>
+              <p className="text-sm mb-1" style={{ color: colorMuted }}>{config.brand_name}</p>
             )}
             <h1 className="text-xl font-bold text-white">{config.name}</h1>
           </div>
@@ -118,8 +151,11 @@ export default function PublicLeadFormPage() {
           <div className="px-6 py-6">
             {submitted ? (
               <div className="text-center py-8">
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="w-7 h-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <div
+                  className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: colorLight }}
+                >
+                  <svg className="w-7 h-7" style={{ color }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
@@ -136,7 +172,8 @@ export default function PublicLeadFormPage() {
                       required={field.required !== false}
                       value={values[field.key] || ''}
                       onChange={e => setValues(v => ({ ...v, [field.key]: e.target.value }))}
-                      className="w-full h-11 px-3 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full h-11 px-3 rounded-lg border border-gray-300 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition-colors"
+                      style={{ '--tw-ring-color': color } as React.CSSProperties}
                       placeholder={field.label}
                     />
                   </div>
@@ -147,7 +184,10 @@ export default function PublicLeadFormPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="mt-2 h-11 rounded-lg bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 transition-colors"
+                  className="mt-2 h-11 rounded-lg text-white text-sm font-semibold disabled:opacity-60 transition-colors"
+                  style={{ backgroundColor: color }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = colorHover)}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = color)}
                 >
                   {submitting ? 'Enviando...' : 'Enviar'}
                 </button>
@@ -157,7 +197,7 @@ export default function PublicLeadFormPage() {
 
           {/* Footer */}
           <div className="px-6 py-3 border-t border-gray-100 text-center">
-            <a href="https://app.turnflow.com.co" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-indigo-500 transition-colors">
+            <a href="https://app.turnflow.com.co" target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
               Potenciado por <span className="font-semibold">TurnFlow</span>
             </a>
           </div>
