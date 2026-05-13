@@ -1,6 +1,17 @@
 import { unstable_cache } from 'next/cache'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { HELP_ARTICLES, getArticleBySlug as getStaticArticle, getArticlesByCategory as getStaticByCategory } from './helpContent'
+
+/**
+ * Anon Supabase client — no cookies, safe inside unstable_cache.
+ * Help articles have public SELECT RLS so anon key is sufficient.
+ */
+function supabaseAnon() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+}
 
 export type CachedArticle = {
   id: string | null
@@ -27,7 +38,7 @@ export type CachedArticleListItem = {
  */
 export const getCachedArticleList = unstable_cache(
   async (): Promise<CachedArticleListItem[]> => {
-    const supabase = await createClient()
+    const supabase = supabaseAnon()
     const { data } = await supabase
       .from('help_articles')
       .select('slug, title, category, summary, tags')
@@ -44,7 +55,6 @@ export const getCachedArticleList = unstable_cache(
       }))
     }
 
-    // Fallback to hardcoded
     return HELP_ARTICLES.map(a => ({
       slug: a.slug,
       title: a.title,
@@ -59,11 +69,10 @@ export const getCachedArticleList = unstable_cache(
 
 /**
  * Cached: single article by slug (full content)
- * Revalidates via tag 'help-articles' or every 10 minutes
  */
 export const getCachedArticle = unstable_cache(
   async (slug: string): Promise<CachedArticle | null> => {
-    const supabase = await createClient()
+    const supabase = supabaseAnon()
     const { data } = await supabase
       .from('help_articles')
       .select('id, slug, title, category, summary, tags, body')
@@ -85,9 +94,7 @@ export const getCachedArticle = unstable_cache(
     }
 
     const fallback = getStaticArticle(slug)
-    return fallback
-      ? { ...fallback, id: null, source: 'static' }
-      : null
+    return fallback ? { ...fallback, id: null, source: 'static' } : null
   },
   ['help-article-detail'],
   { revalidate: 600, tags: ['help-articles'] },
@@ -98,7 +105,7 @@ export const getCachedArticle = unstable_cache(
  */
 export const getCachedRelated = unstable_cache(
   async (category: string, excludeSlug: string) => {
-    const supabase = await createClient()
+    const supabase = supabaseAnon()
     const { data } = await supabase
       .from('help_articles')
       .select('slug, title, summary')
