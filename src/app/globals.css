@@ -3,6 +3,11 @@
 /* Enable class-based dark mode for Tailwind v4 */
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Disable native pull-to-refresh so custom PullToRefresh works */
+html, body {
+  overscroll-behavior-y: contain;
+}
+
 /* ── Design token roots ─────────────────────────────────────────────── */
 :root {
   --background: #ffffff;
