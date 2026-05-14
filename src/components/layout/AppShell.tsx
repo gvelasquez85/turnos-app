@@ -11,6 +11,7 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
   ShoppingCart, Package, FileCheck, PieChart, TrendingUp, HelpCircle,
+  BookOpen, Receipt,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -164,6 +165,12 @@ function buildSections(
           REPORTES_COTIZACIONES_ITEM,
         ],
       },
+      { key: 'contabilidad', section: 'Contabilidad', items: [
+        { href: '/admin/contabilidad', label: 'Contabilidad NIIF', icon: BookOpen },
+      ] },
+      { key: 'facturacion', section: 'Facturación', items: [
+        { href: '/admin/facturacion', label: 'Facturación DIAN', icon: Receipt },
+      ] },
     ]
   }
 
@@ -203,6 +210,17 @@ function buildSections(
   reportesItems.push(REPORTES_PRODUCTOS_ITEM)
   reportesItems.push(REPORTES_COTIZACIONES_ITEM)
   sections.push({ key: 'reportes', section: 'Reportes', sectionKey: 'section.reportsSection', items: reportesItems })
+
+  if (activeModules?.contabilidad) {
+    sections.push({ key: 'contabilidad', section: 'Contabilidad', items: [
+      { href: '/admin/contabilidad', label: 'Contabilidad NIIF', icon: BookOpen },
+    ] })
+  }
+  if (activeModules?.facturacion) {
+    sections.push({ key: 'facturacion', section: 'Facturación', items: [
+      { href: '/admin/facturacion', label: 'Facturación DIAN', icon: Receipt },
+    ] })
+  }
 
   sections.push({ key: 'marketplace', section: 'Más', sectionKey: 'section.more', items: [
     { href: '/admin/marketplace', label: 'Marketplace', icon: Zap },
