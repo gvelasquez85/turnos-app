@@ -63,7 +63,7 @@ function QuotePreview({ t, brandName, brandLogoUrl }: {
         className="px-6 py-5"
         style={{ background: t.primaryColor + '12' }}
       >
-        <div className={`flex ${t.headerLayout === 'logo-right' ? 'flex-row-reverse' : t.headerLayout === 'logo-center' ? 'flex-col items-center text-center' : 'flex-row'} items-start gap-4 justify-between`}>
+        <div className={`flex flex-col sm:flex-row ${t.headerLayout === 'logo-right' ? 'sm:flex-row-reverse' : t.headerLayout === 'logo-center' ? '!flex-col items-center text-center' : ''} items-start gap-4 sm:justify-between`}>
           {/* Logo + brand */}
           {t.showLogo && (
             <div className="shrink-0">
@@ -108,7 +108,7 @@ function QuotePreview({ t, brandName, brandLogoUrl }: {
             )}
           </div>
           {/* Quote title */}
-          <div className="text-right shrink-0">
+          <div className="sm:text-right min-w-0">
             <p className={`font-black tracking-widest ${headerSizeClass}`} style={{ color: t.primaryColor }}>
               {t.headerTitle}
             </p>
