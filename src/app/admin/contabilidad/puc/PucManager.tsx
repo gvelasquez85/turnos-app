@@ -89,7 +89,7 @@ export default function PucManager({ accounts: initialAccounts, brandId }: Props
       code: newCode.trim(),
       parent_code: adding,
       name: newName.trim(),
-      class: parent?.class ?? parseInt(newCode[0]) || 1,
+      class: parent?.class ?? (parseInt(newCode[0]) || 1),
       nature: parent?.nature ?? 'debit',
       level: (parent?.level ?? 0) + 1,
       is_system: false,
