@@ -15,9 +15,15 @@ export async function POST(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
 
+  // Validate brand ownership
+  const { data: profile } = await supabase.from('profiles').select('brand_id, role').eq('id', user.id).single()
+  if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 })
+
   // Load sale
   const { data: sale } = await service.from('sales').select('id, brand_id').eq('id', saleId).single()
   if (!sale) return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 })
+  if (profile.role !== 'superadmin' && sale.brand_id !== profile.brand_id)
+    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
 
   // Load sale_items with product info
   const { data: items } = await service

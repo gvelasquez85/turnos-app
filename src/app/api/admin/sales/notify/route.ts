@@ -25,6 +25,10 @@ export async function POST(req: NextRequest) {
   const { saleId, newStatus } = await req.json().catch(() => ({}))
   if (!saleId || !newStatus) return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
 
+  // Validate brand ownership
+  const { data: profile } = await supabase.from('profiles').select('brand_id, role').eq('id', user.id).single()
+  if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 })
+
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -36,6 +40,10 @@ export async function POST(req: NextRequest) {
     .select('id, total, notes, brand_id, customers(name, email), brands(name, logo_url, primary_color)')
     .eq('id', saleId)
     .single()
+
+  if (!sale) return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 })
+  if (profile.role !== 'superadmin' && sale.brand_id !== profile.brand_id)
+    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
 
   // Update status
   await service.from('sales').update({ status: newStatus }).eq('id', saleId)

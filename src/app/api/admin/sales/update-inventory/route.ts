@@ -11,13 +11,25 @@ export async function POST(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'No autenticado' }, { status: 401 })
 
-  const { saleId, brandId } = await req.json().catch(() => ({}))
-  if (!saleId || !brandId) return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+  const { saleId } = await req.json().catch(() => ({}))
+  if (!saleId) return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+
+  // Validate user owns the brand of this sale
+  const { data: profile } = await supabase.from('profiles').select('brand_id, role').eq('id', user.id).single()
+  if (!profile) return NextResponse.json({ error: 'Perfil no encontrado' }, { status: 403 })
 
   const service = createServiceClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
   )
+
+  // Load sale and verify brand ownership
+  const { data: sale } = await service.from('sales').select('id, brand_id').eq('id', saleId).single()
+  if (!sale) return NextResponse.json({ error: 'Venta no encontrada' }, { status: 404 })
+  if (profile.role !== 'superadmin' && sale.brand_id !== profile.brand_id)
+    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+
+  const brandId = sale.brand_id
 
   // Load sale_items
   const { data: items } = await service

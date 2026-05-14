@@ -49,6 +49,10 @@ export async function POST(req: NextRequest) {
     .eq('id', quoteId)
     .single()
 
+  if (!quote) return NextResponse.json({ error: 'Cotización no encontrada' }, { status: 404 })
+  if (profile.role !== 'superadmin' && quote.brand_id !== profile.brand_id)
+    return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+
   const brand = (quote as any)?.brands
 
   const { data: items } = await service

@@ -44,6 +44,10 @@ export async function GET(req: NextRequest) {
   // First get brand's establishment ids if no specific one given
   let estIds: string[] = []
   if (establishmentId) {
+    // Validate establishment belongs to this brand
+    const { data: est } = await supabase
+      .from('establishments').select('id').eq('id', establishmentId).eq('brand_id', auth.brandId).maybeSingle()
+    if (!est) return NextResponse.json({ error: 'Establishment not found or not owned by this brand' }, { status: 403, headers: API_CORS_HEADERS })
     estIds = [establishmentId]
   } else {
     const { data: ests } = await supabase

@@ -1,6 +1,15 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse, NextRequest } from 'next/server'
 
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 export async function GET(request: NextRequest) {
   const ticketId = request.nextUrl.searchParams.get('ticketId')
   const consentId = request.nextUrl.searchParams.get('consentId')
@@ -8,6 +17,10 @@ export async function GET(request: NextRequest) {
   if (!ticketId && !consentId) return new NextResponse('Missing ticketId or consentId', { status: 400 })
 
   const supabase = await createClient()
+
+  // Require authentication
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return new NextResponse('No autenticado', { status: 401 })
 
   let consent: any = null
 
@@ -32,20 +45,24 @@ export async function GET(request: NextRequest) {
   if (!consent) return new NextResponse('Consent not found', { status: 404 })
 
   const est = (consent.establishments as any)
-  const brandName = est?.brands?.name || 'TurnFlow'
-  const estName = est?.name || ''
+  const brandName = escapeHtml(est?.brands?.name || 'TurnFlow')
+  const estName = escapeHtml(est?.name || '')
   const date = new Date(consent.consented_at).toLocaleString('es', {
     dateStyle: 'full', timeStyle: 'medium'
   })
 
   // For the operation ID row, use the most descriptive available identifier
-  const operationId = ticketId || consent.ticket_id || consent.id
+  const operationId = escapeHtml(ticketId || consent.ticket_id || consent.id)
+  const customerName = escapeHtml(consent.customer_name ?? '')
+  const customerPhone = escapeHtml(consent.customer_phone ?? '')
+  const customerEmail = escapeHtml(consent.customer_email ?? '')
+  const consentText = escapeHtml(consent.consent_text ?? '')
 
   const html = `<!DOCTYPE html>
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Comprobante de Autorización — ${consent.customer_name}</title>
+<title>Comprobante de Autorización — ${customerName}</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: Georgia, serif; color: #111; background: white; padding: 40px; max-width: 800px; margin: 0 auto; }
@@ -85,14 +102,14 @@ export async function GET(request: NextRequest) {
 
 <div class="section">
   <div class="section-title">Datos del titular</div>
-  <div class="row"><span class="label">Nombre completo:</span><span class="value">${consent.customer_name}</span></div>
-  ${consent.customer_phone ? `<div class="row"><span class="label">Teléfono:</span><span class="value">${consent.customer_phone}</span></div>` : ''}
-  ${consent.customer_email ? `<div class="row"><span class="label">Correo electrónico:</span><span class="value">${consent.customer_email}</span></div>` : ''}
+  <div class="row"><span class="label">Nombre completo:</span><span class="value">${customerName}</span></div>
+  ${consent.customer_phone ? `<div class="row"><span class="label">Teléfono:</span><span class="value">${customerPhone}</span></div>` : ''}
+  ${consent.customer_email ? `<div class="row"><span class="label">Correo electrónico:</span><span class="value">${customerEmail}</span></div>` : ''}
 </div>
 
 <div class="section">
   <div class="section-title">Texto de autorización aceptado</div>
-  <div class="consent-text">${consent.consent_text}</div>
+  <div class="consent-text">${consentText}</div>
   <div class="acceptance">
     <span class="checkmark">&#10003;</span>
     Autorización otorgada: <strong>SÍ</strong>
