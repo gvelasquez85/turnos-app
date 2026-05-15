@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { getEffectiveBrandId, checkModuleAccess } from '@/lib/serverBrandContext'
-import TrialExpiredGate from '@/components/marketplace/TrialExpiredGate'
+import { TrialExpiredGate } from '@/components/TrialExpiredGate'
 import FacturacionDashboard from './FacturacionDashboard'
 
 export default async function FacturacionPage() {
@@ -16,8 +16,7 @@ export default async function FacturacionPage() {
   const brandId = await getEffectiveBrandId(profile.brand_id, profile.role)
   if (!brandId) redirect('/admin')
 
-  const moduleAccess = await checkModuleAccess(brandId, 'facturacion', profile.role)
-  if (!moduleAccess.hasAccess) redirect('/admin/marketplace')
+  const moduleAccess = await checkModuleAccess(supabase, brandId, 'facturacion')
 
   // Load fiscal config
   const { data: fiscalConfig } = await supabase
@@ -54,7 +53,7 @@ export default async function FacturacionPage() {
     .gte('created_at', startOfMonth.toISOString())
 
   return (
-    <TrialExpiredGate moduleKey="facturacion" brandId={brandId}>
+    <TrialExpiredGate isExpired={moduleAccess.isExpired} moduleLabel="Facturación Electrónica" expiredAt={moduleAccess.expiredAt}>
       <FacturacionDashboard
         brandId={brandId}
         fiscalConfig={fiscalConfig}

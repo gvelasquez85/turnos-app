@@ -134,26 +134,26 @@ function parseDianResponse(xml: string, responseTag: string): DianResponse {
 
   try {
     // Extract StatusCode
-    const statusCodeMatch = xml.match(/<b:StatusCode>(.*?)<\/b:StatusCode>/s)
+    const statusCodeMatch = xml.match(/<b:StatusCode>([\s\S]*?)<\/b:StatusCode>/)
     result.statusCode = statusCodeMatch?.[1] ?? ''
 
     // Extract StatusDescription
-    const statusDescMatch = xml.match(/<b:StatusDescription>(.*?)<\/b:StatusDescription>/s)
+    const statusDescMatch = xml.match(/<b:StatusDescription>([\s\S]*?)<\/b:StatusDescription>/)
     result.statusDescription = statusDescMatch?.[1] ?? ''
 
     // Extract StatusMessage
-    const statusMsgMatch = xml.match(/<b:StatusMessage>(.*?)<\/b:StatusMessage>/s)
+    const statusMsgMatch = xml.match(/<b:StatusMessage>([\s\S]*?)<\/b:StatusMessage>/)
     result.statusMessage = statusMsgMatch?.[1] ?? ''
 
     // Extract TrackId (XmlDocumentKey)
-    const trackIdMatch = xml.match(/<b:XmlDocumentKey>(.*?)<\/b:XmlDocumentKey>/s)
+    const trackIdMatch = xml.match(/<b:XmlDocumentKey>([\s\S]*?)<\/b:XmlDocumentKey>/)
     result.trackId = trackIdMatch?.[1] ?? undefined
 
     // Extract errors
-    const errorsMatch = xml.match(/<b:ErrorMessage>(.*?)<\/b:ErrorMessage>/gs)
+    const errorsMatch = xml.match(/<b:ErrorMessage>([\s\S]*?)<\/b:ErrorMessage>/g)
     if (errorsMatch) {
       for (const err of errorsMatch) {
-        const msgMatch = err.match(/<b:ErrorMessage>(.*?)<\/b:ErrorMessage>/s)
+        const msgMatch = err.match(/<b:ErrorMessage>([\s\S]*?)<\/b:ErrorMessage>/)
         if (msgMatch?.[1]) result.errors.push(msgMatch[1])
       }
     }
