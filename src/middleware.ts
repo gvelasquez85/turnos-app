@@ -15,6 +15,7 @@ import { updateSession } from '@/lib/supabase/middleware'
  *   /t/*        Estado del turno individual
  *   /order/*    Órdenes / preorden
  *   /survey/*   Encuestas de satisfacción
+ *   /pqrs/*     Formulario público PQRS
  *   /validar*   Validación pública
  *   /ayuda*     Centro de Ayuda
  *   /api/*      APIs (accedidas desde las páginas públicas anteriores)

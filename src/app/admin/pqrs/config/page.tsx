@@ -1,0 +1,22 @@
+import { createClient } from '@/lib/supabase/server'
+import { redirect } from 'next/navigation'
+import { getEffectiveBrandId } from '@/lib/serverBrandContext'
+import PQRSConfig from './PQRSConfig'
+
+export default async function PQRSConfigPage() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
+
+  const { data: profile } = await supabase
+    .from('profiles').select('role, brand_id').eq('id', user.id).single()
+  if (!profile) redirect('/login')
+
+  const brandId = await getEffectiveBrandId(profile.brand_id, profile.role)
+  if (!brandId) redirect('/admin')
+
+  const { data: config } = await supabase
+    .from('pqrs_configs').select('*').eq('brand_id', brandId).maybeSingle()
+
+  return <PQRSConfig brandId={brandId} config={config} />
+}

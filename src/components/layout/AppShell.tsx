@@ -11,7 +11,7 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
   ShoppingCart, Package, FileCheck, PieChart, TrendingUp, HelpCircle,
-  BookOpen, Receipt,
+  BookOpen, Receipt, MessageSquareWarning, Building, ToggleRight,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -143,6 +143,7 @@ function buildSections(
           { href: '/superadmin/users', label: 'Usuarios', labelKey: 'nav.users', icon: Users },
           { href: '/superadmin/analytics', label: 'Analytics', icon: BarChart2 },
           { href: '/superadmin/marketplace', label: 'Marketplace', icon: Zap },
+          { href: '/superadmin/modules', label: 'Módulos x Marca', icon: ToggleRight },
           { href: '/superadmin/cms', label: 'Contenido', icon: FileText },
           { href: '/superadmin/help', label: 'Centro de Ayuda', icon: HelpCircle },
           { href: '/superadmin/settings', label: 'Configuración', labelKey: 'nav.settings', icon: Settings },
@@ -170,6 +171,12 @@ function buildSections(
       ] },
       { key: 'facturacion', section: 'Facturación', items: [
         { href: '/admin/facturacion', label: 'Facturación DIAN', icon: Receipt },
+      ] },
+      { key: 'pqrs', section: 'PQRS', items: [
+        { href: '/admin/pqrs', label: 'Gestión PQRS', icon: MessageSquareWarning },
+      ] },
+      { key: 'copropiedades', section: 'Copropiedades', items: [
+        { href: '/admin/copropiedades', label: 'Copropiedades', icon: Building },
       ] },
     ]
   }
@@ -219,6 +226,16 @@ function buildSections(
   if (activeModules?.facturacion) {
     sections.push({ key: 'facturacion', section: 'Facturación', items: [
       { href: '/admin/facturacion', label: 'Facturación DIAN', icon: Receipt },
+    ] })
+  }
+  if (activeModules?.pqrs) {
+    sections.push({ key: 'pqrs', section: 'PQRS', items: [
+      { href: '/admin/pqrs', label: 'Gestión PQRS', icon: MessageSquareWarning },
+    ] })
+  }
+  if (activeModules?.copropiedades) {
+    sections.push({ key: 'copropiedades', section: 'Copropiedades', items: [
+      { href: '/admin/copropiedades', label: 'Copropiedades', icon: Building },
     ] })
   }
 
