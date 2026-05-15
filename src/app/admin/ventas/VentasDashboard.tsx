@@ -1,5 +1,5 @@
 'use client'
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -8,6 +8,7 @@ import {
   ArrowRight, DollarSign, Clock, CheckCircle, XCircle, AlertTriangle,
   Eye, Edit3, Truck, X, Loader2,
   User, Building2, Calendar, Package, MessageCircle, Mail,
+  Receipt, BookOpen,
 } from 'lucide-react'
 import { buildWaMessage, WA_TEMPLATE_BY_CATEGORY } from '@/lib/waTemplates'
 
@@ -122,6 +123,29 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   const [sendingEmail, setSendingEmail] = useState(false)
   const [emailResult, setEmailResult] = useState<{ ok: boolean; msg: string } | null>(null)
 
+  // Module integration state (facturación / contabilidad)
+  const [hasFacturacion, setHasFacturacion] = useState(false)
+  const [hasContabilidad, setHasContabilidad] = useState(false)
+  const [invoiceStatus, setInvoiceStatus] = useState<'none' | 'generating' | 'done' | 'error'>('none')
+  const [invoiceResult, setInvoiceResult] = useState<{ number?: string; error?: string } | null>(null)
+  const [accountingStatus, setAccountingStatus] = useState<'none' | 'generating' | 'done' | 'exists' | 'error'>('none')
+
+  // Check active modules once on mount
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.from('module_subscriptions')
+      .select('module_key, status')
+      .eq('brand_id', brandId)
+      .in('module_key', ['facturacion', 'contabilidad'])
+      .in('status', ['active', 'trial'])
+      .then(({ data }) => {
+        if (data) {
+          setHasFacturacion(data.some(d => d.module_key === 'facturacion'))
+          setHasContabilidad(data.some(d => d.module_key === 'contabilidad'))
+        }
+      })
+  }, [brandId])
+
   async function sendConfirmationEmail(sale: Sale) {
     setSendingEmail(true)
     setEmailResult(null)
@@ -196,6 +220,9 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
     setOpenSaleId(saleId)
     setPanelMode(mode)
     setLoadingItems(true)
+    setInvoiceStatus('none')
+    setInvoiceResult(null)
+    setAccountingStatus('none')
 
     const supabase = createClient()
     const { data } = await supabase
@@ -251,6 +278,11 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
         await supabase.from('sales').update({ status: newStatus }).eq('id', openSale.id)
       }
       updateLocalSale(openSale.id, { status: newStatus })
+      // Trigger auto accounting entry if moving to terminal status
+      const terminalStatuses = ['entregada', 'entregado', 'completado', 'completed']
+      if (terminalStatuses.includes(newStatus) && hasContabilidad && openSale.type === 'sale') {
+        triggerAutoEntry(openSale.id)
+      }
       // Log status change to customer_history
       if (openSale.customer_id) {
         const supabaseForHistory = createClient()
@@ -264,6 +296,48 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
       }
     } finally {
       setChangingStatus(false)
+    }
+  }
+
+  async function generateInvoice(saleId: string) {
+    setInvoiceStatus('generating')
+    setInvoiceResult(null)
+    try {
+      const res = await fetch('/api/invoicing/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saleId, brandId }),
+      })
+      const data = await res.json()
+      if (res.ok && data.ok) {
+        setInvoiceStatus('done')
+        setInvoiceResult({ number: data.number })
+      } else {
+        setInvoiceStatus('error')
+        setInvoiceResult({ error: data.error || 'Error generando factura' })
+      }
+    } catch (e: any) {
+      setInvoiceStatus('error')
+      setInvoiceResult({ error: e.message || 'Error de conexión' })
+    }
+  }
+
+  async function triggerAutoEntry(saleId: string) {
+    setAccountingStatus('generating')
+    try {
+      const res = await fetch('/api/accounting/auto-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ saleId, brandId }),
+      })
+      const data = await res.json()
+      if (data.ok) {
+        setAccountingStatus(data.reason === 'already_exists' ? 'exists' : 'done')
+      } else {
+        setAccountingStatus(data.reason === 'auto_entries_on_sale disabled' ? 'none' : 'error')
+      }
+    } catch {
+      setAccountingStatus('error')
     }
   }
 
@@ -725,7 +799,57 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
                       const flow = getFlow(openSale)
                       const idx = flow.indexOf(openSale.status)
                       const isTerminal = openSale.status === 'entregada' || openSale.status === 'entregado' || openSale.status === 'completado' || openSale.status === 'completed'
-                      if (isTerminal) return null
+                      if (isTerminal) return (
+                        <div className="space-y-2">
+                          {/* Facturación electrónica button */}
+                          {hasFacturacion && openSale.type === 'sale' && (
+                            <div>
+                              {invoiceStatus === 'none' && (
+                                <button
+                                  onClick={() => generateInvoice(openSale.id)}
+                                  className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-emerald-700"
+                                >
+                                  <Receipt size={14} /> Generar factura electrónica
+                                </button>
+                              )}
+                              {invoiceStatus === 'generating' && (
+                                <div className="w-full py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm font-medium flex items-center justify-center gap-2 border border-emerald-200 dark:border-emerald-800">
+                                  <Loader2 size={14} className="animate-spin" /> Generando factura...
+                                </div>
+                              )}
+                              {invoiceStatus === 'done' && invoiceResult?.number && (
+                                <div className="w-full py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 text-sm font-medium flex items-center justify-center gap-2 border border-emerald-200 dark:border-emerald-800">
+                                  <CheckCircle size={14} /> Factura {invoiceResult.number} generada
+                                </div>
+                              )}
+                              {invoiceStatus === 'error' && (
+                                <div className="space-y-1.5">
+                                  <div className="w-full py-2 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 text-xs px-3 border border-red-200 dark:border-red-800">
+                                    {invoiceResult?.error}
+                                  </div>
+                                  <button
+                                    onClick={() => generateInvoice(openSale.id)}
+                                    className="w-full py-2 rounded-xl bg-emerald-600 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-emerald-700"
+                                  >
+                                    <Receipt size={14} /> Reintentar
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                          {/* Auto-entry feedback */}
+                          {hasContabilidad && accountingStatus === 'done' && (
+                            <div className="w-full py-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium flex items-center justify-center gap-2 border border-blue-200 dark:border-blue-800">
+                              <BookOpen size={13} /> Asiento contable generado automáticamente
+                            </div>
+                          )}
+                          {hasContabilidad && accountingStatus === 'exists' && (
+                            <div className="w-full py-2 rounded-xl bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-medium flex items-center justify-center gap-2">
+                              <BookOpen size={13} /> Asiento contable ya existe
+                            </div>
+                          )}
+                        </div>
+                      )
 
                       // Pending → Confirm
                       if (openSale.status === 'pending') {
