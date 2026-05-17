@@ -69,40 +69,41 @@ export async function POST(req: NextRequest) {
       { role: 'user', content: question },
     ]
 
-    // Call Claude Haiku streaming
-    const anthropicKey = process.env.ANTHROPIC_API_KEY
-    if (!anthropicKey) {
-      console.error('[Help Ask] ANTHROPIC_API_KEY is not set')
+    // Call OpenAI GPT-4o-mini streaming
+    const openaiKey = process.env.OPENAI_API_KEY
+    if (!openaiKey) {
+      console.error('[Help Ask] OPENAI_API_KEY is not set')
       return new Response(JSON.stringify({ error: 'config_error', message: 'API key not configured' }), { status: 500 })
     }
 
-    const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
+    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': anthropicKey,
-        'anthropic-version': '2023-06-01',
+        'Authorization': `Bearer ${openaiKey}`,
       },
       body: JSON.stringify({
-        model: 'claude-3-5-haiku-20241022',
+        model: 'gpt-4o-mini',
         max_tokens: 400,
-        system: fullSystem,
-        messages,
+        messages: [
+          { role: 'system', content: fullSystem },
+          ...messages,
+        ],
         stream: true,
       }),
     })
 
-    if (!anthropicRes.ok) {
-      const errBody = await anthropicRes.text()
-      console.error('[Help Ask] Anthropic API error:', anthropicRes.status, errBody)
-      throw new Error(`Anthropic error ${anthropicRes.status}: ${errBody}`)
+    if (!openaiRes.ok) {
+      const errBody = await openaiRes.text()
+      console.error('[Help Ask] OpenAI API error:', openaiRes.status, errBody)
+      throw new Error(`OpenAI error ${openaiRes.status}: ${errBody}`)
     }
 
     // Stream text back + include source article titles as metadata at the end
     const sourceTitles = articles?.map((a: any) => a.title) ?? []
     const decoder = new TextDecoder()
     const encoder = new TextEncoder()
-    const reader = anthropicRes.body!.getReader()
+    const reader = openaiRes.body!.getReader()
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -114,12 +115,11 @@ export async function POST(req: NextRequest) {
           const lines = buffer.split('\n')
           buffer = lines.pop() ?? ''
           for (const line of lines) {
-            if (!line.startsWith('data: ')) continue
+            if (!line.startsWith('data: ') || line.includes('[DONE]')) continue
             try {
               const json = JSON.parse(line.slice(6))
-              if (json.type === 'content_block_delta' && json.delta?.text) {
-                controller.enqueue(encoder.encode(json.delta.text))
-              }
+              const text = json.choices?.[0]?.delta?.content
+              if (text) controller.enqueue(encoder.encode(text))
             } catch { /* skip */ }
           }
         }
