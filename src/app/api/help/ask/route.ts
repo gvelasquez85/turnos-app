@@ -70,11 +70,17 @@ export async function POST(req: NextRequest) {
     ]
 
     // Call Claude Haiku streaming
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    if (!anthropicKey) {
+      console.error('[Help Ask] ANTHROPIC_API_KEY is not set')
+      return new Response(JSON.stringify({ error: 'config_error', message: 'API key not configured' }), { status: 500 })
+    }
+
     const anthropicRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'x-api-key': anthropicKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
@@ -87,7 +93,9 @@ export async function POST(req: NextRequest) {
     })
 
     if (!anthropicRes.ok) {
-      throw new Error(`Anthropic error: ${anthropicRes.status}`)
+      const errBody = await anthropicRes.text()
+      console.error('[Help Ask] Anthropic API error:', anthropicRes.status, errBody)
+      throw new Error(`Anthropic error ${anthropicRes.status}: ${errBody}`)
     }
 
     // Stream text back + include source article titles as metadata at the end

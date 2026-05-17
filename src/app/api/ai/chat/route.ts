@@ -249,7 +249,14 @@ export async function POST(req: NextRequest) {
       }
     } else {
       // TurnFlow managed: use platform Anthropic key + Haiku
-      const apiKey = process.env.ANTHROPIC_API_KEY!
+      const apiKey = process.env.ANTHROPIC_API_KEY
+      if (!apiKey) {
+        console.error('[AI Copilot] ANTHROPIC_API_KEY is not set')
+        return new Response(
+          JSON.stringify({ error: 'config_error', message: 'API key not configured' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } }
+        )
+      }
       const model = 'claude-3-5-haiku-20241022'
       stream = await callClaude(systemPrompt, effectiveMessages, model, apiKey)
     }
