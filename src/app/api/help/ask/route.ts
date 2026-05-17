@@ -187,17 +187,85 @@ export async function POST(req: NextRequest) {
     const safeArticles = articles ?? []
     console.log(`[Help Ask] "${question}" → ${safeArticles.length} articles found`)
 
-    const { answer, sources } = extractAnswer(safeArticles, question)
+    const sourceTitles = safeArticles.slice(0, 3).map((a: any) => a.title)
+    const grokKey = process.env.GROK_API_KEY
 
+    // ── Con Grok: genera respuesta conversacional a partir de los artículos ──
+    if (grokKey && safeArticles.length > 0) {
+      const context = safeArticles.map((a: any, i: number) =>
+        `--- Artículo ${i + 1}: "${a.title}" ---\n${htmlToText(a.body).slice(0, 1200)}`
+      ).join('\n\n')
+
+      const systemPrompt = `Eres el Asistente de Ayuda de TurnFlow. Responde ÚNICAMENTE con información de los artículos provistos en <articulos>. Si la respuesta no está en los artículos, di exactamente: "No encontré información sobre eso en el centro de ayuda. Te recomiendo contactar a nuestro soporte." Responde en español, tono amigable, máximo 150 palabras. Si hay pasos, preséntalos numerados.\n\n<articulos>\n${context}\n</articulos>`
+
+      const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${grokKey}`,
+        },
+        body: JSON.stringify({
+          model: 'grok-3-mini',
+          max_tokens: 400,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: question },
+          ],
+          stream: true,
+        }),
+      })
+
+      if (grokRes.ok && grokRes.body) {
+        const encoder = new TextEncoder()
+        const decoder = new TextDecoder()
+        const reader = grokRes.body.getReader()
+
+        const stream = new ReadableStream({
+          async start(controller) {
+            let buffer = ''
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              buffer += decoder.decode(value, { stream: true })
+              const lines = buffer.split('\n')
+              buffer = lines.pop() ?? ''
+              for (const line of lines) {
+                if (!line.startsWith('data: ') || line.includes('[DONE]')) continue
+                try {
+                  const json = JSON.parse(line.slice(6))
+                  const text = json.choices?.[0]?.delta?.content
+                  if (text) controller.enqueue(encoder.encode(text))
+                } catch { /* skip */ }
+              }
+            }
+            if (sourceTitles.length > 0) {
+              controller.enqueue(encoder.encode(
+                `\n\n<!--SOURCES:${JSON.stringify(sourceTitles)}-->`
+              ))
+            }
+            controller.close()
+          },
+          cancel() { reader.cancel() },
+        })
+
+        return new Response(stream, {
+          headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' },
+        })
+      } else {
+        const errBody = await grokRes.text()
+        console.error('[Help Ask] Grok error:', grokRes.status, errBody)
+        // Caer al motor extractivo si Grok falla
+      }
+    }
+
+    // ── Fallback: motor extractivo local (sin API key o si Grok falla) ──
+    const { answer, sources } = extractAnswer(safeArticles, question)
     const fullResponse = sources.length > 0
       ? `${answer}\n\n<!--SOURCES:${JSON.stringify(sources)}-->`
       : answer
 
     return new Response(fullResponse, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Cache-Control': 'no-cache',
-      },
+      headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' },
     })
   } catch (err: any) {
     console.error('[Help Ask]', err)
