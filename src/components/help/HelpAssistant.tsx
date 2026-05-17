@@ -73,7 +73,7 @@ export function HelpAssistant() {
         body: JSON.stringify({ question: text.trim() }),
       })
 
-      if (!res.ok) throw new Error('Error en la respuesta')
+      if (!res.ok || !res.body) throw new Error('Error en la respuesta')
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
