@@ -182,24 +182,26 @@ export async function POST(req: NextRequest) {
     console.log(`[Help Ask] "${question}" → ${safeArticles.length} articles found`)
 
     const sourceTitles = safeArticles.slice(0, 3).map((a: any) => a.title)
-    const grokKey = process.env.GROK_API_KEY
+    const openrouterKey = process.env.OPENROUTER_API_KEY
 
-    // ── Con Grok: genera respuesta conversacional a partir de los artículos ──
-    if (grokKey && safeArticles.length > 0) {
+    // ── Con OpenRouter: genera respuesta conversacional a partir de los artículos ──
+    if (openrouterKey && safeArticles.length > 0) {
       const context = safeArticles.map((a: any, i: number) =>
         `--- Artículo ${i + 1}: "${a.title}" ---\n${htmlToText(a.body).slice(0, 1200)}`
       ).join('\n\n')
 
       const systemPrompt = `Eres el Asistente de Ayuda de TurnFlow. Responde ÚNICAMENTE con información de los artículos provistos en <articulos>. Si la respuesta no está en los artículos, di exactamente: "No encontré información sobre eso en el centro de ayuda. Te recomiendo contactar a nuestro soporte." Responde en español, tono amigable, máximo 150 palabras. Si hay pasos, preséntalos numerados.\n\n<articulos>\n${context}\n</articulos>`
 
-      const grokRes = await fetch('https://api.x.ai/v1/chat/completions', {
+      const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${grokKey}`,
+          'Authorization': `Bearer ${openrouterKey}`,
+          'HTTP-Referer': 'https://app.turnflow.com.co',
+          'X-Title': 'TurnFlow Help Assistant',
         },
         body: JSON.stringify({
-          model: 'grok-3-mini-beta',
+          model: 'google/gemini-2.0-flash-lite',
           max_tokens: 400,
           messages: [
             { role: 'system', content: systemPrompt },
@@ -209,12 +211,13 @@ export async function POST(req: NextRequest) {
         }),
       })
 
-      if (!grokRes.ok) {
-        const errBody = await grokRes.text()
-        console.error('[Help Ask] Grok error:', grokRes.status, errBody)
+      if (!orRes.ok) {
+        const errBody = await orRes.text()
+        console.error('[Help Ask] OpenRouter error:', orRes.status, errBody)
       }
 
-      if (grokRes.ok && grokRes.body) {
+      if (orRes.ok && orRes.body) {
+        const grokRes = orRes  // reusar bloque de streaming
         const encoder = new TextEncoder()
         const decoder = new TextDecoder()
         const reader = grokRes.body.getReader()
