@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
-export const maxDuration = 10
+export const maxDuration = 60
 
 // ─── Spanish stopwords ────────────────────────────────────────────────────────
 const STOPWORDS = new Set([
@@ -202,13 +202,15 @@ export async function POST(req: NextRequest) {
         },
         body: JSON.stringify({
           model: 'nvidia/nemotron-3-super-120b-a12b:free',
-          max_tokens: 400,
+          max_tokens: 350,
           messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: question },
           ],
           stream: true,
+          stream_options: { include_usage: false },
         }),
+        signal: AbortSignal.timeout(55000),
       })
 
       if (!orRes.ok) {
