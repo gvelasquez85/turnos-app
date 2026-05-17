@@ -11,7 +11,7 @@ import {
   CalendarClock, ClipboardList, Monitor, UtensilsCrossed,
   Settings, Shield, UserCircle, CreditCard, Zap, Clock,
   ShoppingCart, Package, FileCheck, PieChart, TrendingUp, HelpCircle,
-  BookOpen, Receipt, MessageSquareWarning, Building, ToggleRight,
+  BookOpen, Receipt, MessageSquareWarning, Building, ToggleRight, Bot,
 } from 'lucide-react'
 import { TurnFlowLogo } from '@/components/brand/TurnFlowLogo'
 import { useBrandStore } from '@/stores/brandStore'
@@ -178,6 +178,9 @@ function buildSections(
       { key: 'copropiedades', section: 'Copropiedades', items: [
         { href: '/admin/copropiedades', label: 'Copropiedades', icon: Building },
       ] },
+      { key: 'copilot', section: 'Inteligencia Artificial', items: [
+        { href: '/admin/copilot', label: 'Copilot IA', icon: Bot },
+      ] },
     ]
   }
 
@@ -238,6 +241,11 @@ function buildSections(
       { href: '/admin/copropiedades', label: 'Copropiedades', icon: Building },
     ] })
   }
+
+  // Copilot IA — always visible (free tier available to all)
+  sections.push({ key: 'copilot', section: 'Inteligencia Artificial', items: [
+    { href: '/admin/copilot', label: 'Copilot IA', icon: Bot },
+  ] })
 
   sections.push({ key: 'marketplace', section: 'Más', sectionKey: 'section.more', items: [
     { href: '/admin/marketplace', label: 'Marketplace', icon: Zap },

@@ -1,5 +1,6 @@
 'use client'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useCopilotContext } from '@/components/ai/useCopilotContext'
 import Link from 'next/link'
 import {
   TrendingUp, Users, ShoppingCart, Package, FileCheck,
@@ -127,6 +128,23 @@ export function HomePanel({
       .filter(Boolean)
       .sort((a, b) => a!.diffDays - b!.diffDays) as (typeof birthdayClients[number] & { diffDays: number; birthdayDate: Date })[]
   }, [birthdayClients])
+
+  // ── Copilot context ─────────────────────────────────────────────────────────
+  useCopilotContext({
+    moduleKey: 'home',
+    moduleLabel: 'Dashboard',
+    data: {
+      ventas_hoy: countToday,
+      ingresos_hoy: revenueToday,
+      ingresos_semana: revenueWeek,
+      pendientes_cobro: pendingRevenue,
+      clientes_inactivos: inactiveClients.length,
+      cotizaciones_abiertas: openQuotes.length,
+      stock_bajo: lowStock.length,
+      total_clientes: totalClients,
+      cumpleanos_proximos: upcomingBirthdays.length,
+    },
+  })
 
   // ── Action cards ────────────────────────────────────────────────────────────
   const actions: { key: string; icon: React.ElementType; color: string; text: string; sub: string; href: string }[] = []

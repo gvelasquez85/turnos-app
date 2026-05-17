@@ -1,6 +1,7 @@
 'use client'
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { SALE_COMPLETED_SET } from '@/lib/saleStatus'
+import { useCopilotContext } from '@/components/ai/useCopilotContext'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -191,6 +192,27 @@ export function VentasDashboard({ brandId, recentSales: initialRecent, pendingSa
   // Pending (separate indicator — all time in window)
   const pendingSalesKPI = useMemo(() => allSales.filter(s => s.status === 'pending'), [allSales])
   const pendingRevenue = pendingSalesKPI.reduce((s, x) => s + (x.total ?? 0), 0)
+
+  // ── Copilot context ──────────────────────────────────────────────────────
+  useCopilotContext({
+    moduleKey: 'ventas',
+    moduleLabel: 'Ventas',
+    data: {
+      ventas_hoy: todaySales.length,
+      ingresos_hoy: todayRevenue,
+      pendientes_cobro: pendingRevenue,
+      ventas_pendientes: pendingSalesKPI.length,
+      ticket_promedio: todaySales.length ? Math.round(todayRevenue / todaySales.length) : 0,
+      top_productos: Object.values(
+        todaySales.flatMap((s: any) => s.items ?? []).reduce((acc: any, item: any) => {
+          const k = item.product_name ?? item.name ?? 'Producto'
+          acc[k] = acc[k] ?? { nombre: k, cantidad: 0 }
+          acc[k].cantidad += item.quantity ?? 1
+          return acc
+        }, {})
+      ).sort((a: any, b: any) => b.cantidad - a.cantidad).slice(0, 5),
+    },
+  })
 
   // ── WA helpers ────────────────────────────────────────────────────────────
   const waTemplateMap = useMemo(() => Object.fromEntries(waTemplates.map(t => [t.category, t.body])), [waTemplates])

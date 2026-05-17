@@ -88,7 +88,7 @@ export async function getEffectiveBrandId(
  * All modules that require a valid subscription (trial or paid).
  * brands.active_modules is NOT trusted for these — only module_subscriptions is.
  */
-const PAID_MODULES = ['queue', 'appointments', 'surveys', 'menu', 'mensajes', 'lead_forms', 'contabilidad', 'facturacion', 'pqrs', 'copropiedades'] as const
+const PAID_MODULES = ['queue', 'appointments', 'surveys', 'menu', 'mensajes', 'lead_forms', 'contabilidad', 'facturacion', 'pqrs', 'copropiedades', 'ai_copilot'] as const
 type PaidModule = (typeof PAID_MODULES)[number]
 
 /**

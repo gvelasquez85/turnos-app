@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { getVerifiedActiveModules } from '@/lib/serverBrandContext'
+import { AICopilot } from '@/components/ai/AICopilot'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -58,6 +59,20 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     if (mem?.plan) plan = mem.plan
   }
 
+  // AI Copilot: load usage for today to show badge on initial render
+  let copilotUsage = null
+  if (brandId) {
+    const today = new Date().toISOString().slice(0, 10)
+    const [{ data: aiCfg }, { data: aiUse }] = await Promise.all([
+      supabase.from('ai_configs').select('plan, daily_limit').eq('brand_id', brandId).maybeSingle(),
+      supabase.from('ai_usage').select('query_count').eq('brand_id', brandId).eq('usage_date', today).maybeSingle(),
+    ])
+    const aiPlan = aiCfg?.plan ?? 'free'
+    const aiLimit = aiCfg?.daily_limit ?? 5
+    const aiUsed = aiUse?.query_count ?? 0
+    copilotUsage = { plan: aiPlan, limit: aiLimit, used: aiUsed, remaining: Math.max(0, aiLimit - aiUsed) }
+  }
+
   const activeModules = await getVerifiedActiveModules(
     supabase,
     brandId,
@@ -76,6 +91,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       plan={plan}
     >
       {children}
+      <AICopilot initialUsage={copilotUsage} />
     </AppShell>
   )
 }
