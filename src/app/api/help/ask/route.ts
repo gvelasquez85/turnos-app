@@ -201,7 +201,7 @@ export async function POST(req: NextRequest) {
           'X-Title': 'TurnFlow Help Assistant',
         },
         body: JSON.stringify({
-          model: 'nvidia/nemotron-3-super-120b-a12b:free',
+          model: 'meta-llama/llama-3.3-70b-instruct:free',
           max_tokens: 350,
           messages: [
             { role: 'system', content: systemPrompt },
