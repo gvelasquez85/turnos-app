@@ -80,19 +80,7 @@ export async function middleware(request: NextRequest) {
     return await updateSession(request)
   }
 
-  // Subdominio app: redirigir rutas públicas/marketing al dominio principal (www)
-  if (isAppSubdomain) {
-    const PUBLIC_ONLY_ROUTES = ['/ayuda']
-    const isPublicRoute = PUBLIC_ONLY_ROUTES.some(
-      r => pathname === r || pathname.startsWith(r + '/')
-    )
-    if (isPublicRoute) {
-      const url = request.nextUrl.clone()
-      url.hostname = hostname.replace(/^app\./, '')  // app.turnflow.com.co → turnflow.com.co
-      url.port = ''
-      return NextResponse.redirect(url, 302)
-    }
-  }
+  // /ayuda es accesible desde cualquier dominio — no redirigir
 
   // Subdominio app, localhost, o Vercel preview: manejo normal de sesión
   return await updateSession(request)
