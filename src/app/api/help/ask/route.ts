@@ -153,15 +153,35 @@ export async function POST(req: NextRequest) {
     if (ftsData && ftsData.length > 0) {
       articles = ftsData
     } else {
-      // Fallback: búsqueda simple por ILIKE en título y summary
-      const words = question.trim().split(/\s+/).slice(0, 4).join(' ')
-      const { data: ilikeData } = await supabase
-        .from('help_articles')
-        .select('id, slug, title, summary, body, category')
-        .eq('published', true)
-        .or(`title.ilike.%${words}%,summary.ilike.%${words}%`)
-        .limit(5)
-      articles = ilikeData ?? []
+      // Fallback 1: buscar cada palabra significativa por separado con ILIKE
+      const keywords = tokenize(question).slice(0, 5)
+
+      if (keywords.length > 0) {
+        // Construir filtros OR por cada keyword en título o summary
+        const filters = keywords.flatMap(w => [
+          `title.ilike.%${w}%`,
+          `summary.ilike.%${w}%`,
+        ]).join(',')
+
+        const { data: ilikeData } = await supabase
+          .from('help_articles')
+          .select('id, slug, title, summary, body, category')
+          .eq('published', true)
+          .or(filters)
+          .limit(5)
+        articles = ilikeData ?? []
+      }
+
+      // Fallback 2: si aún no hay nada, devolver los más vistos
+      if (!articles || articles.length === 0) {
+        const { data: popularData } = await supabase
+          .from('help_articles')
+          .select('id, slug, title, summary, body, category')
+          .eq('published', true)
+          .order('views_count', { ascending: false })
+          .limit(3)
+        articles = popularData ?? []
+      }
     }
 
     const safeArticles = articles ?? []
