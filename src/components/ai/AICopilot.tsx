@@ -26,6 +26,13 @@ interface Props {
   initialUsage?: UsageInfo | null
 }
 
+// ─── Default context (used when no page sets a specific one) ─────────────────
+const DEFAULT_CONTEXT: CopilotContext = {
+  moduleKey: 'home',
+  moduleLabel: 'Panel general',
+  data: {},
+}
+
 // ─── Singleton context store (avoids prop-drilling) ──────────────────────────
 let _setContext: ((ctx: CopilotContext) => void) | null = null
 export function setCopilotContext(ctx: CopilotContext) {
@@ -49,7 +56,7 @@ const FREE_MODULES = ['home']
 
 export function AICopilot({ initialUsage }: Props) {
   const [open, setOpen] = useState(false)
-  const [context, setContext] = useState<CopilotContext | null>(null)
+  const [context, setContext] = useState<CopilotContext | null>(DEFAULT_CONTEXT)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -77,10 +84,11 @@ export function AICopilot({ initialUsage }: Props) {
     }
   }, [open, messages])
 
+  const activeContext = context ?? DEFAULT_CONTEXT
   const isFreePlan = usage?.plan === 'free'
-  const isModuleLocked = context && isFreePlan && !FREE_MODULES.includes(context.moduleKey)
+  const isModuleLocked = isFreePlan && !FREE_MODULES.includes(activeContext.moduleKey)
   const isExhausted = (usage?.remaining ?? 1) <= 0
-  const suggestions = context ? (SUGGESTIONS[context.moduleKey] ?? SUGGESTIONS.home) : []
+  const suggestions = SUGGESTIONS[activeContext.moduleKey] ?? SUGGESTIONS.home
 
   async function loadUsage() {
     const res = await fetch('/api/ai/usage')
@@ -90,7 +98,8 @@ export function AICopilot({ initialUsage }: Props) {
   useEffect(() => { if (open && !usage) loadUsage() }, [open])
 
   const sendMessage = useCallback(async (text: string) => {
-    if (!text.trim() || streaming || !context) return
+    const activeContext = context ?? DEFAULT_CONTEXT
+    if (!text.trim() || streaming) return
 
     const userMsg: Message = { role: 'user', content: text.trim() }
     const history = isFreePlan ? [] : messages // free: no history
@@ -105,7 +114,7 @@ export function AICopilot({ initialUsage }: Props) {
     abortRef.current = new AbortController()
 
     try {
-      const contextData = JSON.stringify(context.data, null, 2)
+      const contextData = JSON.stringify(activeContext.data, null, 2)
 
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
@@ -113,7 +122,7 @@ export function AICopilot({ initialUsage }: Props) {
         signal: abortRef.current.signal,
         body: JSON.stringify({
           messages: newMessages,
-          moduleKey: context.moduleKey,
+          moduleKey: activeContext.moduleKey,
           contextData,
         }),
       })
@@ -206,7 +215,7 @@ export function AICopilot({ initialUsage }: Props) {
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-tight">Copilot IA</p>
-          {context && <p className="text-[10px] text-white/70 truncate">{context.moduleLabel}</p>}
+          <p className="text-[10px] text-white/70 truncate">{activeContext.moduleLabel}</p>
         </div>
 
         {/* Usage badge */}
@@ -223,7 +232,7 @@ export function AICopilot({ initialUsage }: Props) {
         <div className="mx-3 mt-3 shrink-0 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-900/20 dark:to-indigo-900/20 border border-violet-200 dark:border-violet-800 rounded-xl p-3">
           <div className="flex items-center gap-2 mb-2">
             <Lock size={14} className="text-violet-600 shrink-0" />
-            <p className="text-xs font-semibold text-violet-800 dark:text-violet-300">Copilot en {context!.moduleLabel}</p>
+            <p className="text-xs font-semibold text-violet-800 dark:text-violet-300">Copilot en {activeContext.moduleLabel}</p>
           </div>
           <p className="text-[11px] text-violet-600 dark:text-violet-400 mb-2.5">
             Con el plan gratuito, el Copilot solo funciona en el Dashboard. Activa el módulo completo para obtener insights en <strong>todos los módulos</strong>.
