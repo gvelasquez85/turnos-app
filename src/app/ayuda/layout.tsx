@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { HelpAssistant } from '@/components/help/HelpAssistant'
 
 /**
  * Force light mode for the help center — remove `dark` class while
@@ -17,5 +18,10 @@ export default function AyudaLayout({ children }: { children: React.ReactNode })
     }
   }, [])
 
-  return <>{children}</>
+  return (
+    <>
+      {children}
+      <HelpAssistant />
+    </>
+  )
 }

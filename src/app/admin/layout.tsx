@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import { AppShell } from '@/components/layout/AppShell'
 import { getVerifiedActiveModules } from '@/lib/serverBrandContext'
 import { AICopilot } from '@/components/ai/AICopilot'
+import { HelpAssistant } from '@/components/help/HelpAssistant'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient()
@@ -91,6 +92,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       plan={plan}
     >
       {children}
+      <HelpAssistant />
       <AICopilot initialUsage={copilotUsage} />
     </AppShell>
   )
