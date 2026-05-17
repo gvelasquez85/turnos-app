@@ -164,9 +164,10 @@ export async function POST(req: NextRequest) {
       articles = ilikeData ?? []
     }
 
-    console.log(`[Help Ask] "${question}" → ${articles.length} articles found`)
+    const safeArticles = articles ?? []
+    console.log(`[Help Ask] "${question}" → ${safeArticles.length} articles found`)
 
-    const { answer, sources } = extractAnswer(articles, question)
+    const { answer, sources } = extractAnswer(safeArticles, question)
 
     const fullResponse = sources.length > 0
       ? `${answer}\n\n<!--SOURCES:${JSON.stringify(sources)}-->`
