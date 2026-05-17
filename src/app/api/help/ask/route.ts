@@ -66,47 +66,41 @@ function extractAnswer(articles: any[], question: string): { answer: string; sou
     }
   }
 
-  // Si no hay tokens útiles en la pregunta, devolver el primer artículo completo
+  // Sin tokens útiles → mostrar el artículo más relevante completo
   if (queryTokens.length === 0) {
     const art = articles[0]
-    return {
-      answer: htmlToText(art.body).slice(0, 600),
-      sources: [art.title],
-    }
+    const body = htmlToText(art.body).split('\n').filter((p: string) => p.length > 20).slice(0, 5).join('\n\n')
+    return { answer: `**${art.title}**\n\n${body}`, sources: [art.title] }
   }
 
   interface ScoredPara { text: string; score: number; articleTitle: string; idx: number }
   const scored: ScoredPara[] = []
 
   for (const article of articles) {
-    // Bonus de título: si la pregunta coincide con el título, todo el artículo sube de score
     const titleBonus = scoreRelevance(queryTokens, article.title) * 0.3
-
     const text = htmlToText(article.body)
     const paragraphs = text.split(/\n+/).map(p => p.trim()).filter(p => p.length > 20)
-
     paragraphs.forEach((para, idx) => {
       const score = scoreRelevance(queryTokens, para) + titleBonus
       scored.push({ text: para, score, articleTitle: article.title, idx })
     })
   }
 
-  // Ordenar por score
   scored.sort((a, b) => b.score - a.score)
 
-  // Si el mejor score es muy bajo, usar el summary del artículo más rankeado por FTS
+  // Score bajo → mostrar summary + primeros párrafos del artículo más relevante
   if (scored.length === 0 || scored[0].score < 0.05) {
     const art = articles[0]
-    const fallback = art.summary
+    const intro = art.summary
       ? art.summary
-      : htmlToText(art.body).split('\n').filter((p: string) => p.length > 20).slice(0, 3).join('\n\n')
+      : htmlToText(art.body).split('\n').filter((p: string) => p.length > 20).slice(0, 4).join('\n\n')
     return {
-      answer: fallback,
+      answer: `Encontré este artículo que puede ayudarte:\n\n**${art.title}**\n\n${intro}`,
       sources: articles.slice(0, 2).map((a: any) => a.title),
     }
   }
 
-  // Tomar el mejor párrafo + párrafos cercanos del mismo artículo con score decente
+  // Mejor párrafo + vecinos del mismo artículo
   const best = scored[0]
   const companions = scored
     .filter(p =>
@@ -119,10 +113,10 @@ function extractAnswer(articles: any[], question: string): { answer: string; sou
     .sort((a, b) => a.idx - b.idx)
 
   const allParts = [best, ...companions].sort((a, b) => a.idx - b.idx)
-  const answer = allParts.map(p => p.text).join('\n\n')
+  const body = allParts.map(p => p.text).join('\n\n')
+  const answer = `**${best.articleTitle}**\n\n${body}`
 
   const sources = [...new Set(scored.slice(0, 3).map(p => p.articleTitle))]
-
   return { answer, sources }
 }
 
@@ -243,6 +237,7 @@ export async function POST(req: NextRequest) {
                 `\n\n<!--SOURCES:${JSON.stringify(sourceTitles)}-->`
               ))
             }
+            controller.enqueue(encoder.encode('<!--ENGINE:grok-->'))
             controller.close()
           },
           cancel() { reader.cancel() },
@@ -260,9 +255,9 @@ export async function POST(req: NextRequest) {
 
     // ── Fallback: motor extractivo local (sin API key o si Grok falla) ──
     const { answer, sources } = extractAnswer(safeArticles, question)
-    const fullResponse = sources.length > 0
-      ? `${answer}\n\n<!--SOURCES:${JSON.stringify(sources)}-->`
-      : answer
+    const engineTag = '<!--ENGINE:local-->'
+    const sourcesTag = sources.length > 0 ? `\n\n<!--SOURCES:${JSON.stringify(sources)}-->` : ''
+    const fullResponse = `${answer}${sourcesTag}${engineTag}`
 
     return new Response(fullResponse, {
       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' },

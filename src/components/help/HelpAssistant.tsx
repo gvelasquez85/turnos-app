@@ -8,6 +8,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   sources?: string[]
+  engine?: 'grok' | 'local'
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -18,16 +19,23 @@ const SUGGESTED_QUESTIONS = [
   '¿Qué módulos tiene TurnFlow?',
 ]
 
-function parseSourcesFromText(text: string): { clean: string; sources: string[] } {
-  const match = text.match(/<!--SOURCES:(\[.*?\])-->/)
-  if (!match) return { clean: text, sources: [] }
-  try {
-    const sources = JSON.parse(match[1]) as string[]
-    const clean = text.replace(/\n\n<!--SOURCES:.*?-->/, '').trim()
-    return { clean, sources }
-  } catch {
-    return { clean: text.replace(/<!--SOURCES:.*?-->/, '').trim(), sources: [] }
+function parseMetadata(text: string): { clean: string; sources: string[]; engine?: 'grok' | 'local' } {
+  let working = text
+
+  // Extraer engine
+  const engineMatch = working.match(/<!--ENGINE:(grok|local)-->/)
+  const engine = engineMatch ? (engineMatch[1] as 'grok' | 'local') : undefined
+  working = working.replace(/<!--ENGINE:(grok|local)-->/, '')
+
+  // Extraer sources
+  const sourcesMatch = working.match(/<!--SOURCES:(\[.*?\])-->/)
+  let sources: string[] = []
+  if (sourcesMatch) {
+    try { sources = JSON.parse(sourcesMatch[1]) } catch { /* skip */ }
+    working = working.replace(/\n\n<!--SOURCES:.*?-->/, '').replace(/<!--SOURCES:.*?-->/, '')
   }
+
+  return { clean: working.trim(), sources, engine }
 }
 
 export function HelpAssistant() {
@@ -83,7 +91,7 @@ export function HelpAssistant() {
         const { done, value } = await reader.read()
         if (done) break
         fullText += decoder.decode(value)
-        const { clean } = parseSourcesFromText(fullText)
+        const { clean } = parseMetadata(fullText)
         setMessages(prev => {
           const updated = [...prev]
           updated[updated.length - 1] = { role: 'assistant', content: clean }
@@ -91,11 +99,11 @@ export function HelpAssistant() {
         })
       }
 
-      // Final parse with sources
-      const { clean, sources } = parseSourcesFromText(fullText)
+      // Final parse with sources + engine
+      const { clean, sources, engine } = parseMetadata(fullText)
       setMessages(prev => {
         const updated = [...prev]
-        updated[updated.length - 1] = { role: 'assistant', content: clean, sources }
+        updated[updated.length - 1] = { role: 'assistant', content: clean, sources, engine }
         return updated
       })
     } catch (err: any) {
@@ -200,7 +208,20 @@ export function HelpAssistant() {
                   ) : null
                 )}
               </div>
-              {/* Sources */}
+              {/* Engine badge + Sources */}
+              {m.role === 'assistant' && m.engine && (
+                <div className="flex items-center gap-1.5">
+                  {m.engine === 'grok' ? (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                      ⚡ Grok
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-semibold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                      🔍 Búsqueda local
+                    </span>
+                  )}
+                </div>
+              )}
               {m.sources && m.sources.length > 0 && (
                 <div className="space-y-1">
                   {m.sources.slice(0, 2).map((title, si) => (
