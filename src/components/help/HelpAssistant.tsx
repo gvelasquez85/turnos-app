@@ -70,13 +70,10 @@ export function HelpAssistant() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         signal: abortRef.current.signal,
-        body: JSON.stringify({
-          question: text.trim(),
-          conversationHistory: history,
-        }),
+        body: JSON.stringify({ question: text.trim() }),
       })
 
-      if (!res.ok || !res.body) throw new Error('Error en la respuesta')
+      if (!res.ok) throw new Error('Error en la respuesta')
 
       const reader = res.body.getReader()
       const decoder = new TextDecoder()

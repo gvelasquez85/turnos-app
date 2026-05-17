@@ -2,139 +2,177 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 
 export const runtime = 'nodejs'
-export const maxDuration = 25
+export const maxDuration = 10
 
-const SYSTEM_PROMPT = `Eres el Asistente de Ayuda de TurnFlow. Tu único trabajo es ayudar a los usuarios a entender cómo usar TurnFlow basándote EXCLUSIVAMENTE en los artículos del centro de ayuda que se te proveen.
+// ─── Spanish stopwords ────────────────────────────────────────────────────────
+const STOPWORDS = new Set([
+  'de', 'la', 'el', 'en', 'y', 'a', 'los', 'del', 'se', 'las', 'un', 'por',
+  'con', 'una', 'su', 'para', 'es', 'al', 'lo', 'como', 'mas', 'pero', 'sus',
+  'le', 'ya', 'o', 'este', 'si', 'porque', 'esta', 'entre', 'cuando', 'muy',
+  'sin', 'sobre', 'ser', 'tiene', 'tambien', 'me', 'hasta', 'hay', 'donde',
+  'han', 'que', 'no', 'tu', 'te', 'mi', 'fue', 'son', 'hay', 'he', 'ha',
+  'the', 'you', 'can', 'do', 'it', 'is', 'are', 'be',
+])
 
-REGLAS QUE NUNCA PUEDES ROMPER:
-1. Solo responde con información que esté en los artículos de ayuda provistos en <articulos>.
-2. Si la pregunta no tiene respuesta en los artículos, di exactamente: "No encontré información sobre eso en el centro de ayuda. Te recomiendo contactar a nuestro soporte."
-3. Nunca inventes pasos, funciones o características que no estén documentadas.
-4. Responde SIEMPRE en español, con tono amigable y claro.
-5. Usa lenguaje simple — como si le explicaras a alguien que no usa mucho el computador.
-6. Cuando hay pasos, preséntalos numerados y concisos.
-7. Si el artículo menciona dónde hacer clic, inclúyelo en la respuesta.
-8. Máximo 150 palabras en la respuesta — sé conciso pero completo.
-9. Si el usuario necesita más detalle, sugiere que lea el artículo completo con su nombre.
+// Normaliza texto: minúsculas, sin tildes, sin puntuación
+function normalize(text: string): string {
+  return text
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+}
 
-Recuerda: tu meta es que el usuario pueda lograr lo que necesita SIN tener que contactar a soporte.`
+// Tokeniza y filtra stopwords + palabras muy cortas
+function tokenize(text: string): string[] {
+  return normalize(text)
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !STOPWORDS.has(w))
+}
 
-function stripHtml(html: string): string {
+// Convierte HTML a texto preservando estructura de párrafos/listas
+function htmlToText(html: string): string {
   return html
-    .replace(/<[^>]+>/g, ' ')
-    .replace(/\s+/g, ' ')
+    .replace(/<li[^>]*>/gi, '\n• ')
+    .replace(/<\/?(p|div|h[1-6]|br)[^>]*>/gi, '\n')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, '\n\n')
     .trim()
-    .slice(0, 1500) // limit per article
+}
+
+// Puntúa qué tan relevante es un párrafo para la pregunta
+function scoreRelevance(queryTokens: string[], paraTokens: string[]): number {
+  if (paraTokens.length === 0) return 0
+  const paraSet = new Set(paraTokens)
+  let hits = 0
+  for (const token of queryTokens) {
+    if (paraSet.has(token)) hits++
+  }
+  // Normaliza por longitud de query; penaliza párrafos muy cortos o muy largos
+  const lengthFactor = paraTokens.length < 4 ? 0.2
+    : paraTokens.length > 120 ? 0.75
+    : 1.0
+  return (hits / Math.max(queryTokens.length, 1)) * lengthFactor
+}
+
+interface ScoredParagraph {
+  text: string
+  score: number
+  articleTitle: string
+  articleSlug: string
+  index: number  // position in article (to recover neighbors)
+}
+
+// Motor extractivo principal
+function extractAnswer(
+  articles: any[],
+  question: string
+): { answer: string; sources: string[] } {
+  const queryTokens = tokenize(question)
+
+  if (queryTokens.length === 0 || articles.length === 0) {
+    return {
+      answer: 'No encontré información sobre eso en el centro de ayuda. Te recomiendo contactar a nuestro soporte.',
+      sources: [],
+    }
+  }
+
+  // Construir lista de párrafos con puntuación
+  const scored: ScoredParagraph[] = []
+
+  for (const article of articles) {
+    const text = htmlToText(article.body)
+    const paragraphs = text
+      .split(/\n+/)
+      .map(p => p.trim())
+      .filter(p => p.length > 30)
+
+    paragraphs.forEach((para, idx) => {
+      const tokens = tokenize(para)
+      const score = scoreRelevance(queryTokens, tokens)
+      if (score > 0) {
+        scored.push({
+          text: para,
+          score,
+          articleTitle: article.title,
+          articleSlug: article.slug,
+          index: idx,
+        })
+      }
+    })
+  }
+
+  // Sin resultados relevantes
+  if (scored.length === 0) {
+    return {
+      answer: 'No encontré información sobre eso en el centro de ayuda. Te recomiendo contactar a nuestro soporte.',
+      sources: [],
+    }
+  }
+
+  // Ordenar por score descendente
+  scored.sort((a, b) => b.score - a.score)
+
+  // Tomar el mejor párrafo como ancla
+  const best = scored[0]
+
+  // Buscar hasta 2 párrafos más del mismo artículo con buen score
+  const companions = scored
+    .filter(p =>
+      p !== best &&
+      p.articleTitle === best.articleTitle &&
+      p.score >= best.score * 0.5 &&
+      Math.abs(p.index - best.index) <= 4  // párrafos cercanos en el artículo
+    )
+    .slice(0, 2)
+    .sort((a, b) => a.index - b.index)  // restaurar orden original
+
+  // Ensamblar la respuesta
+  const allParts = [best, ...companions].sort((a, b) => a.index - b.index)
+  const body = allParts.map(p => p.text).join('\n\n')
+
+  // Fuentes únicas
+  const sources = [...new Set(scored.slice(0, 3).map(p => p.articleTitle))]
+
+  return { answer: body, sources }
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { question, conversationHistory = [] } = await req.json()
+    const { question } = await req.json()
 
     if (!question?.trim()) {
       return new Response(JSON.stringify({ error: 'No question provided' }), { status: 400 })
     }
 
-    // Use anon client — help articles are publicly readable
+    // Usar cliente anon — artículos son públicos
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
 
-    // Search relevant articles using FTS RPC
-    const { data: articles } = await supabase.rpc('search_help_articles', {
+    // Buscar artículos relevantes con FTS
+    const { data: articles, error } = await supabase.rpc('search_help_articles', {
       p_query: question.slice(0, 200),
-      p_limit: 4,
+      p_limit: 5,
     })
 
-    // Build context from found articles
-    let articlesContext = ''
-    if (articles && articles.length > 0) {
-      articlesContext = articles.map((a: any, i: number) =>
-        `--- Artículo ${i + 1}: "${a.title}" ---\n${stripHtml(a.body)}`
-      ).join('\n\n')
-    } else {
-      articlesContext = 'No se encontraron artículos relacionados con esta pregunta.'
-    }
+    if (error) console.error('[Help Ask] FTS error:', error)
 
-    const fullSystem = `${SYSTEM_PROMPT}\n\n<articulos>\n${articlesContext}\n</articulos>`
+    // Motor extractivo local — sin API externa
+    const { answer, sources } = extractAnswer(articles ?? [], question)
 
-    // Build message history (max 6 turns for context)
-    const history = (conversationHistory as { role: string; content: string }[])
-      .slice(-6)
-      .filter(m => m.role === 'user' || m.role === 'assistant')
+    // Añadir fuentes al final como metadata
+    const fullResponse = sources.length > 0
+      ? `${answer}\n\n<!--SOURCES:${JSON.stringify(sources)}-->`
+      : answer
 
-    const messages = [
-      ...history,
-      { role: 'user', content: question },
-    ]
-
-    // Call OpenAI GPT-4o-mini streaming
-    const openaiKey = process.env.OPENAI_API_KEY
-    if (!openaiKey) {
-      console.error('[Help Ask] OPENAI_API_KEY is not set')
-      return new Response(JSON.stringify({ error: 'config_error', message: 'API key not configured' }), { status: 500 })
-    }
-
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        max_tokens: 400,
-        messages: [
-          { role: 'system', content: fullSystem },
-          ...messages,
-        ],
-        stream: true,
-      }),
-    })
-
-    if (!openaiRes.ok) {
-      const errBody = await openaiRes.text()
-      console.error('[Help Ask] OpenAI API error:', openaiRes.status, errBody)
-      throw new Error(`OpenAI error ${openaiRes.status}: ${errBody}`)
-    }
-
-    // Stream text back + include source article titles as metadata at the end
-    const sourceTitles = articles?.map((a: any) => a.title) ?? []
-    const decoder = new TextDecoder()
-    const encoder = new TextEncoder()
-    const reader = openaiRes.body!.getReader()
-
-    const stream = new ReadableStream({
-      async start(controller) {
-        let buffer = ''
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split('\n')
-          buffer = lines.pop() ?? ''
-          for (const line of lines) {
-            if (!line.startsWith('data: ') || line.includes('[DONE]')) continue
-            try {
-              const json = JSON.parse(line.slice(6))
-              const text = json.choices?.[0]?.delta?.content
-              if (text) controller.enqueue(encoder.encode(text))
-            } catch { /* skip */ }
-          }
-        }
-        // Send sources as a special JSON line at the very end
-        if (sourceTitles.length > 0) {
-          controller.enqueue(encoder.encode(
-            `\n\n<!--SOURCES:${JSON.stringify(sourceTitles)}-->`
-          ))
-        }
-        controller.close()
-      },
-      cancel() { reader.cancel() },
-    })
-
-    return new Response(stream, {
+    return new Response(fullResponse, {
       headers: {
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-cache',
