@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
+import { usePathname } from 'next/navigation'
 import { Bot, X, Send, Sparkles, Lock, RefreshCw, ChevronDown, Zap } from 'lucide-react'
 import Link from 'next/link'
 
@@ -26,11 +27,28 @@ interface Props {
   initialUsage?: UsageInfo | null
 }
 
-// ─── Default context (used when no page sets a specific one) ─────────────────
-const DEFAULT_CONTEXT: CopilotContext = {
-  moduleKey: 'home',
-  moduleLabel: 'Panel general',
-  data: {},
+// ─── Route → module mapping (fallback when no page calls setCopilotContext) ───
+const ROUTE_MODULE_MAP: { pattern: RegExp; moduleKey: string; moduleLabel: string }[] = [
+  { pattern: /\/admin\/queue/,        moduleKey: 'queue',         moduleLabel: 'Colas de espera' },
+  { pattern: /\/admin\/appointments/, moduleKey: 'appointments',  moduleLabel: 'Citas' },
+  { pattern: /\/admin\/clientes/,     moduleKey: 'clientes',      moduleLabel: 'Clientes' },
+  { pattern: /\/admin\/crm/,          moduleKey: 'clientes',      moduleLabel: 'Clientes' },
+  { pattern: /\/admin\/surveys/,      moduleKey: 'encuestas',     moduleLabel: 'Encuestas' },
+  { pattern: /\/admin\/menu/,         moduleKey: 'ventas',        moduleLabel: 'Menú / Preorden' },
+  { pattern: /\/admin\/reports/,      moduleKey: 'reportes',      moduleLabel: 'Reportes' },
+  { pattern: /\/admin\/pqrs/,         moduleKey: 'pqrs',          moduleLabel: 'PQRS' },
+  { pattern: /\/admin\/cuotas/,       moduleKey: 'cuotas',        moduleLabel: 'Cuotas' },
+  { pattern: /\/admin\/coprop/,       moduleKey: 'copropiedades', moduleLabel: 'Copropiedades' },
+  { pattern: /\/admin/,               moduleKey: 'home',          moduleLabel: 'Panel general' },
+]
+
+function contextFromPath(pathname: string): CopilotContext {
+  const match = ROUTE_MODULE_MAP.find(r => r.pattern.test(pathname))
+  return {
+    moduleKey:   match?.moduleKey   ?? 'home',
+    moduleLabel: match?.moduleLabel ?? 'Panel general',
+    data: {},
+  }
 }
 
 // ─── Singleton context store (avoids prop-drilling) ──────────────────────────
@@ -55,8 +73,9 @@ const SUGGESTIONS: Record<string, string[]> = {
 const FREE_MODULES = ['home']
 
 export function AICopilot({ initialUsage }: Props) {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
-  const [context, setContext] = useState<CopilotContext | null>(DEFAULT_CONTEXT)
+  const [context, setContext] = useState<CopilotContext | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [streaming, setStreaming] = useState(false)
@@ -66,16 +85,23 @@ export function AICopilot({ initialUsage }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
 
-  // Register the global setter
+  // Register the global setter (pages call this to push rich context + data)
   useEffect(() => {
     _setContext = (ctx) => {
       setContext(ctx)
-      // Reset conversation when module changes
       setMessages([])
       setUpgradePrompt(false)
     }
     return () => { _setContext = null }
   }, [])
+
+  // When the route changes and no page has pushed an explicit context, clear it
+  // so activeContext falls back to the path-derived one automatically.
+  useEffect(() => {
+    setContext(null)
+    setMessages([])
+    setUpgradePrompt(false)
+  }, [pathname])
 
   useEffect(() => {
     if (open) {
@@ -84,7 +110,7 @@ export function AICopilot({ initialUsage }: Props) {
     }
   }, [open, messages])
 
-  const activeContext = context ?? DEFAULT_CONTEXT
+  const activeContext = context ?? contextFromPath(pathname)
   const isFreePlan = usage?.plan === 'free'
   const isModuleLocked = isFreePlan && !FREE_MODULES.includes(activeContext.moduleKey)
   const isExhausted = (usage?.remaining ?? 1) <= 0
@@ -98,7 +124,7 @@ export function AICopilot({ initialUsage }: Props) {
   useEffect(() => { if (open && !usage) loadUsage() }, [open])
 
   const sendMessage = useCallback(async (text: string) => {
-    const activeContext = context ?? DEFAULT_CONTEXT
+    const activeContext = context ?? contextFromPath(pathname)
     if (!text.trim() || streaming) return
 
     const userMsg: Message = { role: 'user', content: text.trim() }
@@ -183,7 +209,7 @@ export function AICopilot({ initialUsage }: Props) {
     }
 
     setStreaming(false)
-  }, [context, messages, streaming, isFreePlan, usage])
+  }, [context, pathname, messages, streaming, isFreePlan, usage])
 
   const handleSubmit = (e: React.FormEvent) => { e.preventDefault(); sendMessage(input) }
 
