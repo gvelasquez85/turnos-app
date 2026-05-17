@@ -217,10 +217,9 @@ export async function POST(req: NextRequest) {
       }
 
       if (orRes.ok && orRes.body) {
-        const grokRes = orRes  // reusar bloque de streaming
         const encoder = new TextEncoder()
         const decoder = new TextDecoder()
-        const reader = grokRes.body.getReader()
+        const reader = orRes.body.getReader()
 
         const stream = new ReadableStream({
           async start(controller) {
@@ -254,10 +253,6 @@ export async function POST(req: NextRequest) {
         return new Response(stream, {
           headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' },
         })
-      } else {
-        const errBody = await grokRes.text()
-        console.error('[Help Ask] Grok error:', grokRes.status, errBody)
-        // Caer al motor extractivo si Grok falla
       }
     }
 
