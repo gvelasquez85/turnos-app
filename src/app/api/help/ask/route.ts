@@ -199,7 +199,7 @@ export async function POST(req: NextRequest) {
           'Authorization': `Bearer ${grokKey}`,
         },
         body: JSON.stringify({
-          model: 'grok-3-mini',
+          model: 'grok-3-mini-beta',
           max_tokens: 400,
           messages: [
             { role: 'system', content: systemPrompt },
@@ -208,6 +208,11 @@ export async function POST(req: NextRequest) {
           stream: true,
         }),
       })
+
+      if (!grokRes.ok) {
+        const errBody = await grokRes.text()
+        console.error('[Help Ask] Grok error:', grokRes.status, errBody)
+      }
 
       if (grokRes.ok && grokRes.body) {
         const encoder = new TextEncoder()
