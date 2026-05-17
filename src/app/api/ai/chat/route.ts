@@ -63,7 +63,7 @@ async function callClaude(
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
-      'anthropic-beta': 'messages-2023-12-15',
+      
     },
     body: JSON.stringify({
       model,
@@ -250,7 +250,7 @@ export async function POST(req: NextRequest) {
     } else {
       // TurnFlow managed: use platform Anthropic key + Haiku
       const apiKey = process.env.ANTHROPIC_API_KEY!
-      const model = 'claude-haiku-3-5-20241022'
+      const model = 'claude-3-5-haiku-20241022'
       stream = await callClaude(systemPrompt, effectiveMessages, model, apiKey)
     }
 
