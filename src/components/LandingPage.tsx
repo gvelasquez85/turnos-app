@@ -1,4 +1,7 @@
 'use client'
+
+// URL de la app — en prod: https://app.turnflow.com.co ; en dev: mismo dominio
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? ''
 import Link from 'next/link'
 import { useState } from 'react'
 
@@ -647,8 +650,8 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
               </div>
             </div>
             <div className="tf-nav-right">
-              <Link href="/login" className="tf-btn-link">Iniciar sesión</Link>
-              <Link href="/register" className="tf-btn tf-btn-indigo">Empezar gratis</Link>
+              <a href={`${APP_URL}/login`} className="tf-btn-link">Iniciar sesión</a>
+              <a href={`${APP_URL}/register`} className="tf-btn tf-btn-indigo">Empezar gratis</a>
             </div>
           </nav>
         </div>
@@ -673,10 +676,10 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
                 {c('hero_subtitle', 'TurnFlow centraliza tus clientes, automatiza recordatorios y elimina las filas. Todo desde el celular, sin complicaciones.')}
               </p>
               <div className="tf-hero-cta">
-                <Link href="/register" className="tf-btn tf-btn-indigo tf-btn-lg">
+                <a href={`${APP_URL}/register`} className="tf-btn tf-btn-indigo tf-btn-lg">
                   {c('hero_cta_primary', 'Empezar gratis')}
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8H13M9 4L13 8L9 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                </Link>
+                </a>
                 <a href="#como-funciona" className="tf-btn tf-btn-ghost tf-btn-lg">{c('hero_cta_secondary', 'Ver cómo funciona')}</a>
               </div>
               <div className="tf-hero-trust">
@@ -1202,9 +1205,9 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
                   <li key={f}><CheckIcon />{f}</li>
                 ))}
               </ul>
-              <Link href="/register" className="tf-btn tf-btn-ghost" style={{ justifyContent: 'center' }}>
+              <a href={`${APP_URL}/register`} className="tf-btn tf-btn-ghost" style={{ justifyContent: "center" }}>
                 Empezar gratis
-              </Link>
+              </a>
             </div>
 
             {/* Essential plan */}
@@ -1221,9 +1224,9 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
                   <li key={f}><CheckIcon />{f}</li>
                 ))}
               </ul>
-              <Link href="/register" className="tf-btn tf-btn-ghost" style={{ justifyContent: 'center' }}>
+              <a href={`${APP_URL}/register`} className="tf-btn tf-btn-ghost" style={{ justifyContent: "center" }}>
                 Empezar gratis
-              </Link>
+              </a>
             </div>
 
             {/* Business plan */}
@@ -1241,9 +1244,9 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
                   <li key={f}><CheckIcon dark />{f}</li>
                 ))}
               </ul>
-              <Link href="/register" className="tf-btn tf-btn-white" style={{ justifyContent: 'center' }}>
+              <a href={`${APP_URL}/register`} className="tf-btn tf-btn-white" style={{ justifyContent: "center" }}>
                 Empezar gratis
-              </Link>
+              </a>
             </div>
           </div>
 
@@ -1392,8 +1395,8 @@ export function LandingPage({ content = {} }: { content?: Record<string, string>
             </div>
             <div>
               <div className="tf-footer-h">Empresa</div>
-              <a href="/login">Iniciar sesión</a>
-              <Link href="/register">Empezar gratis</Link>
+              <a href={`${APP_URL}/login`}>Iniciar sesión</a>
+              <a href={`${APP_URL}/register`}>Empezar gratis</a>
               <Link href="/ayuda">Centro de Ayuda</Link>
               <a href="mailto:hola@turnflow.com.co">Contacto</a>
             </div>
