@@ -16,7 +16,7 @@ export default async function SuperadminModulesPage() {
 
   const { data: allSubs } = await supabase
     .from('module_subscriptions')
-    .select('id, brand_id, module_key, status, trial_expires_at, expires_at, created_at')
+    .select('id, brand_id, module_key, status, trial_expires_at, expires_at, granted_by_superadmin, created_at')
     .in('status', ['active', 'trial'])
 
   return <ModulesPerBrand brands={brands ?? []} subscriptions={allSubs ?? []} />

@@ -76,6 +76,7 @@ interface Subscription {
   activated_at: string | null
   expires_at: string | null
   price_monthly: number | null
+  granted_by_superadmin?: boolean
 }
 
 interface Props {
@@ -107,6 +108,11 @@ function getStatus(sub: Subscription | undefined): ModuleStatus {
 }
 
 function StatusBadge({ status, sub }: { status: ModuleStatus; sub?: Subscription }) {
+  if (status === 'active' && sub?.granted_by_superadmin) return (
+    <span className="flex items-center gap-1 text-xs font-medium text-indigo-700 bg-indigo-100 px-2.5 py-1 rounded-full">
+      <CheckCircle size={11} /> Activo · Cortesía
+    </span>
+  )
   if (status === 'active') return (
     <span className="flex items-center gap-1 text-xs font-medium text-green-700 bg-green-100 px-2.5 py-1 rounded-full">
       <CheckCircle size={11} /> Activo
@@ -493,9 +499,9 @@ export function MarketplaceClient({
                           </button>
                         </div>
                       ) : status === 'active' ? (
-                        <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="w-full">
-                          Cancelar módulo
-                        </Button>
+                        sub?.granted_by_superadmin
+                          ? <p className="text-xs text-center text-indigo-500 font-medium py-2">Módulo activado por cortesía — no se factura</p>
+                          : <Button variant="secondary" onClick={() => cancelModule(mod.module_key)} disabled={isLoading} className="w-full">Cancelar módulo</Button>
                       ) : (
                         <div className="flex gap-2">
                           <Button onClick={() => price === 0 ? startTrial(mod.module_key) : setContractModal(mod.module_key)} className="flex-1">
